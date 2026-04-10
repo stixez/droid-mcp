@@ -116,6 +116,15 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-media`** | `search_media` `get_media_metadata` `list_albums` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_IMAGES` `READ_MEDIA_VIDEO` (API 33+) |
 | **`droid-mcp-location`** | `get_current_location` `get_location_address` | `ACCESS_FINE_LOCATION` `ACCESS_COARSE_LOCATION` |
 | **`droid-mcp-health`** | `get_step_count` `get_activity_info` | `ACTIVITY_RECOGNITION` (API 29+) |
+| **`droid-mcp-clipboard`** | `read_clipboard` `write_clipboard` | None |
+| **`droid-mcp-apps`** | `list_installed_apps` `get_app_info` `launch_app` | None |
+| **`droid-mcp-alarms`** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` |
+| **`droid-mcp-settings`** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` `CHANGE_WIFI_STATE` |
+| **`droid-mcp-bluetooth`** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH` `BLUETOOTH_CONNECT` (API 31+) |
+| **`droid-mcp-wifi`** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` `ACCESS_FINE_LOCATION` |
+| **`droid-mcp-downloads`** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_*` (API 33+) |
+| **`droid-mcp-screen`** | `get_screen_state` `get_display_info` | None |
+| **`droid-mcp-tts`** | `speak_text` `get_tts_info` | None |
 | **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
@@ -203,6 +212,77 @@ Returns notifications posted by the host app by default. Full cross-app access r
 | `get_activity_info` | Available motion sensors | — |
 
 Step data is sensor-based (not Health Connect). Values reset on device reboot.
+
+### Clipboard
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `read_clipboard` | Read current clipboard content | — |
+| `write_clipboard` | Write text to clipboard | `text` (required), `label` |
+
+### Apps
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_installed_apps` | List installed applications | `include_system`, `limit` |
+| `get_app_info` | Details for a specific app | `package_name` (required) |
+| `launch_app` | Launch an application | `package_name` (required) |
+
+### Alarms
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `create_alarm` | Set an alarm | `hour` (required), `minute` (required), `message`, `days` |
+| `create_timer` | Start a countdown timer | `seconds` (required), `message` |
+| `create_reminder` | Create a calendar reminder | `title` (required), `datetime` (required), `minutes_before` |
+
+### Settings
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_settings` | Read brightness, volume, WiFi, Bluetooth status | — |
+| `set_brightness` | Set screen brightness | `level` (required, 0-255) |
+| `set_volume` | Set volume level | `stream` (media/ring/alarm), `level` (required) |
+| `toggle_wifi` | Toggle WiFi on/off | `enabled` (required) |
+
+On API 29+, `toggle_wifi` opens the system WiFi settings panel instead of toggling directly.
+
+### Bluetooth
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_bluetooth_status` | Adapter status and name | — |
+| `list_paired_devices` | Bonded Bluetooth devices | — |
+
+### WiFi
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_wifi_info` | Current WiFi connection details | — |
+| `list_saved_networks` | Saved WiFi networks | — |
+
+SSID access requires location permission on API 26+. `list_saved_networks` returns empty on API 29+ due to platform restrictions.
+
+### Downloads
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_downloads` | Files in Downloads folder | `limit`, `sort_by` (date/name/size) |
+| `search_downloads` | Search downloads by filename | `query` (required), `limit` |
+
+### Screen
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_screen_state` | Screen on/off, rotation, locked status | — |
+| `get_display_info` | Resolution, density, refresh rate | — |
+
+### Text-to-Speech
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `speak_text` | Speak text aloud | `text` (required), `language`, `pitch`, `speed` |
+| `get_tts_info` | Available TTS engines and languages | — |
 
 ---
 
@@ -308,6 +388,15 @@ droid-mcp/
 ├── droid-mcp-media/           Photos, videos, albums
 ├── droid-mcp-location/        GPS location, geocoding
 ├── droid-mcp-health/          Step counter, motion sensors
+├── droid-mcp-clipboard/       Clipboard read/write
+├── droid-mcp-apps/            Installed apps, launch
+├── droid-mcp-alarms/          Alarms, timers, reminders
+├── droid-mcp-settings/        Brightness, volume, WiFi
+├── droid-mcp-bluetooth/       Bluetooth status, paired devices
+├── droid-mcp-wifi/            WiFi connection info
+├── droid-mcp-downloads/       Downloads folder
+├── droid-mcp-screen/          Screen state, display info
+├── droid-mcp-tts/             Text-to-speech
 ├── droid-mcp-all/             All modules combined
 └── sample-app/                Demo application
 ```
