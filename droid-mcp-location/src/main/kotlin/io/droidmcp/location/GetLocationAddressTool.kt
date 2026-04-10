@@ -4,7 +4,10 @@ import android.content.Context
 import android.location.Geocoder
 import android.os.Build
 import io.droidmcp.core.*
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.*
+import kotlin.coroutines.resume
 
 class GetLocationAddressTool(private val context: Context) : McpTool {
 
@@ -32,20 +35,17 @@ class GetLocationAddressTool(private val context: Context) : McpTool {
 
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // Use async API on API 33+
-                var result: ToolResult? = null
-                val latch = java.util.concurrent.CountDownLatch(1)
-                geocoder.getFromLocation(latitude, longitude, 1) { addresses ->
-                    result = if (addresses.isEmpty()) {
-                        ToolResult.error("No address found for coordinates ($latitude, $longitude)")
-                    } else {
-                        val addr = addresses[0]
-                        ToolResult.success(buildAddressMap(addr, latitude, longitude))
+                withTimeoutOrNull(5000) {
+                    suspendCancellableCoroutine { cont ->
+                        geocoder.getFromLocation(latitude, longitude, 1) { addresses ->
+                            if (addresses.isEmpty()) {
+                                cont.resume(ToolResult.error("No address found for coordinates ($latitude, $longitude)"))
+                            } else {
+                                cont.resume(buildAddressMap(addresses[0], latitude, longitude).let { ToolResult.success(it) })
+                            }
+                        }
                     }
-                    latch.countDown()
-                }
-                latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
-                result ?: ToolResult.error("Geocoder timed out")
+                } ?: ToolResult.error("Geocoding timed out")
             } else {
                 @Suppress("DEPRECATION")
                 val addresses = geocoder.getFromLocation(latitude, longitude, 1)

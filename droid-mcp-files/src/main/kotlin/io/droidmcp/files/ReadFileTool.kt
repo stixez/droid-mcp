@@ -13,11 +13,6 @@ class ReadFileTool(private val context: Context) : McpTool {
         ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER),
     )
 
-    private val textMimeTypes = setOf(
-        "text/", "application/json", "application/xml", "application/javascript",
-        "application/x-sh", "application/x-yaml",
-    )
-
     private val textExtensions = setOf(
         "txt", "md", "json", "xml", "csv", "log", "yaml", "yml", "toml", "ini",
         "conf", "cfg", "properties", "sh", "bat", "js", "ts", "kt", "java",
@@ -29,6 +24,8 @@ class ReadFileTool(private val context: Context) : McpTool {
         val path = params["path"]?.toString()
             ?: return ToolResult.error("path is required")
         val maxLines = (params["max_lines"] as? Number)?.toInt()?.coerceIn(1, 1000) ?: 100
+
+        PathValidator.validate(path)?.let { return ToolResult.error(it) }
 
         val file = File(path)
         if (!file.exists()) return ToolResult.error("File does not exist: $path")
@@ -49,20 +46,21 @@ class ReadFileTool(private val context: Context) : McpTool {
         }
 
         val lines = mutableListOf<String>()
-        var totalLines = 0
+        var truncated = false
         file.bufferedReader().use { reader ->
             for (line in reader.lineSequence()) {
-                totalLines++
-                if (lines.size < maxLines) lines.add(line)
+                if (lines.size >= maxLines) {
+                    truncated = true
+                    break
+                }
+                lines.add(line)
             }
         }
 
-        val truncated = totalLines > maxLines
         return ToolResult.success(mapOf(
             "path" to path,
             "content" to lines.joinToString("\n"),
             "lines_returned" to lines.size,
-            "total_lines" to totalLines,
             "truncated" to truncated,
         ))
     }

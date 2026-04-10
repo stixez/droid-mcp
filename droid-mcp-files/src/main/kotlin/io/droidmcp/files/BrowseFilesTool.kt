@@ -19,6 +19,8 @@ class BrowseFilesTool(private val context: Context) : McpTool {
         val path = params["path"]?.toString() ?: "/sdcard"
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
+        PathValidator.validate(path)?.let { return ToolResult.error(it) }
+
         val dir = File(path)
         if (!dir.exists()) return ToolResult.error("Path does not exist: $path")
         if (!dir.isDirectory) return ToolResult.error("Path is not a directory: $path")

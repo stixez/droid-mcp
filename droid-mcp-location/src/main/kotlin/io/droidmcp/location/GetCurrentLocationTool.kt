@@ -17,6 +17,10 @@ class GetCurrentLocationTool(private val context: Context) : McpTool {
 
     @SuppressLint("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult {
+        if (!LocationTools.hasPermissions(context)) {
+            return ToolResult.error("Location permission not granted. Grant ACCESS_FINE_LOCATION or ACCESS_COARSE_LOCATION first.")
+        }
+
         val accuracy = params["accuracy"]?.toString()?.lowercase() ?: "coarse"
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager

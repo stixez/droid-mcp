@@ -22,6 +22,8 @@ class SearchFilesTool(private val context: Context) : McpTool {
         val path = params["path"]?.toString() ?: "/sdcard"
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
+        PathValidator.validate(path)?.let { return ToolResult.error(it) }
+
         val root = File(path)
         if (!root.exists()) return ToolResult.error("Path does not exist: $path")
         if (!root.isDirectory) return ToolResult.error("Path is not a directory: $path")
@@ -31,7 +33,8 @@ class SearchFilesTool(private val context: Context) : McpTool {
         val results = mutableListOf<Map<String, Any?>>()
         val queryLower = query.lowercase()
 
-        fun searchDir(dir: File) {
+        fun searchDir(dir: File, currentDepth: Int, maxDepth: Int) {
+            if (currentDepth > maxDepth) return
             if (results.size >= limit) return
             try {
                 dir.listFiles()?.forEach { file ->
@@ -46,7 +49,7 @@ class SearchFilesTool(private val context: Context) : McpTool {
                         ))
                     }
                     if (file.isDirectory && file.canRead()) {
-                        searchDir(file)
+                        searchDir(file, currentDepth + 1, maxDepth)
                     }
                 }
             } catch (_: SecurityException) {
@@ -54,7 +57,7 @@ class SearchFilesTool(private val context: Context) : McpTool {
             }
         }
 
-        searchDir(root)
+        searchDir(root, currentDepth = 0, maxDepth = 5)
 
         return ToolResult.success(mapOf(
             "query" to query,
