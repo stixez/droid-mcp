@@ -1,407 +1,295 @@
-# droid-mcp
+<p align="center">
+  <h1 align="center">droid-mcp</h1>
+  <p align="center">
+    Privacy-first MCP SDK for Android<br/>
+    Give local LLMs structured access to phone data — entirely on-device.
+  </p>
+</p>
 
-**Privacy-first MCP SDK for Android.** Gives local LLMs structured access to your phone data — calendar, contacts, SMS, files, photos, location, and more. Everything stays on device.
-
-No cloud. No API keys. No data leaves your phone.
-
----
-
-## What is this?
-
-An open-source Android library that exposes phone capabilities via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). Built for the era of on-device AI — Gemma 4, Llama, and other local LLMs that run directly on your phone.
-
-Instead of screen-tapping or sending your data to the cloud, droid-mcp gives AI **direct, typed access** to Android APIs: read your calendar, search contacts, browse files, check your location — all through a standard protocol, all on-device.
-
-### Why droid-mcp?
-
-- **Privacy first** — Your data never leaves your phone. No servers, no cloud, no tracking.
-- **MCP standard** — Works with any MCP-compatible client (Claude Code, Cursor, custom apps).
-- **Modular** — Only include what you need. Calendar but not SMS? Just add that one module.
-- **Production ready** — Input validation, path sandboxing, permission helpers, error handling.
-- **Two transports** — In-process calls for on-device LLMs, HTTP server for desktop connections.
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
+  <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
+  <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
+</p>
 
 ---
 
-## Quick Start
+## Overview
 
-### 1. Add dependencies
+droid-mcp is an open-source Android library that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It is designed for on-device AI assistants — Gemma 4, Llama, and other local LLMs running directly on the phone.
 
-Pick only the modules you need:
+The library provides typed, structured access to Android system APIs (calendar, contacts, files, location, and more) without sending any data off-device. It supports both in-process tool calls for on-device LLMs and an HTTP transport for connecting desktop MCP clients over a local network.
+
+**Key principles:**
+
+- All data stays on the device. No cloud services, no API keys, no telemetry.
+- Modular architecture — include only the capabilities your app needs.
+- Standard MCP protocol — compatible with any MCP client.
+- Input validation, path sandboxing, and permission checks built in.
+
+---
+
+## Getting Started
+
+### Installation
+
+Add the modules you need to your `build.gradle.kts`:
 
 ```kotlin
-// build.gradle.kts
 dependencies {
+    // Core is always required
     implementation("io.droidmcp:core:0.1.0")
+
+    // Add the capabilities you need
+    implementation("io.droidmcp:device:0.1.0")
     implementation("io.droidmcp:calendar:0.1.0")
     implementation("io.droidmcp:contacts:0.1.0")
-    implementation("io.droidmcp:device:0.1.0")
-}
+    implementation("io.droidmcp:sms:0.1.0")
+    implementation("io.droidmcp:files:0.1.0")
+    implementation("io.droidmcp:media:0.1.0")
+    implementation("io.droidmcp:location:0.1.0")
 
-// Or include everything:
-// implementation("io.droidmcp:all:0.1.0")
+    // Or include everything at once
+    // implementation("io.droidmcp:all:0.1.0")
+}
 ```
 
-### 2. Initialize
+### Initialization
 
 ```kotlin
 val mcp = DroidMcp.builder()
-    .addTools(DeviceTools.all(context))         // always available, no permissions
-    .addTools(CalendarTools.all(context))        // needs READ_CALENDAR
-    .addTools(ContactsTools.all(context))        // needs READ_CONTACTS
+    .addTools(DeviceTools.all(context))
+    .addTools(CalendarTools.all(context))
+    .addTools(ContactsTools.all(context))
     .build()
 ```
 
-### 3. Use from your local LLM
+### Calling Tools
 
 ```kotlin
-// Get tool definitions (JSON) to include in your LLM prompt
+// Get tool definitions as JSON (for your LLM prompt)
 val toolsJson = mcp.listToolsJson()
 
-// Call a tool with parameters
+// Execute a tool
 val result = mcp.callTool("read_calendar", mapOf(
     "start_date" to "2026-04-10",
     "end_date" to "2026-04-17"
 ))
 
-// Check the result
 if (result.isSuccess) {
-    val events = result.data  // Map with "events" list and "count"
+    val data = result.data   // Map containing "events" and "count"
 } else {
     val error = result.errorMessage
 }
 ```
 
-### 4. Handle permissions
+### Permission Handling
 
-The library never requests permissions itself. Your app handles the UX:
+The library does not request permissions. Each module provides helpers so your app can manage the permission UX:
 
 ```kotlin
-// Check what's granted
 if (CalendarTools.hasPermissions(context)) {
-    mcp.addTools(CalendarTools.all(context))
+    droidMcp.addTools(CalendarTools.all(context))
+} else {
+    val needed = CalendarTools.requiredPermissions()
+    // Request permissions through your app's UI
 }
-
-// Get the list of needed permissions
-val needed = CalendarTools.requiredPermissions()
-// → [Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR]
 ```
 
 ---
 
 ## Modules
 
-### Core
-
-| Module | Description | Permissions |
-|--------|-------------|-------------|
-| `droid-mcp-core` | MCP protocol, tool interface, in-process + HTTP transports | INTERNET (for HTTP server only) |
-
-### Tier 1 — Essential Phone Data
+Each module is an independent Gradle artifact. Only the permissions for included modules are added to your app's manifest.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
-| `droid-mcp-device` | `get_device_info`, `get_battery_info`, `get_connectivity`, `get_storage_info` | None |
-| `droid-mcp-calendar` | `read_calendar`, `create_event`, `search_events` | READ_CALENDAR, WRITE_CALENDAR |
-| `droid-mcp-contacts` | `search_contacts`, `read_contact`, `list_contacts` | READ_CONTACTS |
-| `droid-mcp-sms` | `read_messages`, `send_message`, `search_messages` | READ_SMS, SEND_SMS |
-
-### Tier 2 — Files, Notifications, Calls
-
-| Module | Tools | Permissions |
-|--------|-------|-------------|
-| `droid-mcp-files` | `browse_files`, `read_file`, `search_files` | READ_EXTERNAL_STORAGE (API < 33) / READ_MEDIA_* (API 33+) |
-| `droid-mcp-notifications` | `get_active_notifications` | None (own-app only; full access needs NotificationListenerService) |
-| `droid-mcp-calllog` | `read_call_log`, `search_call_log` | READ_CALL_LOG |
-
-### Tier 3 — Media, Location, Health
-
-| Module | Tools | Permissions |
-|--------|-------|-------------|
-| `droid-mcp-media` | `search_media`, `get_media_metadata`, `list_albums` | READ_EXTERNAL_STORAGE (API < 33) / READ_MEDIA_IMAGES, READ_MEDIA_VIDEO (API 33+) |
-| `droid-mcp-location` | `get_current_location`, `get_location_address` | ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION |
-| `droid-mcp-health` | `get_step_count`, `get_activity_info` | ACTIVITY_RECOGNITION (API 29+) |
-
-### Convenience
-
-| Module | Description |
-|--------|-------------|
-| `droid-mcp-all` | Pulls in all modules above. One dependency for everything. |
+| **`droid-mcp-core`** | MCP protocol, in-process + HTTP transports | `INTERNET` |
+| **`droid-mcp-device`** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | None |
+| **`droid-mcp-calendar`** | `read_calendar` `create_event` `search_events` | `READ_CALENDAR` `WRITE_CALENDAR` |
+| **`droid-mcp-contacts`** | `search_contacts` `read_contact` `list_contacts` | `READ_CONTACTS` |
+| **`droid-mcp-sms`** | `read_messages` `send_message` `search_messages` | `READ_SMS` `SEND_SMS` |
+| **`droid-mcp-files`** | `browse_files` `read_file` `search_files` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_*` (API 33+) |
+| **`droid-mcp-notifications`** | `get_active_notifications` | None |
+| **`droid-mcp-calllog`** | `read_call_log` `search_call_log` | `READ_CALL_LOG` |
+| **`droid-mcp-media`** | `search_media` `get_media_metadata` `list_albums` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_IMAGES` `READ_MEDIA_VIDEO` (API 33+) |
+| **`droid-mcp-location`** | `get_current_location` `get_location_address` | `ACCESS_FINE_LOCATION` `ACCESS_COARSE_LOCATION` |
+| **`droid-mcp-health`** | `get_step_count` `get_activity_info` | `ACTIVITY_RECOGNITION` (API 29+) |
+| **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
 
 ## Tool Reference
 
-### Device Tools
+### Device
 
-**`get_device_info`** — Device model, manufacturer, OS version, screen dimensions.
-```json
-// No parameters required
-// Returns: manufacturer, model, brand, os_version, sdk_version, screen_width, screen_height, screen_density
-```
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_device_info` | Model, manufacturer, OS version, screen dimensions | — |
+| `get_battery_info` | Battery level, charging status, power source | — |
+| `get_connectivity` | WiFi, cellular, Bluetooth connection status | — |
+| `get_storage_info` | Total, available, and used storage | — |
 
-**`get_battery_info`** — Battery level and charging status.
-```json
-// Returns: level_percent, is_charging, charging_source (usb/ac/wireless/none)
-```
+### Calendar
 
-**`get_connectivity`** — Network status.
-```json
-// Returns: is_connected, has_wifi, has_cellular, has_bluetooth
-```
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `read_calendar` | Read events for a date range | `start_date` (required), `end_date`, `limit` |
+| `create_event` | Create a calendar event | `title` (required), `start` (required), `end` (required), `location`, `description`, `calendar_id` |
+| `search_events` | Search events by keyword | `query` (required), `limit` |
 
-**`get_storage_info`** — Available storage space.
-```json
-// Returns: total_bytes, available_bytes, used_bytes, total_gb, available_gb
-```
+### Contacts
 
-### Calendar Tools
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `search_contacts` | Find contacts by name | `query` (required), `limit` |
+| `read_contact` | Full details for a contact | `contact_id` (required) |
+| `list_contacts` | Paginated contact list | `limit`, `offset` |
 
-**`read_calendar`** — Read events for a date range.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `start_date` | string | yes | YYYY-MM-DD format |
-| `end_date` | string | no | Defaults to start_date |
-| `limit` | int | no | Max results (1-100, default 20) |
+### SMS
 
-**`create_event`** — Create a calendar event.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | string | yes | Event title |
-| `start` | string | yes | YYYY-MM-DD HH:mm |
-| `end` | string | yes | YYYY-MM-DD HH:mm |
-| `location` | string | no | Event location |
-| `description` | string | no | Event description |
-| `calendar_id` | int | no | Defaults to primary calendar |
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `read_messages` | Read SMS with filters | `box`, `address`, `since`, `limit` |
+| `send_message` | Send an SMS (validated) | `to` (required), `body` (required) |
+| `search_messages` | Search messages by keyword | `query` (required), `limit` |
 
-**`search_events`** — Search events by keyword in title or description.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | yes | Search keyword |
-| `limit` | int | no | Max results (1-100, default 20) |
+### Files
 
-### Contacts Tools
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `browse_files` | List directory contents | `path`, `limit` |
+| `read_file` | Read text file content | `path` (required), `max_lines` |
+| `search_files` | Recursive filename search | `query` (required), `path`, `limit` |
 
-**`search_contacts`** — Find contacts by name.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | yes | Name to search |
-| `limit` | int | no | Max results (1-100, default 20) |
+File access is sandboxed to external storage directories. Paths outside the allowed roots are rejected.
 
-**`read_contact`** — Full details for a specific contact.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `contact_id` | int | yes | Contact ID |
+### Notifications
 
-**`list_contacts`** — Paginated list of all contacts.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | int | no | Per page (1-100, default 50) |
-| `offset` | int | no | Skip count (default 0) |
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_active_notifications` | Read active status bar notifications | `limit` |
 
-### SMS Tools
+Returns notifications posted by the host app by default. Full cross-app access requires configuring a `NotificationListenerService`.
 
-**`read_messages`** — Read SMS messages with filters.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `box` | string | no | "inbox" or "sent" (default "inbox") |
-| `address` | string | no | Filter by phone number |
-| `since` | string | no | Messages after YYYY-MM-DD |
-| `limit` | int | no | Max results (1-100, default 20) |
+### Call Log
 
-**`send_message`** — Send an SMS. Phone number is validated before sending.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `to` | string | yes | Recipient phone number |
-| `body` | string | yes | Message text |
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `read_call_log` | Recent call history | `limit`, `type` (all/incoming/outgoing/missed) |
+| `search_call_log` | Search by number or name | `query` (required), `limit` |
 
-**`search_messages`** — Search SMS by keyword.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | yes | Search keyword |
-| `limit` | int | no | Max results (1-100, default 20) |
+### Media
 
-### Files Tools
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `search_media` | Search photos and videos | `query`, `start_date`, `end_date`, `media_type`, `limit`, `offset` |
+| `get_media_metadata` | Metadata for a media file | `media_id` (required) |
+| `list_albums` | Photo/video albums with counts | `limit` |
 
-**`browse_files`** — List files in a directory. Sandboxed to external storage.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `path` | string | no | Directory path (default: /sdcard) |
-| `limit` | int | no | Max results (1-100, default 50) |
+### Location
 
-**`read_file`** — Read text file content. Returns error for binary files.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `path` | string | yes | File path |
-| `max_lines` | int | no | Lines to read (default 100) |
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_current_location` | Device GPS coordinates | `accuracy` (fine/coarse) |
+| `get_location_address` | Reverse geocode to address | `latitude` (required), `longitude` (required) |
 
-**`search_files`** — Recursive file name search. Max depth 5 directories.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | yes | Filename pattern |
-| `path` | string | no | Starting directory (default: /sdcard) |
-| `limit` | int | no | Max results (1-100, default 20) |
+### Health
 
-### Notifications Tools
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_step_count` | Steps since device reboot | — |
+| `get_activity_info` | Available motion sensors | — |
 
-**`get_active_notifications`** — Read active notifications. Note: only sees notifications from the host app unless NotificationListenerService is configured.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | int | no | Max results (1-100, default 20) |
-
-### Call Log Tools
-
-**`read_call_log`** — Recent call history.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | int | no | Max results (1-100, default 20) |
-| `type` | string | no | "all", "incoming", "outgoing", "missed" (default "all") |
-
-**`search_call_log`** — Search calls by number or contact name.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | yes | Phone number or name |
-| `limit` | int | no | Max results (1-100, default 20) |
-
-### Media Tools
-
-**`search_media`** — Search photos and videos.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `query` | string | no | Filename keyword |
-| `start_date` | string | no | YYYY-MM-DD |
-| `end_date` | string | no | YYYY-MM-DD |
-| `media_type` | string | no | "images", "videos", "all" (default "all") |
-| `limit` | int | no | Max results (1-100, default 20) |
-| `offset` | int | no | Skip count (default 0) |
-
-**`get_media_metadata`** — Detailed metadata for a media file.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `media_id` | int | yes | Media ID from search results |
-
-**`list_albums`** — List photo/video albums with item counts.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | int | no | Max albums (1-100, default 50) |
-
-### Location Tools
-
-**`get_current_location`** — Device's current location (uses last known location).
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `accuracy` | string | no | "fine" or "coarse" (default "coarse") |
-
-**`get_location_address`** — Reverse geocode coordinates to address.
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `latitude` | number | yes | Latitude |
-| `longitude` | number | yes | Longitude |
-
-### Health Tools
-
-**`get_step_count`** — Steps since last device reboot (sensor-based).
-```json
-// No parameters. Returns: steps, sensor_name, note about since-reboot limitation
-```
-
-**`get_activity_info`** — Available motion/health sensors on the device.
-```json
-// No parameters. Returns: has_step_counter, has_step_detector, sensors list, step_count (if available)
-```
+Step data is sensor-based (not Health Connect). Values reset on device reboot.
 
 ---
 
 ## Desktop Connection
 
-Connect Claude Code (or any MCP client) to your phone over WiFi:
+The HTTP transport allows any MCP client on your local network to connect to the phone.
+
+**On the Android device:**
 
 ```kotlin
-// In your Android app
 val mcp = DroidMcp.builder()
     .addTools(DeviceTools.all(context))
     .addTools(CalendarTools.all(context))
-    .enableHttpServer(port = 8080, token = "my-secret-token")  // optional auth
+    .enableHttpServer(port = 8080, token = "your-secret-token")
     .build()
 
 mcp.startServer()
 ```
 
-In Claude Code settings (`~/.claude/settings.json`):
+**In Claude Code** (`~/.claude/settings.json`):
+
 ```json
 {
   "mcpServers": {
     "droid-mcp": {
       "type": "http",
-      "url": "http://192.168.1.50:8080/mcp",
+      "url": "http://<phone-ip>:8080/mcp",
       "headers": {
-        "Authorization": "Bearer my-secret-token"
+        "Authorization": "Bearer your-secret-token"
       }
     }
   }
 }
 ```
 
-Then ask Claude: *"What's on my calendar this week?"* — it calls your phone's MCP server, reads your calendar locally, and responds.
-
-### Health endpoint
-
-Check if the server is running:
-```bash
-curl http://192.168.1.50:8080/health
-# → {"status":"ok","tools":15}
-```
+The server exposes a health check at `GET /health` that returns the number of registered tools.
 
 ---
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                     Your Android App                        │
-│                                                             │
-│  ┌───────────┐    ┌──────────────────────────────────────┐ │
-│  │ Local LLM │◄──►│            DroidMcp                  │ │
-│  │ (Gemma 4) │    │  ┌──────────────┐ ┌──────────────┐  │ │
-│  └───────────┘    │  │ InProcess    │ │ HTTP/SSE     │  │ │
-│                   │  │ Transport    │ │ Transport    │  │ │
-│                   │  └──────┬───────┘ └──────┬───────┘  │ │
-│                   │         │                 │          │ │
-│                   │  ┌──────┴─────────────────┴───────┐  │ │
-│                   │  │        ToolRegistry             │  │ │
-│                   │  └──┬────┬────┬────┬────┬────┬──┘  │ │
-│                   └─────┼────┼────┼────┼────┼────┼─────┘ │
-│                         │    │    │    │    │    │        │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ │
-│  │Device│ │ Cal  │ │Contct│ │ SMS  │ │Files │ │Media │ │
-│  │Tools │ │Tools │ │Tools │ │Tools │ │Tools │ │Tools │ │
-│  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ │
-│     │        │        │        │        │        │      │
-│  ┌──┴────────┴────────┴────────┴────────┴────────┴───┐  │
-│  │              Android System APIs                    │  │
-│  │  BatteryManager, CalendarContract, ContactsContract │  │
-│  │  Telephony.Sms, File API, MediaStore, LocationMgr  │  │
-│  └────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                 Android Application               │
+│                                                    │
+│  ┌──────────┐   ┌─────────────────────────────┐  │
+│  │ Local LLM│◄─►│          DroidMcp            │  │
+│  └──────────┘   │  ┌───────────┐ ┌──────────┐ │  │
+│                  │  │ InProcess │ │   HTTP   │ │  │
+│                  │  │ Transport │ │ Transport│ │  │
+│                  │  └─────┬─────┘ └────┬─────┘ │  │
+│                  │        └──────┬─────┘       │  │
+│                  │         ToolRegistry         │  │
+│                  └──────────┬──────────────────┘  │
+│                             │                      │
+│  ┌────────┬────────┬────────┼────────┬──────────┐ │
+│  │ Device │Calendar│Contacts│  SMS   │  Files   │ │
+│  │  Tools │ Tools  │ Tools  │ Tools  │  Tools   │ │
+│  └───┬────┴───┬────┴───┬────┴───┬────┴────┬─────┘ │
+│      └────────┴────────┴────────┴─────────┘       │
+│                  Android APIs                      │
+└──────────────────────────────────────────────────┘
 ```
+
+The `InProcessTransport` provides direct function-call access for LLMs running on the device. The `HttpTransport` starts a Ktor server that implements the MCP protocol over HTTP, allowing desktop clients to connect over WiFi.
 
 ---
 
 ## Security
 
-- **Path sandboxing** — File tools are restricted to external storage. No access to `/data`, `/system`, or other app directories.
-- **Input validation** — All parameters are validated and clamped (limit 1-100, phone number format check, etc.).
-- **Permission model** — The library never requests permissions. Your app controls what's granted.
-- **SMS safety** — Phone numbers are validated before sending. No bulk operations.
-- **HTTP auth** — Optional Bearer token authentication for the HTTP transport.
-- **Local network only** — HTTP server binds to the device's local network, not exposed to the internet.
+| Measure | Description |
+|---------|-------------|
+| **Path sandboxing** | File operations are restricted to external storage. Attempts to access system paths or other app data are rejected. |
+| **Input validation** | All parameters are validated. Numeric inputs are clamped to safe ranges. Phone numbers are checked against a format pattern before SMS is sent. |
+| **Permission isolation** | Each module declares only its own permissions. The library never triggers permission requests — your app retains full control. |
+| **Network security** | The HTTP server operates on the local network only. Optional Bearer token authentication is supported. |
+| **No data collection** | The library contains no analytics, telemetry, crash reporting, or network calls to external services. |
 
 ---
 
 ## Requirements
 
-- Android 9+ (API 28)
-- Kotlin 2.0+
-- Gradle 8.12+
+| Requirement | Minimum |
+|-------------|---------|
+| Android | 9 (API 28) |
+| Kotlin | 2.0+ |
+| Gradle | 8.12+ |
 
 ---
 
@@ -409,23 +297,41 @@ curl http://192.168.1.50:8080/health
 
 ```
 droid-mcp/
-├── droid-mcp-core/           # MCP protocol, transports, tool interface
-├── droid-mcp-device/         # Battery, connectivity, storage, device info
-├── droid-mcp-calendar/       # Calendar events
-├── droid-mcp-contacts/       # Contacts
-├── droid-mcp-sms/            # SMS messages
-├── droid-mcp-files/          # File browsing, reading, searching
-├── droid-mcp-notifications/  # Active notifications
-├── droid-mcp-calllog/        # Call history
-├── droid-mcp-media/          # Photos, videos, albums
-├── droid-mcp-location/       # GPS location, geocoding
-├── droid-mcp-health/         # Step counter, motion sensors
-├── droid-mcp-all/            # Convenience: all modules
-└── sample-app/               # Demo app
+├── droid-mcp-core/            MCP protocol, transports, tool interface
+├── droid-mcp-device/          Battery, connectivity, storage, device info
+├── droid-mcp-calendar/        Calendar events
+├── droid-mcp-contacts/        Contacts
+├── droid-mcp-sms/             SMS messages
+├── droid-mcp-files/           File browsing, reading, searching
+├── droid-mcp-notifications/   Notifications
+├── droid-mcp-calllog/         Call history
+├── droid-mcp-media/           Photos, videos, albums
+├── droid-mcp-location/        GPS location, geocoding
+├── droid-mcp-health/          Step counter, motion sensors
+├── droid-mcp-all/             All modules combined
+└── sample-app/                Demo application
 ```
 
 ---
 
+## Contributing
+
+Contributions are welcome. Please open an issue before submitting a pull request for non-trivial changes.
+
 ## License
 
-Apache 2.0
+```
+Copyright 2026
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
