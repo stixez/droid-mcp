@@ -22,6 +22,12 @@ include(
     ":droid-mcp-calendar",
     ":droid-mcp-contacts",
     ":droid-mcp-sms",
+    ":droid-mcp-files",
+    ":droid-mcp-notifications",
+    ":droid-mcp-calllog",
+    ":droid-mcp-media",
+    ":droid-mcp-location",
+    ":droid-mcp-health",
     ":droid-mcp-all",
     ":sample-app",
 )

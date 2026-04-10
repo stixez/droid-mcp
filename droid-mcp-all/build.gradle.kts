@@ -27,4 +27,10 @@ dependencies {
     api(project(":droid-mcp-calendar"))
     api(project(":droid-mcp-contacts"))
     api(project(":droid-mcp-sms"))
+    api(project(":droid-mcp-files"))
+    api(project(":droid-mcp-notifications"))
+    api(project(":droid-mcp-calllog"))
+    api(project(":droid-mcp-media"))
+    api(project(":droid-mcp-location"))
+    api(project(":droid-mcp-health"))
 }

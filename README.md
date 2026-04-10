@@ -39,6 +39,12 @@ Pick only what you need:
 | `droid-mcp-calendar` | Read/create/search calendar events | READ_CALENDAR, WRITE_CALENDAR |
 | `droid-mcp-contacts` | Search/read/list contacts | READ_CONTACTS |
 | `droid-mcp-sms` | Read/send/search SMS | READ_SMS, SEND_SMS |
+| `droid-mcp-files` | Browse, read, and search files on device storage | READ_EXTERNAL_STORAGE / READ_MEDIA_* (API 33+) |
+| `droid-mcp-notifications` | Read active notifications (own-app; full access needs NotificationListenerService) | None |
+| `droid-mcp-calllog` | Read and search call history | READ_CALL_LOG |
+| `droid-mcp-media` | Search photos/videos, get media metadata, list albums | READ_EXTERNAL_STORAGE / READ_MEDIA_IMAGES, READ_MEDIA_VIDEO (API 33+) |
+| `droid-mcp-location` | Get current location, reverse geocode coordinates | ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION |
+| `droid-mcp-health` | Step count (sensor-based), activity/sensor info | ACTIVITY_RECOGNITION (API 29+) |
 | `droid-mcp-all` | All of the above | All of the above |
 
 ## Desktop Connection
