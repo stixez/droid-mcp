@@ -17,7 +17,7 @@ implementation("io.droidmcp:calendar:0.1.0")
 implementation("io.droidmcp:contacts:0.1.0")
 
 // 2. Initialize
-val mcp = DroidMcp.builder(context)
+val mcp = DroidMcp.builder()
     .addTools(CalendarTools.all(context))
     .addTools(ContactsTools.all(context))
     .addTools(DeviceTools.all(context))
@@ -46,7 +46,7 @@ Pick only what you need:
 Connect Claude Code (or any MCP client) to your phone over WiFi:
 
 ```kotlin
-val mcp = DroidMcp.builder(context)
+val mcp = DroidMcp.builder()
     .addTools(DeviceTools.all(context))
     .enableHttpServer(port = 8080)
     .build()

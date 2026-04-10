@@ -21,7 +21,7 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         val box = params["box"]?.toString() ?: "inbox"
         val address = params["address"]?.toString()
         val since = params["since"]?.toString()
-        val limit = (params["limit"] as? Number)?.toInt() ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
         val uri = when (box) {
             "sent" -> Telephony.Sms.Sent.CONTENT_URI

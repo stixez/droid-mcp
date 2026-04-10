@@ -19,11 +19,13 @@ class HttpTransport(
     private val port: Int = 8080,
     private val authToken: String? = null,
 ) {
-    private var server: EmbeddedServer<*, *>? = null
+    @Volatile private var server: EmbeddedServer<*, *>? = null
     private val protocol = McpProtocolImpl(registry)
     private val sseEvents = MutableSharedFlow<String>()
 
     fun start() {
+        if (server != null) return
+        try {
         server = embeddedServer(Netty, port = port) {
             install(ContentNegotiation) { json() }
             install(SSE)
@@ -60,6 +62,10 @@ class HttpTransport(
                 }
             }
         }.start(wait = false)
+        } catch (e: Exception) {
+            server = null
+            throw e
+        }
     }
 
     fun stop() {

@@ -18,7 +18,7 @@ class SearchEventsTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt() ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
         val projection = arrayOf(
             CalendarContract.Events._ID,

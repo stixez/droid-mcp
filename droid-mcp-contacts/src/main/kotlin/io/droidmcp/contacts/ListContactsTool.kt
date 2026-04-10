@@ -14,8 +14,8 @@ class ListContactsTool(private val context: Context) : McpTool {
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val limit = (params["limit"] as? Number)?.toInt() ?: 50
-        val offset = (params["offset"] as? Number)?.toInt() ?: 0
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50
+        val offset = (params["offset"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0
 
         val projection = arrayOf(
             ContactsContract.Contacts._ID,

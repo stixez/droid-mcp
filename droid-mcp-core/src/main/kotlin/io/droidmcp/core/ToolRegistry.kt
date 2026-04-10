@@ -1,8 +1,10 @@
 package io.droidmcp.core
 
+import java.util.concurrent.ConcurrentHashMap
+
 class ToolRegistry {
 
-    private val tools = LinkedHashMap<String, McpTool>()
+    private val tools = ConcurrentHashMap<String, McpTool>()
 
     fun register(tool: McpTool) {
         tools[tool.name] = tool

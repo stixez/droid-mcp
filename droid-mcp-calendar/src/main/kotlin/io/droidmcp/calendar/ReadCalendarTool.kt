@@ -21,7 +21,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         val startDate = params["start_date"]?.toString()
             ?: return ToolResult.error("start_date is required")
         val endDate = params["end_date"]?.toString() ?: startDate
-        val limit = (params["limit"] as? Number)?.toInt() ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
         val startMillis = try {
             dateFormat.parse(startDate)?.time ?: return ToolResult.error("Invalid start_date format")

@@ -9,7 +9,7 @@ object SmsTools {
 
     fun all(context: Context): List<McpTool> = listOf(
         ReadMessagesTool(context),
-        SendMessageTool(),
+        SendMessageTool(context),
         SearchMessagesTool(context),
     )
 

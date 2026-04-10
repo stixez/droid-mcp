@@ -12,18 +12,22 @@ class McpProtocolImpl(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun handleMessage(jsonRequest: String): String {
-        val request = json.parseToJsonElement(jsonRequest).jsonObject
-        val id = request["id"]
-        val method = request["method"]?.jsonPrimitive?.content
-        val params = request["params"]?.jsonObject ?: JsonObject(emptyMap())
+        return try {
+            val request = json.parseToJsonElement(jsonRequest).jsonObject
+            val id = request["id"]
+            val method = request["method"]?.jsonPrimitive?.content
+            val params = request["params"]?.jsonObject ?: JsonObject(emptyMap())
 
-        return when (method) {
-            "initialize" -> handleInitialize(id, params)
-            "tools/list" -> handleToolsList(id)
-            "tools/call" -> handleToolsCall(id, params)
-            "notifications/initialized" -> ""
-            "ping" -> jsonRpcResponse(id, buildJsonObject { put("status", "ok") })
-            else -> jsonRpcError(id, -32601, "Method not found: $method")
+            when (method) {
+                "initialize" -> handleInitialize(id, params)
+                "tools/list" -> handleToolsList(id)
+                "tools/call" -> handleToolsCall(id, params)
+                "notifications/initialized" -> ""
+                "ping" -> jsonRpcResponse(id, buildJsonObject { put("status", "ok") })
+                else -> jsonRpcError(id, -32601, "Method not found: $method")
+            }
+        } catch (e: Exception) {
+            jsonRpcError(null, -32700, "Parse error: ${e.message}")
         }
     }
 
@@ -85,10 +89,6 @@ class McpProtocolImpl(
         } ?: emptyMap()
 
         val toolResult = registry.executeTool(toolName, arguments)
-
-        if (!toolResult.isSuccess && registry.getTool(toolName) == null) {
-            return jsonRpcError(id, -32602, "Unknown tool: $toolName")
-        }
 
         return if (toolResult.isSuccess) {
             val content = buildJsonArray {

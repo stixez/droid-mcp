@@ -73,7 +73,11 @@ class McpProtocolTest {
         val request = """{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"nonexistent","arguments":{}}}"""
         val response = protocol.handleMessage(request)
         val json = Json.parseToJsonElement(response).jsonObject
-        assertThat(json.toString()).contains("error")
+        // Unknown tool errors flow as MCP content errors (isError: true), not JSON-RPC level errors
+        val result = json["result"]?.jsonObject
+        assertThat(result).isNotNull()
+        assertThat(result!!["isError"].toString()).isEqualTo("true")
+        assertThat(result.toString()).contains("Unknown tool")
     }
 
     @Test
