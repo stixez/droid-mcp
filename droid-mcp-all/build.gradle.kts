@@ -33,4 +33,13 @@ dependencies {
     api(project(":droid-mcp-media"))
     api(project(":droid-mcp-location"))
     api(project(":droid-mcp-health"))
+    api(project(":droid-mcp-clipboard"))
+    api(project(":droid-mcp-apps"))
+    api(project(":droid-mcp-alarms"))
+    api(project(":droid-mcp-settings"))
+    api(project(":droid-mcp-bluetooth"))
+    api(project(":droid-mcp-wifi"))
+    api(project(":droid-mcp-downloads"))
+    api(project(":droid-mcp-screen"))
+    api(project(":droid-mcp-tts"))
 }
