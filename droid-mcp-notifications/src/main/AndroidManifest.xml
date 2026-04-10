@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- No manifest permissions required for reading own-app notifications via NotificationManager.
+         Full notification access (all apps) requires NotificationListenerService, which must be
+         granted by the user in Settings > Notifications > Notification access. -->
+</manifest>
