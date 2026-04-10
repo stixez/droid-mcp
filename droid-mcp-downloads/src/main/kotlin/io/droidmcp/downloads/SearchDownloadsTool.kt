@@ -1,0 +1,53 @@
+package io.droidmcp.downloads
+
+import android.content.Context
+import android.os.Environment
+import io.droidmcp.core.McpTool
+import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolParameter
+import io.droidmcp.core.ToolResult
+import java.io.File
+import java.util.Date
+
+class SearchDownloadsTool(private val context: Context) : McpTool {
+
+    override val name = "search_downloads"
+    override val description = "Search files in the Downloads directory by filename"
+    override val parameters = listOf(
+        ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
+        ToolParameter("limit", "Maximum number of results to return (1-100, default: 20)", ParameterType.INTEGER),
+    )
+
+    override suspend fun execute(params: Map<String, Any>): ToolResult {
+        val query = params["query"]?.toString()
+            ?: return ToolResult.error("query is required")
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+        if (!downloadsDir.exists() || !downloadsDir.canRead()) {
+            return ToolResult.error("Downloads directory is not accessible. Check storage permissions.")
+        }
+
+        val files = downloadsDir.listFiles()
+            ?.filter { it.isFile && it.name.contains(query, ignoreCase = true) }
+            ?.sortedByDescending { it.lastModified() }
+            ?.take(limit)
+            ?: emptyList()
+
+        val result = files.map { file ->
+            mapOf(
+                "name" to file.name,
+                "size_bytes" to file.length(),
+                "last_modified" to Date(file.lastModified()).toString(),
+                "extension" to (file.extension.takeIf { it.isNotEmpty() } ?: ""),
+            )
+        }
+
+        return ToolResult.success(mapOf(
+            "files" to result,
+            "count" to result.size,
+            "query" to query,
+        ))
+    }
+}
