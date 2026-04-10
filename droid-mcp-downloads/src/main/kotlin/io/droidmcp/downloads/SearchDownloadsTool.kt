@@ -7,7 +7,9 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class SearchDownloadsTool(private val context: Context) : McpTool {
 
@@ -17,6 +19,8 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (1-100, default: 20)", ParameterType.INTEGER),
     )
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
@@ -39,7 +43,7 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
             mapOf(
                 "name" to file.name,
                 "size_bytes" to file.length(),
-                "last_modified" to Date(file.lastModified()).toString(),
+                "last_modified" to dateFormat.format(Date(file.lastModified())),
                 "extension" to (file.extension.takeIf { it.isNotEmpty() } ?: ""),
             )
         }

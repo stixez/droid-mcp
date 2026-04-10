@@ -18,5 +18,6 @@ object SettingsTools {
     )
 
     fun hasPermissions(context: Context): Boolean =
-        android.provider.Settings.System.canWrite(context)
+        android.provider.Settings.System.canWrite(context) &&
+        io.droidmcp.core.PermissionHelper.hasPermissions(context, listOf(android.Manifest.permission.CHANGE_WIFI_STATE))
 }

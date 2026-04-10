@@ -53,7 +53,7 @@ class CreateAlarmTool(private val context: Context) : McpTool {
                     .mapNotNull { dayMap[it] }
                     .toIntArray()
                 if (days.isNotEmpty()) {
-                    putExtra(AlarmClock.EXTRA_DAYS, days.toList() as ArrayList<Int>)
+                    putExtra(AlarmClock.EXTRA_DAYS, ArrayList(days.toList()))
                 }
             }
         }

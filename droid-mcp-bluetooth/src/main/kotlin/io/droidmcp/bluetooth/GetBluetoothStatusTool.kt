@@ -2,7 +2,6 @@ package io.droidmcp.bluetooth
 
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -26,21 +25,11 @@ class GetBluetoothStatusTool(private val context: Context) : McpTool {
         val isEnabled = adapter.isEnabled
 
         val adapterName = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                adapter.name
-            } else {
-                @Suppress("DEPRECATION")
-                adapter.name
-            }
+            adapter.name
         } catch (e: SecurityException) { null }
 
         val adapterAddress = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                adapter.address
-            } else {
-                @Suppress("DEPRECATION")
-                adapter.address
-            }
+            adapter.address
         } catch (e: SecurityException) { null }
 
         return ToolResult.success(mapOf(

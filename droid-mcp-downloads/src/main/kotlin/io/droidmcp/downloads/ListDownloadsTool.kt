@@ -7,7 +7,9 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class ListDownloadsTool(private val context: Context) : McpTool {
 
@@ -17,6 +19,8 @@ class ListDownloadsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Maximum number of files to return (1-100, default: 20)", ParameterType.INTEGER),
         ToolParameter("sort_by", "Sort order: date, name, size (default: date)", ParameterType.STRING),
     )
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
@@ -42,7 +46,7 @@ class ListDownloadsTool(private val context: Context) : McpTool {
             mapOf(
                 "name" to file.name,
                 "size_bytes" to file.length(),
-                "last_modified" to Date(file.lastModified()).toString(),
+                "last_modified" to dateFormat.format(Date(file.lastModified())),
                 "extension" to (file.extension.takeIf { it.isNotEmpty() } ?: ""),
             )
         }

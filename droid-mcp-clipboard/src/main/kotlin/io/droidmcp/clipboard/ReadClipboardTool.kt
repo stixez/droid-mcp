@@ -33,7 +33,6 @@ class ReadClipboardTool(private val context: Context) : McpTool {
         val item = clip.getItemAt(0)
         val text = item?.coerceToText(context)?.toString()
         val isText = clip.description.hasMimeType("text/*")
-            || clip.description.hasMimeType("text/plain")
 
         return ToolResult.success(mapOf(
             "has_content" to true,
