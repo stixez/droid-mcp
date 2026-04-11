@@ -43,4 +43,5 @@ dependencies {
     api(project(":droid-mcp-screen"))
     api(project(":droid-mcp-tts"))
     api(project(":droid-mcp-web"))
+    api(project(":droid-mcp-flashlight"))
 }

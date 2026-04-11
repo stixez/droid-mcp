@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">droid-mcp</h1>
   <p align="center">
-    Android MCP SDK — 48 tools across 21 modules<br/>
+    Android MCP SDK — 50 tools across 22 modules<br/>
     Add phone capabilities to your Android AI app in one line.
   </p>
 </p>
@@ -126,6 +126,7 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-screen`** | `get_screen_state` `get_display_info` | None |
 | **`droid-mcp-tts`** | `speak_text` `get_tts_info` | None |
 | **`droid-mcp-web`** | `web_search` `fetch_webpage` | `INTERNET` |
+| **`droid-mcp-flashlight`** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
 | **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
@@ -294,6 +295,15 @@ SSID access requires location permission on API 26+. `list_saved_networks` retur
 
 Web tools require internet connectivity. Search results include title, URL, and snippet. Webpage fetching strips HTML and returns clean text content.
 
+### Flashlight
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `toggle_flashlight` | Toggle flashlight on/off | `enabled` (required) |
+| `set_flashlight_brightness` | Set flashlight brightness level (Android 13+) | `level` (required, 0-255) |
+
+Flashlight tools require a device with camera flash hardware. `set_flashlight_brightness` is only available on Android 13+ (API 33+) and uses `turnOnTorchWithStrengthLevel()`.
+
 ---
 
 ## Desktop Connection
@@ -408,6 +418,7 @@ droid-mcp/
 ├── droid-mcp-screen/          Screen state, display info
 ├── droid-mcp-tts/             Text-to-speech
 ├── droid-mcp-web/             Web search and page fetching
+├── droid-mcp-flashlight/      Flashlight toggle and brightness
 ├── droid-mcp-all/             All modules combined
 └── sample-app/                Demo application
 ```
