@@ -42,6 +42,7 @@ data class MainState(
     val serverRunning: Boolean = false,
     val serverUrl: String? = null,
     val logs: List<ToolCallLog> = emptyList(),
+    val loading: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -88,12 +89,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun callTool(name: String, params: Map<String, Any>) {
-        viewModelScope.launch {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _state.value = _state.value.copy(loading = true)
             val result = droidMcp?.callTool(name, params)
                 ?: ToolResult.error("DroidMcp not initialized")
             val log = ToolCallLog(name, params, result)
             _state.value = _state.value.copy(
-                logs = listOf(log) + _state.value.logs
+                logs = listOf(log) + _state.value.logs,
+                loading = false,
             )
         }
     }

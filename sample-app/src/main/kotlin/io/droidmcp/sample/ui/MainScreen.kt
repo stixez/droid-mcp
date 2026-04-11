@@ -132,6 +132,11 @@ fun MainScreen(
             )
         }
 
+        // ── Loading indicator ────────────────────────────────────────────────
+        if (state.loading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
         // ── Pages ────────────────────────────────────────────────────────────
         HorizontalPager(
             state = pagerState,
