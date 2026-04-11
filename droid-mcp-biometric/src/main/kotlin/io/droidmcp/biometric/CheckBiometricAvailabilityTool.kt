@@ -4,13 +4,14 @@ import android.content.Context
 import android.os.Build
 import androidx.biometric.BiometricManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
 
     override val name = "check_biometric_availability"
     override val description = "Check if biometric authentication is available on the device"
-    override val parameters = emptyList<io.droidmcp.core.ToolParameter>()
+    override val parameters = emptyList<ToolParameter>()
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val biometricManager = BiometricManager.from(context)
@@ -22,9 +23,9 @@ class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
 
         val (canAuth, hardwareType) = when (canAuthenticate) {
             BiometricManager.BIOMETRIC_SUCCESS -> {
-                val hasFingerprint = hasHardware(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                val hasFingerprint = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
                 val hasFace = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    hasHardware(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                    biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
                 } else false
 
                 val type = when {
@@ -44,12 +45,7 @@ class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
 
         return ToolResult.success(mapOf(
             "can_authenticate" to canAuth,
-            "hardware_type" to hardwareType
+            "hardware_type" to hardwareType,
         ))
-    }
-
-    private fun hasHardware(authenticators: Int): Boolean {
-        val manager = BiometricManager.from(context)
-        return manager.canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
     }
 }

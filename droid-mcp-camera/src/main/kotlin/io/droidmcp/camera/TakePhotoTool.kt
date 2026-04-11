@@ -8,6 +8,8 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.media.ImageReader
 import android.os.Build
 import android.os.Environment
@@ -23,10 +25,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class TakePhotoTool(private val context: Context) : McpTool {
 
@@ -40,6 +43,12 @@ class TakePhotoTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val returnData = params["return_data"] as? Boolean ?: false
 
+        val handlerThread = HandlerThread("CameraCapture").apply { start() }
+        val handler = Handler(handlerThread.looper)
+        var device: CameraDevice? = null
+        var session: CameraCaptureSession? = null
+        var imageReader: ImageReader? = null
+
         try {
             val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
             val cameraId = cameraManager.cameraIdList.firstOrNull { id ->
@@ -51,63 +60,65 @@ class TakePhotoTool(private val context: Context) : McpTool {
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
             val configMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val jpegSizes = configMap?.getOutputSizes(ImageFormat.JPEG)
-            val size = jpegSizes?.maxByOrNull { it.width * it.height } ?: return@withContext ToolResult.error("Cannot determine camera resolution")
+            val size = jpegSizes?.maxByOrNull { it.width * it.height }
+                ?: return@withContext ToolResult.error("Cannot determine camera resolution")
 
-            val handlerThread = HandlerThread("CameraCapture").apply { start() }
-            val handler = Handler(handlerThread.looper)
-
-            val imageReader = ImageReader.newInstance(size.width, size.height, ImageFormat.JPEG, 1)
+            imageReader = ImageReader.newInstance(size.width, size.height, ImageFormat.JPEG, 1)
 
             val imageBytes = withTimeoutOrNull(10_000L) {
-                val device = suspendCancellableCoroutine<CameraDevice> { cont ->
+                device = suspendCancellableCoroutine { cont ->
                     cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                         override fun onOpened(camera: CameraDevice) = cont.resume(camera)
-                        override fun onDisconnected(camera: CameraDevice) { camera.close() }
-                        override fun onError(camera: CameraDevice, error: Int) { camera.close() }
+                        override fun onDisconnected(camera: CameraDevice) {
+                            camera.close()
+                            if (cont.isActive) cont.resumeWithException(RuntimeException("Camera disconnected"))
+                        }
+                        override fun onError(camera: CameraDevice, error: Int) {
+                            camera.close()
+                            if (cont.isActive) cont.resumeWithException(RuntimeException("Camera error: $error"))
+                        }
                     }, handler)
                 }
 
-                val session = suspendCancellableCoroutine<CameraCaptureSession> { cont ->
-                    device.createCaptureSession(
-                        listOf(imageReader.surface),
+                session = suspendCancellableCoroutine { cont ->
+                    val outputConfig = OutputConfiguration(imageReader!!.surface)
+                    val sessionConfig = SessionConfiguration(
+                        SessionConfiguration.SESSION_REGULAR,
+                        listOf(outputConfig),
+                        Executors.newSingleThreadExecutor(),
                         object : CameraCaptureSession.StateCallback() {
                             override fun onConfigured(s: CameraCaptureSession) = cont.resume(s)
-                            override fun onConfigureFailed(s: CameraCaptureSession) { device.close() }
+                            override fun onConfigureFailed(s: CameraCaptureSession) {
+                                if (cont.isActive) cont.resumeWithException(RuntimeException("Session configuration failed"))
+                            }
                         },
-                        handler,
                     )
+                    device!!.createCaptureSession(sessionConfig)
                 }
 
-                val captureRequest = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
-                    addTarget(imageReader.surface)
+                val captureRequest = device!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
+                    addTarget(imageReader!!.surface)
                     set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
                     set(CaptureRequest.JPEG_QUALITY, 95.toByte())
                 }.build()
 
-                val bytes = suspendCancellableCoroutine<ByteArray?> { cont ->
-                    imageReader.setOnImageAvailableListener({ reader ->
+                suspendCancellableCoroutine<ByteArray?> { cont ->
+                    imageReader!!.setOnImageAvailableListener({ reader ->
                         val image = reader.acquireLatestImage()
                         val buffer = image?.planes?.get(0)?.buffer
                         val data = buffer?.let { ByteArray(it.remaining()).also { arr -> it.get(arr) } }
                         image?.close()
-                        cont.resume(data)
+                        if (cont.isActive) cont.resume(data)
                     }, handler)
 
-                    session.capture(captureRequest, null, handler)
+                    session!!.capture(captureRequest, null, handler)
                 }
-
-                session.close()
-                device.close()
-                bytes
             }
-
-            handlerThread.quitSafely()
 
             if (imageBytes == null) {
                 return@withContext ToolResult.error("Failed to capture photo (timeout)")
             }
 
-            // Save to MediaStore
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())
             val contentValues = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, "PHOTO_$timestamp.jpg")
@@ -136,6 +147,11 @@ class TakePhotoTool(private val context: Context) : McpTool {
             ToolResult.success(result)
         } catch (e: Exception) {
             ToolResult.error("Failed to take photo: ${e.message}")
+        } finally {
+            session?.close()
+            device?.close()
+            imageReader?.close()
+            handlerThread.quitSafely()
         }
     }
 }

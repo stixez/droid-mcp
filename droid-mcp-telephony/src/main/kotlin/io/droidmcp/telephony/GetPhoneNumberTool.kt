@@ -4,13 +4,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 class GetPhoneNumberTool(private val context: Context) : McpTool {
 
     override val name = "get_phone_number"
     override val description = "Get the phone number of the device"
-    override val parameters = emptyList<io.droidmcp.core.ToolParameter>()
+    override val parameters = emptyList<ToolParameter>()
 
     @SuppressLint("HardwareIds")
     override suspend fun execute(params: Map<String, Any>): ToolResult {

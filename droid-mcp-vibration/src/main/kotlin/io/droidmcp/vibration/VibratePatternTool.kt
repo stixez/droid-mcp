@@ -6,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -14,8 +15,8 @@ class VibratePatternTool(private val context: Context) : McpTool {
     override val name = "vibrate_pattern"
     override val description = "Vibrate the device with a custom pattern of ON/OFF durations"
     override val parameters = listOf(
-        ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", io.droidmcp.core.ParameterType.ARRAY, required = true),
-        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", io.droidmcp.core.ParameterType.INTEGER, required = false),
+        ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", ParameterType.ARRAY, required = true),
+        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", ParameterType.INTEGER, required = false),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {

@@ -21,7 +21,7 @@ class GetAudioDevicesTool(private val context: Context) : McpTool {
                 "id" to device.id,
                 "name" to getDeviceName(device.type),
                 "type" to getDeviceTypeName(device.type),
-                "is_output" to isOutputDevice(device.type),
+                "is_output" to device.isSink,
             )
         }
 
@@ -56,14 +56,4 @@ class GetAudioDevicesTool(private val context: Context) : McpTool {
         else -> "unknown"
     }
 
-    private fun isOutputDevice(type: Int): Boolean = when (type) {
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
-        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
-        AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-        AudioDeviceInfo.TYPE_WIRED_HEADSET,
-        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-        AudioDeviceInfo.TYPE_USB_HEADSET,
-        AudioDeviceInfo.TYPE_HDMI -> true
-        else -> false
-    }
 }

@@ -3,13 +3,14 @@ package io.droidmcp.telephony
 import android.content.Context
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 class GetCallStateTool(private val context: Context) : McpTool {
 
     override val name = "get_call_state"
     override val description = "Get the current call state of the device"
-    override val parameters = emptyList<io.droidmcp.core.ToolParameter>()
+    override val parameters = emptyList<ToolParameter>()
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

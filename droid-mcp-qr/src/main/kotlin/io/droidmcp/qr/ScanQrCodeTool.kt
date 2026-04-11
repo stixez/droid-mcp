@@ -36,10 +36,14 @@ class ScanQrCodeTool(private val context: Context) : McpTool {
                 .build()
             val scanner = BarcodeScanning.getClient(options)
 
-            val result = suspendCancellableCoroutine { cont ->
-                scanner.process(image)
-                    .addOnSuccessListener { barcodes -> cont.resume(barcodes) }
-                    .addOnFailureListener { cont.resume(emptyList()) }
+            val result = try {
+                suspendCancellableCoroutine { cont ->
+                    scanner.process(image)
+                        .addOnSuccessListener { barcodes -> cont.resume(barcodes) }
+                        .addOnFailureListener { cont.resume(emptyList()) }
+                }
+            } finally {
+                scanner.close()
             }
 
             if (result.isEmpty()) {
