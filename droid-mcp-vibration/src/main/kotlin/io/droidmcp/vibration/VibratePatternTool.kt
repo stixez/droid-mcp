@@ -15,7 +15,7 @@ class VibratePatternTool(private val context: Context) : McpTool {
     override val description = "Vibrate the device with a custom pattern of ON/OFF durations"
     override val parameters = listOf(
         ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", io.droidmcp.core.ParameterType.ARRAY, required = true),
-        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", io.droidmcp.core.ParameterType.INT, required = false),
+        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", io.droidmcp.core.ParameterType.INTEGER, required = false),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {

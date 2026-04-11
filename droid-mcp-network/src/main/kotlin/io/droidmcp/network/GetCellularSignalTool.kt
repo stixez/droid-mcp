@@ -4,11 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import android.telephony.TelephonyManager
-import io.droidmcp.tools.McpTool
-import io.droidmcp.tools.ToolParameter
-import io.droidmcp.tools.ToolResult
-import io.droidmcp.util.ParameterType
-import io.droidmcp.util.PermissionHelper
+import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolParameter
+import io.droidmcp.core.ToolResult
+import io.droidmcp.core.ParameterType
+import io.droidmcp.core.PermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

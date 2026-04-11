@@ -3,8 +3,8 @@ package io.droidmcp.network
 import android.app.AppOpsManager
 import android.content.Context
 import android.os.Process
-import io.droidmcp.tools.McpTool
-import io.droidmcp.util.PermissionHelper
+import io.droidmcp.core.McpTool
+import io.droidmcp.core.PermissionHelper
 
 object NetworkTools {
     fun all(context: Context): List<McpTool> = listOf(
