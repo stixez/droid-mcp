@@ -42,4 +42,5 @@ dependencies {
     api(project(":droid-mcp-downloads"))
     api(project(":droid-mcp-screen"))
     api(project(":droid-mcp-tts"))
+    api(project(":droid-mcp-web"))
 }

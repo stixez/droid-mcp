@@ -37,6 +37,7 @@ include(
     ":droid-mcp-downloads",
     ":droid-mcp-screen",
     ":droid-mcp-tts",
+    ":droid-mcp-web",
     ":droid-mcp-all",
     ":sample-app",
 )
