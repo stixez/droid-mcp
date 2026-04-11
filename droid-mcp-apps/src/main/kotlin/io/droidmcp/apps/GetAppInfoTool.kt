@@ -2,6 +2,7 @@ package io.droidmcp.apps
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolParameter
@@ -32,7 +33,7 @@ class GetAppInfoTool(private val context: Context) : McpTool {
         val appName = appInfo?.loadLabel(pm)?.toString() ?: packageName
 
         @Suppress("DEPRECATION")
-        val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             packageInfo.longVersionCode
         } else {
             packageInfo.versionCode.toLong()

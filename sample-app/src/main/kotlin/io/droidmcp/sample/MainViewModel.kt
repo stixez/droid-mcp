@@ -2,6 +2,8 @@
 package io.droidmcp.sample
 
 import android.app.Application
+import android.content.Context
+import android.net.wifi.WifiManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.droidmcp.alarms.AlarmsTools
@@ -26,6 +28,7 @@ import io.droidmcp.settings.SettingsTools
 import io.droidmcp.sms.SmsTools
 import io.droidmcp.tts.TtsTools
 import io.droidmcp.wifi.WifiTools
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -89,7 +92,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun callTool(name: String, params: Map<String, Any>) {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             _state.value = _state.value.copy(loading = true)
             val result = droidMcp?.callTool(name, params)
                 ?: ToolResult.error("DroidMcp not initialized")
@@ -123,7 +126,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun getDeviceIp(): String {
-        val wifiManager = context.getSystemService(android.content.Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
         val ip = wifiManager.connectionInfo.ipAddress
         return if (ip != 0) {
             "${ip and 0xFF}.${ip shr 8 and 0xFF}.${ip shr 16 and 0xFF}.${ip shr 24 and 0xFF}"

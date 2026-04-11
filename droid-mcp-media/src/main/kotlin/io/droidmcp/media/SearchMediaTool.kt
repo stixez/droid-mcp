@@ -1,6 +1,7 @@
 package io.droidmcp.media
 
 import android.content.Context
+import android.net.Uri
 import android.provider.MediaStore
 import io.droidmcp.core.*
 import java.text.SimpleDateFormat
@@ -46,7 +47,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
 
         val results = mutableListOf<Map<String, Any?>>()
 
-        fun queryUri(uri: android.net.Uri, isVideo: Boolean) {
+        fun queryUri(uri: Uri, isVideo: Boolean) {
             if (results.size >= limit + offset) return
 
             val projection = arrayOf(

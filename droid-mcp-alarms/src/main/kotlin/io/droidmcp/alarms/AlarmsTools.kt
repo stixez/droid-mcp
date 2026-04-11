@@ -15,8 +15,8 @@ object AlarmsTools {
 
     fun requiredPermissions(): List<String> = listOf(
         "com.android.alarm.permission.SET_ALARM",
-        android.Manifest.permission.READ_CALENDAR,
-        android.Manifest.permission.WRITE_CALENDAR,
+        Manifest.permission.READ_CALENDAR,
+        Manifest.permission.WRITE_CALENDAR,
     )
 
     fun hasPermissions(context: Context): Boolean =

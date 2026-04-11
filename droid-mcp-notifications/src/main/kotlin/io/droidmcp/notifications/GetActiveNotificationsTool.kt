@@ -1,5 +1,6 @@
 package io.droidmcp.notifications
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
@@ -46,8 +47,8 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
                     "title" to extras.getCharSequence("android.title")?.toString(),
                     "text" to extras.getCharSequence("android.text")?.toString(),
                     "timestamp" to dateFormat.format(Date(sbn.postTime)),
-                    "is_ongoing" to (notification.flags and android.app.Notification.FLAG_ONGOING_EVENT != 0),
-                    "is_foreground_service" to (notification.flags and android.app.Notification.FLAG_FOREGROUND_SERVICE != 0),
+                    "is_ongoing" to (notification.flags and Notification.FLAG_ONGOING_EVENT != 0),
+                    "is_foreground_service" to (notification.flags and Notification.FLAG_FOREGROUND_SERVICE != 0),
                 )
             }
 

@@ -1,6 +1,7 @@
 package io.droidmcp.media
 
 import android.content.Context
+import android.net.Uri
 import android.provider.MediaStore
 import io.droidmcp.core.*
 
@@ -19,7 +20,7 @@ class ListAlbumsTool(private val context: Context) : McpTool {
 
         val albums = mutableMapOf<String, MutableMap<String, Any?>>()
 
-        fun queryAlbums(uri: android.net.Uri) {
+        fun queryAlbums(uri: Uri) {
             val projection = arrayOf(
                 MediaStore.MediaColumns._ID,
                 MediaStore.MediaColumns.BUCKET_ID,
