@@ -17,7 +17,7 @@
 
 ## Overview
 
-droid-mcp is an open-source Android SDK that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It gives LLMs structured, typed access to Android system APIs — calendar, contacts, SMS, files, location, media, and more — through a standard tool-calling interface.
+droid-mcp is an open-source Android SDK that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It gives LLMs structured, typed access to Android system APIs — calendar, contacts, SMS, files, location, media, camera, sensors, and more — through a standard tool-calling interface.
 
 It supports both in-process tool calls for on-device LLMs and an HTTP transport for connecting desktop MCP clients (like Claude Code) over a local network.
 
