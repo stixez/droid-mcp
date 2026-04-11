@@ -16,11 +16,9 @@ object FilesTools {
 
     fun requiredPermissions(): List<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            listOf(
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO,
-            )
+            // On API 33+, File API access to shared storage works without
+            // media permissions. Only legacy READ_EXTERNAL_STORAGE needed on older APIs.
+            emptyList()
         } else {
             listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
