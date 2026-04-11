@@ -1,8 +1,8 @@
 <p align="center">
   <h1 align="center">droid-mcp</h1>
   <p align="center">
-    Privacy-first MCP SDK for Android<br/>
-    Give local LLMs structured access to phone data — entirely on-device.
+    Android MCP SDK — 48 tools across 21 modules<br/>
+    Add phone capabilities to your Android AI app in one line.
   </p>
 </p>
 
@@ -17,16 +17,16 @@
 
 ## Overview
 
-droid-mcp is an open-source Android library that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It is designed for on-device AI assistants — Gemma 4 and other local LLMs running directly on the phone.
+droid-mcp is an open-source Android SDK that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It gives LLMs structured, typed access to Android system APIs — calendar, contacts, SMS, files, location, media, and more — through a standard tool-calling interface.
 
-The library provides typed, structured access to Android system APIs (calendar, contacts, files, location, and more) without sending any data off-device. It supports both in-process tool calls for on-device LLMs and an HTTP transport for connecting desktop MCP clients over a local network.
+It supports both in-process tool calls for on-device LLMs and an HTTP transport for connecting desktop MCP clients (like Claude Code) over a local network.
 
-**Key principles:**
+**Key features:**
 
-- All data stays on the device. No cloud services, no API keys, no telemetry.
-- Modular architecture — include only the capabilities your app needs.
-- Standard MCP protocol — compatible with any MCP client.
-- Input validation and path sandboxing built in.
+- **48 tools across 21 modules** — cover the full range of Android system APIs.
+- **Modular** — include only the capabilities your app needs. Each module is an independent Gradle artifact.
+- **Standard MCP protocol** — compatible with any MCP client, on-device or remote.
+- **Built-in safety** — input validation, path sandboxing, and permission isolation throughout.
 
 ---
 
@@ -361,9 +361,9 @@ The `InProcessTransport` provides direct function-call access for LLMs running o
 
 ---
 
-## Security
+## Built-in Safety
 
-| Measure | Description |
+| Feature | Description |
 |---------|-------------|
 | **Path sandboxing** | File operations are restricted to external storage. Attempts to access system paths or other app data are rejected. |
 | **Input validation** | All parameters are validated. Numeric inputs are clamped to safe ranges. Phone numbers are checked against a format pattern before SMS is sent. |

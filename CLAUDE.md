@@ -1,12 +1,12 @@
 # droid-mcp
 
-Privacy-first MCP SDK for Android. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, etc.) via Model Context Protocol for on-device LLMs. Everything stays on device.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, etc.) via Model Context Protocol — 48 tools across 21 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **20 modules**, 44 tools, sample app with Compose UI
+- **21 modules**, 48 tools, sample app with Compose UI
 
 ## Key Conventions
 
@@ -79,6 +79,7 @@ droid-mcp-{name}/
 | `droid-mcp-downloads` | `io.droidmcp.downloads` | list_downloads, search_downloads |
 | `droid-mcp-screen` | `io.droidmcp.screen` | get_screen_state, get_display_info |
 | `droid-mcp-tts` | `io.droidmcp.tts` | speak_text, get_tts_info |
+| `droid-mcp-web` | `io.droidmcp.web` | web_search, fetch_webpage |
 
 <!-- SECTION: new-tool-guide -->
 
