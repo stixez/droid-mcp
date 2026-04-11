@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -36,6 +37,11 @@ class MainActivity : ComponentActivity() {
                 viewModelRef = vm
                 val state by vm.state.collectAsState()
 
+                // Auto-initialize on first composition
+                LaunchedEffect(Unit) {
+                    vm.initialize()
+                }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { contentPadding ->
                     MainScreen(
                         state = state,
@@ -49,8 +55,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        requestAllPermissions()
     }
 
     private fun requestAllPermissions() {
