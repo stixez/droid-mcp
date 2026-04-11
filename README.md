@@ -41,7 +41,7 @@ dependencies {
     // Core is always required
     implementation("io.droidmcp:core:0.1.0")
 
-    // Add the capabilities you need
+    // Add only the capabilities you need
     implementation("io.droidmcp:device:0.1.0")
     implementation("io.droidmcp:calendar:0.1.0")
     implementation("io.droidmcp:contacts:0.1.0")
@@ -49,8 +49,11 @@ dependencies {
     implementation("io.droidmcp:files:0.1.0")
     implementation("io.droidmcp:media:0.1.0")
     implementation("io.droidmcp:location:0.1.0")
+    implementation("io.droidmcp:camera:0.1.0")
+    implementation("io.droidmcp:sensors:0.1.0")
+    // ... and 20 more (see Modules table below)
 
-    // Or include everything at once
+    // Or include all 30 modules at once
     // implementation("io.droidmcp:all:0.1.0")
 }
 ```
