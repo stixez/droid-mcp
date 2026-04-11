@@ -125,6 +125,7 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-downloads`** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` (API < 33) / None (API 33+) |
 | **`droid-mcp-screen`** | `get_screen_state` `get_display_info` | None |
 | **`droid-mcp-tts`** | `speak_text` `get_tts_info` | None |
+| **`droid-mcp-web`** | `web_search` `fetch_webpage` | `INTERNET` |
 | **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
@@ -284,6 +285,15 @@ SSID access requires location permission on API 26+. `list_saved_networks` retur
 | `speak_text` | Speak text aloud | `text` (required), `language`, `pitch`, `speed` |
 | `get_tts_info` | Available TTS engines and languages | — |
 
+### Web
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `web_search` | Search the web via DuckDuckGo | `query` (required), `limit` |
+| `fetch_webpage` | Fetch and extract text from a URL | `url` (required), `max_length` |
+
+Web tools require internet connectivity. Search results include title, URL, and snippet. Webpage fetching strips HTML and returns clean text content.
+
 ---
 
 ## Desktop Connection
@@ -397,6 +407,7 @@ droid-mcp/
 ├── droid-mcp-downloads/       Downloads folder
 ├── droid-mcp-screen/          Screen state, display info
 ├── droid-mcp-tts/             Text-to-speech
+├── droid-mcp-web/             Web search and page fetching
 ├── droid-mcp-all/             All modules combined
 └── sample-app/                Demo application
 ```
