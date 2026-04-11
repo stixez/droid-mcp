@@ -78,7 +78,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
 
             val selection = if (conditions.isEmpty()) null else conditions.joinToString(" AND ")
             val selectionArgs = if (args.isEmpty()) null else args.toTypedArray()
-            val sortOrder = "${MediaStore.MediaColumns.DATE_TAKEN} DESC LIMIT ${limit + offset}"
+            val sortOrder = "${MediaStore.MediaColumns.DATE_TAKEN} DESC"
 
             context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
                 ?.use { cursor ->
