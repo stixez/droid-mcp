@@ -10,13 +10,13 @@ class SearchContactsTool(private val context: Context) : McpTool {
     override val description = "Search contacts by name, phone number, or email address"
     override val parameters = listOf(
         ToolParameter("query", "Search query (name, phone, or email)", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max results. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val projection = arrayOf(
             ContactsContract.Contacts._ID,

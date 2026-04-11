@@ -11,13 +11,13 @@ class ReadCallLogTool(private val context: Context) : McpTool {
     override val name = "read_call_log"
     override val description = "Read recent calls from the device call log. Returns phone number, contact name (if available), call type, date, and duration."
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of calls to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of calls to return. Default 10.", ParameterType.INTEGER),
         ToolParameter("type", "Filter by call type: 'all', 'incoming', 'outgoing', 'missed'. Default: 'all'", ParameterType.STRING),
         ToolParameter("offset", "Number of calls to skip for pagination. Default 0.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
         val offset = (params["offset"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0
         val typeFilter = params["type"]?.toString()?.lowercase() ?: "all"
 

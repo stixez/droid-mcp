@@ -12,13 +12,13 @@ class SearchCallLogTool(private val context: Context) : McpTool {
     override val description = "Search the call log by phone number or contact name. Returns matching call records."
     override val parameters = listOf(
         ToolParameter("query", "Phone number or contact name to search for (substring match)", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max number of results to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val projection = arrayOf(
             CallLog.Calls._ID,

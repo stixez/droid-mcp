@@ -19,11 +19,11 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
         notifications the MCP host app has itself posted.
     """.trimIndent()
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of notifications to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return ToolResult.error("get_active_notifications requires Android 6.0 (API 23) or higher")

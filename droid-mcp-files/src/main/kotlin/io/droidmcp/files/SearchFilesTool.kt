@@ -13,14 +13,14 @@ class SearchFilesTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("query", "Filename pattern to search for (case-insensitive substring)", ParameterType.STRING, required = true),
         ToolParameter("path", "Root directory to search in. Default: /sdcard", ParameterType.STRING),
-        ToolParameter("limit", "Max number of results to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
         val path = params["path"]?.toString() ?: "/sdcard"
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         PathValidator.validate(path)?.let { return ToolResult.error(it) }
 

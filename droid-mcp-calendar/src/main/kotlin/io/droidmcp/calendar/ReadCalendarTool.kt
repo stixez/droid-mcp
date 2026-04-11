@@ -13,7 +13,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("start_date", "Start date in YYYY-MM-DD format", ParameterType.STRING, required = true),
         ToolParameter("end_date", "End date in YYYY-MM-DD format. Defaults to start_date.", ParameterType.STRING),
-        ToolParameter("limit", "Max number of events to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of events to return. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
@@ -21,7 +21,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         val startDate = params["start_date"]?.toString()
             ?: return ToolResult.error("start_date is required")
         val endDate = params["end_date"]?.toString() ?: startDate
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val startMillis = try {
             dateFormat.parse(startDate)?.time ?: return ToolResult.error("Invalid start_date format")

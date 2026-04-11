@@ -9,12 +9,12 @@ class ListAlbumsTool(private val context: Context) : McpTool {
     override val name = "list_albums"
     override val description = "List photo albums (MediaStore bucket/folders) on the device. Returns album name, item count, and cover image ID."
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of albums to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of albums to return. Default 10.", ParameterType.INTEGER),
         ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
         val mediaType = params["media_type"]?.toString()?.lowercase() ?: "images"
 
         val albums = mutableMapOf<String, MutableMap<String, Any?>>()

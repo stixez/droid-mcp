@@ -17,7 +17,7 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
     override val description = "Search files in the Downloads directory by filename"
     override val parameters = listOf(
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Maximum number of results to return (1-100, default: 20)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER),
     )
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -25,7 +25,7 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 

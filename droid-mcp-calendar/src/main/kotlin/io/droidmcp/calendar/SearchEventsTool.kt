@@ -12,13 +12,13 @@ class SearchEventsTool(private val context: Context) : McpTool {
     override val description = "Search calendar events by keyword in title or description"
     override val parameters = listOf(
         ToolParameter("query", "Search keyword", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max results. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val projection = arrayOf(
             CalendarContract.Events._ID,

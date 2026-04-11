@@ -14,14 +14,14 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         ToolParameter("box", "Message box: 'inbox' or 'sent'. Default 'inbox'.", ParameterType.STRING),
         ToolParameter("address", "Filter by phone number", ParameterType.STRING),
         ToolParameter("since", "Only messages after this date (YYYY-MM-DD)", ParameterType.STRING),
-        ToolParameter("limit", "Max results. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val box = params["box"]?.toString() ?: "inbox"
         val address = params["address"]?.toString()
         val since = params["since"]?.toString()
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val uri = when (box) {
             "sent" -> Telephony.Sms.Sent.CONTENT_URI

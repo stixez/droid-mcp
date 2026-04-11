@@ -15,7 +15,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
         ToolParameter("start_date", "Filter by date taken from (YYYY-MM-DD). Optional.", ParameterType.STRING),
         ToolParameter("end_date", "Filter by date taken until (YYYY-MM-DD, inclusive). Optional.", ParameterType.STRING),
         ToolParameter("media_type", "Type of media to search: 'images', 'videos', or 'all'. Default: 'all'", ParameterType.STRING),
-        ToolParameter("limit", "Max number of results to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
         ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER),
     )
 
@@ -24,7 +24,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
         val startDateStr = params["start_date"]?.toString()
         val endDateStr = params["end_date"]?.toString()
         val mediaType = params["media_type"]?.toString()?.lowercase() ?: "all"
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
         val offset = (params["offset"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)

@@ -16,14 +16,14 @@ class ListDownloadsTool(private val context: Context) : McpTool {
     override val name = "list_downloads"
     override val description = "List files in the Downloads directory"
     override val parameters = listOf(
-        ToolParameter("limit", "Maximum number of files to return (1-100, default: 20)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of files to return (1-100, default: 10)", ParameterType.INTEGER),
         ToolParameter("sort_by", "Sort order: date, name, size (default: date)", ParameterType.STRING),
     )
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
         val sortBy = params["sort_by"]?.toString() ?: "date"
 
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)

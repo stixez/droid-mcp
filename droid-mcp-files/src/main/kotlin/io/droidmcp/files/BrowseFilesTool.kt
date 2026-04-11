@@ -12,12 +12,12 @@ class BrowseFilesTool(private val context: Context) : McpTool {
     override val description = "List files and directories at the given path. Returns file name, size, last modified date, and whether each entry is a directory."
     override val parameters = listOf(
         ToolParameter("path", "Directory path to browse. Default: /sdcard", ParameterType.STRING),
-        ToolParameter("limit", "Max number of entries to return. Default 20.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of entries to return. Default 10.", ParameterType.INTEGER),
     )
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString() ?: "/sdcard"
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         PathValidator.validate(path)?.let { return ToolResult.error(it) }
 

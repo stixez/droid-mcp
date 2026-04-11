@@ -221,8 +221,8 @@ fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
             ToolButton("Search", "search_files", mapOf("query" to "txt")),
         )),
         Category("Call Log", listOf(
-            ToolButton("Recent", "read_call_log"),
-            ToolButton("Search", "search_call_log", mapOf("query" to "555")),
+            ToolButton("Recent", "read_call_log", mapOf("limit" to 5)),
+            ToolButton("Search", "search_call_log", mapOf("query" to "555", "limit" to 5)),
         )),
         Category("Media", listOf(
             ToolButton("Albums", "list_albums"),
