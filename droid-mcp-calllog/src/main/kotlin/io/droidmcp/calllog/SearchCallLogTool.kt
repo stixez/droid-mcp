@@ -31,7 +31,7 @@ class SearchCallLogTool(private val context: Context) : McpTool {
 
         val selection = "${CallLog.Calls.NUMBER} LIKE ? OR ${CallLog.Calls.CACHED_NAME} LIKE ?"
         val selectionArgs = arrayOf("%$query%", "%$query%")
-        val sortOrder = "${CallLog.Calls.DATE} DESC LIMIT $limit"
+        val sortOrder = "${CallLog.Calls.DATE} DESC"
 
         val calls = mutableListOf<Map<String, Any?>>()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -39,7 +39,8 @@ class SearchCallLogTool(private val context: Context) : McpTool {
         context.contentResolver.query(
             CallLog.Calls.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val callType = cursor.getInt(cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE))
                 calls.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls._ID)),
@@ -49,6 +50,7 @@ class SearchCallLogTool(private val context: Context) : McpTool {
                     "date" to dateFormat.format(Date(cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)))),
                     "duration_seconds" to cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)),
                 ))
+                count++
             }
         }
 

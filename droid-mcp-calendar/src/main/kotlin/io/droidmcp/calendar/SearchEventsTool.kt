@@ -31,7 +31,7 @@ class SearchEventsTool(private val context: Context) : McpTool {
 
         val selection = "${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?"
         val selectionArgs = arrayOf("%$query%", "%$query%")
-        val sortOrder = "${CalendarContract.Events.DTSTART} DESC LIMIT $limit"
+        val sortOrder = "${CalendarContract.Events.DTSTART} DESC"
 
         val events = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -39,7 +39,8 @@ class SearchEventsTool(private val context: Context) : McpTool {
         context.contentResolver.query(
             CalendarContract.Events.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val dtStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART))
                 val dtEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND))
                 events.add(mapOf(
@@ -50,6 +51,7 @@ class SearchEventsTool(private val context: Context) : McpTool {
                     "location" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)),
                     "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
                 ))
+                count++
             }
         }
 

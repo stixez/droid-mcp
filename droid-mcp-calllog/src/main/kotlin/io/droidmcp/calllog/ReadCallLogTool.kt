@@ -40,7 +40,7 @@ class ReadCallLogTool(private val context: Context) : McpTool {
 
         val selection = callTypeInt?.let { "${CallLog.Calls.TYPE} = ?" }
         val selectionArgs = callTypeInt?.let { arrayOf(it.toString()) }
-        val sortOrder = "${CallLog.Calls.DATE} DESC LIMIT $limit OFFSET $offset"
+        val sortOrder = "${CallLog.Calls.DATE} DESC"
 
         val calls = mutableListOf<Map<String, Any?>>()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -48,7 +48,14 @@ class ReadCallLogTool(private val context: Context) : McpTool {
         context.contentResolver.query(
             CallLog.Calls.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
+            var skipped = 0
+            var count = 0
             while (cursor.moveToNext()) {
+                if (skipped < offset) {
+                    skipped++
+                    continue
+                }
+                if (count >= limit) break
                 val callType = cursor.getInt(cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE))
                 calls.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls._ID)),
@@ -58,6 +65,7 @@ class ReadCallLogTool(private val context: Context) : McpTool {
                     "date" to dateFormat.format(Date(cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)))),
                     "duration_seconds" to cursor.getLong(cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)),
                 ))
+                count++
             }
         }
 

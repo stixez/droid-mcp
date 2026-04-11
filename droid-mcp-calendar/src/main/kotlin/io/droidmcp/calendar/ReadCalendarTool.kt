@@ -47,7 +47,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
 
         val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?"
         val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString())
-        val sortOrder = "${CalendarContract.Events.DTSTART} ASC LIMIT $limit"
+        val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
 
         val events = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -55,7 +55,8 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         context.contentResolver.query(
             CalendarContract.Events.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val dtStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART))
                 val dtEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND))
                 events.add(mapOf(
@@ -67,6 +68,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
                     "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
                     "all_day" to (cursor.getInt(cursor.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)) == 1),
                 ))
+                count++
             }
         }
 

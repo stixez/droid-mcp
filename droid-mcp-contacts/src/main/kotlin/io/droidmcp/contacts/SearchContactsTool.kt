@@ -26,13 +26,14 @@ class SearchContactsTool(private val context: Context) : McpTool {
 
         val selection = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} LIKE ?"
         val selectionArgs = arrayOf("%$query%")
-        val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC LIMIT $limit"
+        val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC"
 
         val contacts = mutableListOf<Map<String, Any?>>()
         context.contentResolver.query(
             ContactsContract.Contacts.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val contactId = cursor.getLong(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
                 val name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY))
                 val hasPhone = cursor.getInt(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0
@@ -45,6 +46,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
                     "phones" to phones,
                     "emails" to emails,
                 ))
+                count++
             }
         }
 

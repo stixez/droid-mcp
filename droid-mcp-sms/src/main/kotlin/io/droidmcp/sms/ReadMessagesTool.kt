@@ -48,13 +48,14 @@ class ReadMessagesTool(private val context: Context) : McpTool {
 
         val selection = if (selectionParts.isNotEmpty()) selectionParts.joinToString(" AND ") else null
         val args = if (selectionArgs.isNotEmpty()) selectionArgs.toTypedArray() else null
-        val sortOrder = "${Telephony.Sms.DATE} DESC LIMIT $limit"
+        val sortOrder = "${Telephony.Sms.DATE} DESC"
 
         val messages = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         context.contentResolver.query(uri, null, selection, args, sortOrder)?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
                 messages.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)),
@@ -63,6 +64,7 @@ class ReadMessagesTool(private val context: Context) : McpTool {
                     "date" to timeFormat.format(Date(date)),
                     "read" to (cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.READ)) == 1),
                 ))
+                count++
             }
         }
 

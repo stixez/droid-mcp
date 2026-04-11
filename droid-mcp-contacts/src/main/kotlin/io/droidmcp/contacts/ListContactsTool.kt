@@ -23,18 +23,26 @@ class ListContactsTool(private val context: Context) : McpTool {
             ContactsContract.Contacts.HAS_PHONE_NUMBER,
         )
 
-        val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC LIMIT $limit OFFSET $offset"
+        val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC"
 
         val contacts = mutableListOf<Map<String, Any?>>()
         context.contentResolver.query(
             ContactsContract.Contacts.CONTENT_URI, projection, null, null, sortOrder
         )?.use { cursor ->
+            var skipped = 0
+            var count = 0
             while (cursor.moveToNext()) {
+                if (skipped < offset) {
+                    skipped++
+                    continue
+                }
+                if (count >= limit) break
                 contacts.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)),
                     "name" to cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)),
                     "has_phone" to (cursor.getInt(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0),
                 ))
+                count++
             }
         }
 

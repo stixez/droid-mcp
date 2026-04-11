@@ -22,7 +22,7 @@ class SearchMessagesTool(private val context: Context) : McpTool {
 
         val selection = "${Telephony.Sms.BODY} LIKE ?"
         val selectionArgs = arrayOf("%$query%")
-        val sortOrder = "${Telephony.Sms.DATE} DESC LIMIT $limit"
+        val sortOrder = "${Telephony.Sms.DATE} DESC"
 
         val messages = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
@@ -30,7 +30,8 @@ class SearchMessagesTool(private val context: Context) : McpTool {
         context.contentResolver.query(
             Telephony.Sms.CONTENT_URI, null, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 val date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
                 messages.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)),
@@ -38,6 +39,7 @@ class SearchMessagesTool(private val context: Context) : McpTool {
                     "body" to cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)),
                     "date" to timeFormat.format(Date(date)),
                 ))
+                count++
             }
         }
 
