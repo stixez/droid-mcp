@@ -17,7 +17,7 @@
 
 ## Overview
 
-droid-mcp is an open-source Android library that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It is designed for on-device AI assistants — Gemma 4, Llama, and other local LLMs running directly on the phone.
+droid-mcp is an open-source Android library that exposes device capabilities through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It is designed for on-device AI assistants — Gemma 4 and other local LLMs running directly on the phone.
 
 The library provides typed, structured access to Android system APIs (calendar, contacts, files, location, and more) without sending any data off-device. It supports both in-process tool calls for on-device LLMs and an HTTP transport for connecting desktop MCP clients over a local network.
 
@@ -26,7 +26,7 @@ The library provides typed, structured access to Android system APIs (calendar, 
 - All data stays on the device. No cloud services, no API keys, no telemetry.
 - Modular architecture — include only the capabilities your app needs.
 - Standard MCP protocol — compatible with any MCP client.
-- Input validation, path sandboxing, and permission checks built in.
+- Input validation and path sandboxing built in.
 
 ---
 
@@ -110,7 +110,7 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-calendar`** | `read_calendar` `create_event` `search_events` | `READ_CALENDAR` `WRITE_CALENDAR` |
 | **`droid-mcp-contacts`** | `search_contacts` `read_contact` `list_contacts` | `READ_CONTACTS` |
 | **`droid-mcp-sms`** | `read_messages` `send_message` `search_messages` | `READ_SMS` `SEND_SMS` |
-| **`droid-mcp-files`** | `browse_files` `read_file` `search_files` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_*` (API 33+) |
+| **`droid-mcp-files`** | `browse_files` `read_file` `search_files` | `READ_EXTERNAL_STORAGE` (API < 33) / None (API 33+) |
 | **`droid-mcp-notifications`** | `get_active_notifications` | None |
 | **`droid-mcp-calllog`** | `read_call_log` `search_call_log` | `READ_CALL_LOG` |
 | **`droid-mcp-media`** | `search_media` `get_media_metadata` `list_albums` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_IMAGES` `READ_MEDIA_VIDEO` (API 33+) |
@@ -119,10 +119,10 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-clipboard`** | `read_clipboard` `write_clipboard` | None |
 | **`droid-mcp-apps`** | `list_installed_apps` `get_app_info` `launch_app` | None |
 | **`droid-mcp-alarms`** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` |
-| **`droid-mcp-settings`** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` `CHANGE_WIFI_STATE` |
+| **`droid-mcp-settings`** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | None (read) / `WRITE_SETTINGS` (write) / `CHANGE_WIFI_STATE` (WiFi) |
 | **`droid-mcp-bluetooth`** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH` `BLUETOOTH_CONNECT` (API 31+) |
 | **`droid-mcp-wifi`** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` `ACCESS_FINE_LOCATION` |
-| **`droid-mcp-downloads`** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` / `READ_MEDIA_*` (API 33+) |
+| **`droid-mcp-downloads`** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` (API < 33) / None (API 33+) |
 | **`droid-mcp-screen`** | `get_screen_state` `get_display_info` | None |
 | **`droid-mcp-tts`** | `speak_text` `get_tts_info` | None |
 | **`droid-mcp-all`** | All of the above | All of the above |
