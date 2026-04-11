@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, etc.) via Model Context Protocol — 48 tools across 21 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, etc.) via Model Context Protocol — 69 tools across 30 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **21 modules**, 48 tools, sample app with Compose UI
+- **30 modules**, 69 tools, sample app with Compose UI
 
 ## Key Conventions
 
@@ -80,6 +80,15 @@ droid-mcp-{name}/
 | `droid-mcp-screen` | `io.droidmcp.screen` | get_screen_state, get_display_info |
 | `droid-mcp-tts` | `io.droidmcp.tts` | speak_text, get_tts_info |
 | `droid-mcp-web` | `io.droidmcp.web` | web_search, fetch_webpage |
+| `droid-mcp-telephony` | `io.droidmcp.telephony` | get_phone_number, get_sim_info, get_network_operator, get_call_state |
+| `droid-mcp-vibration` | `io.droidmcp.vibration` | vibrate, vibrate_pattern |
+| `droid-mcp-flashlight` | `io.droidmcp.flashlight` | toggle_flashlight, set_flashlight_brightness |
+| `droid-mcp-biometric` | `io.droidmcp.biometric` | check_biometric_availability, get_biometric_enrollments |
+| `droid-mcp-network` | `io.droidmcp.network` | get_data_usage, get_cellular_signal, is_vpn_active |
+| `droid-mcp-sensors` | `io.droidmcp.sensors` | get_accelerometer, get_gyroscope, get_light_level, get_proximity |
+| `droid-mcp-qr` | `io.droidmcp.qr` | scan_qr_code, scan_barcode, generate_qr_code |
+| `droid-mcp-camera` | `io.droidmcp.camera` | take_photo, capture_video, get_camera_capabilities |
+| `droid-mcp-audio` | `io.droidmcp.audio` | get_audio_devices |
 
 <!-- SECTION: new-tool-guide -->
 

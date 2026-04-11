@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">droid-mcp</h1>
   <p align="center">
-    Android MCP SDK — 51 tools across 22 modules<br/>
+    Android MCP SDK — 69 tools across 30 modules<br/>
     Add phone capabilities to your Android AI app in one line.
   </p>
 </p>
@@ -23,7 +23,7 @@ It supports both in-process tool calls for on-device LLMs and an HTTP transport 
 
 **Key features:**
 
-- **51 tools across 22 modules** — cover the full range of Android system APIs.
+- **69 tools across 30 modules** — cover the full range of Android system APIs.
 - **Modular** — include only the capabilities your app needs. Each module is an independent Gradle artifact.
 - **Standard MCP protocol** — compatible with any MCP client, on-device or remote.
 - **Built-in safety** — input validation, path sandboxing, and permission isolation throughout.
@@ -128,6 +128,13 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-web`** | `web_search` `fetch_webpage` | `INTERNET` |
 | **`droid-mcp-flashlight`** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
 | **`droid-mcp-network`** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `PACKAGE_USAGE_STATS` `ACCESS_NETWORK_STATE` |
+| **`droid-mcp-telephony`** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_SMS` |
+| **`droid-mcp-vibration`** | `vibrate` `vibrate_pattern` | `VIBRATE` |
+| **`droid-mcp-biometric`** | `check_biometric_availability` `get_biometric_enrollments` | None |
+| **`droid-mcp-sensors`** | `get_accelerometer` `get_gyroscope` `get_light_level` `get_proximity` | None |
+| **`droid-mcp-qr`** | `scan_qr_code` `scan_barcode` `generate_qr_code` | `CAMERA` |
+| **`droid-mcp-camera`** | `take_photo` `capture_video` `get_camera_capabilities` | `CAMERA` |
+| **`droid-mcp-audio`** | `get_audio_devices` | None |
 | **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
@@ -315,6 +322,74 @@ Flashlight tools require a device with camera flash hardware. `set_flashlight_br
 
 `get_data_usage` returns bytes sent/received, packets, and query period. Requires PACKAGE_USAGE_STATS permission (user must grant in Settings > Apps > Special access > Usage access). `get_cellular_signal` works on API 28+ using TelephonyManager.signalStrength. `is_vpn_active` detects VPN connections and attempts to identify the VPN app package name.
 
+### Telephony
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_phone_number` | Get the device phone number | — |
+| `get_sim_info` | SIM serial, carrier, country, slot index | — |
+| `get_network_operator` | Network operator name, ID, MCC, MNC | — |
+| `get_call_state` | Current call state (idle/ringing/active) | — |
+
+Telephony tools use `TelephonyManager` and require `READ_PHONE_STATE`. Phone number availability varies by carrier and device.
+
+### Vibration
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `vibrate` | Trigger device vibration | `duration_ms` (1-10000), `amplitude` (0-255) |
+| `vibrate_pattern` | Vibrate with a pattern | `timings` (list), `repeat` (-1 for none) |
+
+Requires `VIBRATE` permission. Amplitude control available on API 26+.
+
+### Biometric
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_biometric_availability` | Check biometric hardware and capability | — |
+| `get_biometric_enrollments` | Check enrolled biometrics | — |
+
+Read-only queries using `BiometricManager`. No permissions required.
+
+### Sensors
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_accelerometer` | Read accelerometer (x, y, z in m/s²) | `duration_ms` (1-5000) |
+| `get_gyroscope` | Read gyroscope (x, y, z in rad/s) | `duration_ms` (1-5000) |
+| `get_light_level` | Ambient light level in lux | `duration_ms` (1-5000) |
+| `get_proximity` | Proximity distance (near/far) | `duration_ms` (1-5000) |
+
+No permissions required. Single reading by default; pass `duration_ms` for batch collection. Returns error if sensor hardware is not present.
+
+### QR / Barcode
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `scan_qr_code` | Scan QR code from image URI | `image_uri` |
+| `scan_barcode` | Scan barcode from image URI | `image_uri` |
+| `generate_qr_code` | Generate QR code as base64 PNG | `text`, `size` (100-1000) |
+
+Scanning uses ML Kit Barcode Scanning. Supports EAN-13, UPC-A, CODE-128, CODE-39, EAN-8, UPC-E. QR generation uses ZXing.
+
+### Camera
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `take_photo` | Capture photo via Camera2 API | `return_data` (base64) |
+| `capture_video` | Record video | `duration_sec` (1-60) |
+| `get_camera_capabilities` | List cameras and capabilities | — |
+
+Camera tools use Camera2 API for headless capture. Photos saved to Pictures/droid-mcp, videos to Movies/droid-mcp.
+
+### Audio
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_audio_devices` | List connected audio devices | — |
+
+Returns device type, name, ID, and whether it's an output device. Useful for debugging audio routing.
+
 ---
 
 ## Desktop Connection
@@ -431,6 +506,13 @@ droid-mcp/
 ├── droid-mcp-web/             Web search and page fetching
 ├── droid-mcp-flashlight/      Flashlight toggle and brightness
 ├── droid-mcp-network/         Data usage, cellular signal, VPN detection
+├── droid-mcp-telephony/       Phone number, SIM, network operator, call state
+├── droid-mcp-vibration/       Vibrate and vibrate pattern
+├── droid-mcp-biometric/       Biometric availability and enrollments
+├── droid-mcp-sensors/         Accelerometer, gyroscope, light, proximity
+├── droid-mcp-qr/              QR/barcode scanning and generation
+├── droid-mcp-camera/          Photo capture, video recording, capabilities
+├── droid-mcp-audio/           Connected audio device enumeration
 ├── droid-mcp-all/             All modules combined
 └── sample-app/                Demo application
 ```
