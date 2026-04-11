@@ -111,6 +111,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(serverRunning = false, serverUrl = null)
     }
 
+    fun clearLogs() {
+        _state.value = _state.value.copy(logs = emptyList())
+    }
+
     override fun onCleared() {
         droidMcp?.stopServer()
     }
