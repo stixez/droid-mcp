@@ -5,6 +5,7 @@ compileSdk = "35"
 minSdk = "28"
 targetSdk = "35"
 androidx-core = "1.16.0"
+androidx-biometric = "1.1.0"
 ktor = "3.1.2"
 kotlinx-serialization = "1.8.1"
 kotlinx-coroutines = "1.10.2"
@@ -20,6 +21,7 @@ truth = "1.4.4"
 [libraries]
 # AndroidX Core
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidx-biometric" }
 
 # MCP SDK
 mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-kotlin-sdk" }
