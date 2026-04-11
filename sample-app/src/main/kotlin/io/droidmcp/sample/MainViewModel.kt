@@ -24,6 +24,14 @@ import io.droidmcp.location.LocationTools
 import io.droidmcp.media.MediaTools
 import io.droidmcp.network.NetworkTools
 import io.droidmcp.notifications.NotificationsTools
+import io.droidmcp.sensors.SensorTools
+import io.droidmcp.qr.QrTools
+import io.droidmcp.camera.CameraTools
+import io.droidmcp.audio.AudioTools
+import io.droidmcp.telephony.TelephonyTools
+import io.droidmcp.vibration.VibrationTools
+import io.droidmcp.flashlight.FlashlightTools
+import io.droidmcp.biometric.BiometricTools
 import io.droidmcp.screen.ScreenTools
 import io.droidmcp.settings.SettingsTools
 import io.droidmcp.sms.SmsTools
@@ -84,6 +92,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (WifiTools.hasPermissions(context)) tools.addAll(WifiTools.all(context))
         if (DownloadsTools.hasPermissions(context)) tools.addAll(DownloadsTools.all(context))
         if (NetworkTools.hasPermissions(context)) tools.addAll(NetworkTools.all(context))
+        if (TelephonyTools.hasPermissions(context)) tools.addAll(TelephonyTools.all(context))
+        if (VibrationTools.hasPermissions(context)) tools.addAll(VibrationTools.all(context))
+        if (FlashlightTools.hasPermissions(context)) tools.addAll(FlashlightTools.all(context))
+        if (QrTools.hasPermissions(context)) tools.addAll(QrTools.all(context))
+        if (CameraTools.hasPermissions(context)) tools.addAll(CameraTools.all(context))
+
+        // Always available (no permissions)
+        tools.addAll(BiometricTools.all(context))
+        tools.addAll(SensorTools.all(context))
+        tools.addAll(AudioTools.all(context))
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)
