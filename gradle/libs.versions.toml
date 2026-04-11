@@ -9,6 +9,9 @@ ktor = "3.1.2"
 kotlinx-serialization = "1.8.1"
 kotlinx-coroutines = "1.10.2"
 mcp-kotlin-sdk = "0.11.1"
+mlkit = "17.3.0"
+camerax = "1.4.1"
+zxing = "3.5.3"
 junit = "4.13.2"
 junit5 = "5.11.4"
 mockk = "1.13.16"
@@ -32,6 +35,20 @@ ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+
+# ML Kit
+mlkit-barcode = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkit" }
+
+# CameraX
+camerax-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camerax-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camerax-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camerax-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+camerax-extensions = { module = "androidx.camera:camera-extensions", version.ref = "camerax" }
+camerax-video = { module = "androidx.camera:camera-video", version.ref = "camerax" }
+
+# ZXing
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }
