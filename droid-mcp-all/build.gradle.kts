@@ -44,4 +44,12 @@ dependencies {
     api(project(":droid-mcp-tts"))
     api(project(":droid-mcp-web"))
     api(project(":droid-mcp-flashlight"))
+    api(project(":droid-mcp-biometric"))
+    api(project(":droid-mcp-network"))
+    api(project(":droid-mcp-sensors"))
+    api(project(":droid-mcp-qr"))
+    api(project(":droid-mcp-camera"))
+    api(project(":droid-mcp-audio"))
+    api(project(":droid-mcp-telephony"))
+    api(project(":droid-mcp-vibration"))
 }

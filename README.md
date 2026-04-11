@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">droid-mcp</h1>
   <p align="center">
-    Android MCP SDK — 50 tools across 22 modules<br/>
+    Android MCP SDK — 51 tools across 22 modules<br/>
     Add phone capabilities to your Android AI app in one line.
   </p>
 </p>
@@ -23,7 +23,7 @@ It supports both in-process tool calls for on-device LLMs and an HTTP transport 
 
 **Key features:**
 
-- **48 tools across 21 modules** — cover the full range of Android system APIs.
+- **51 tools across 22 modules** — cover the full range of Android system APIs.
 - **Modular** — include only the capabilities your app needs. Each module is an independent Gradle artifact.
 - **Standard MCP protocol** — compatible with any MCP client, on-device or remote.
 - **Built-in safety** — input validation, path sandboxing, and permission isolation throughout.
@@ -127,6 +127,7 @@ Each module is an independent Gradle artifact. Only the permissions for included
 | **`droid-mcp-tts`** | `speak_text` `get_tts_info` | None |
 | **`droid-mcp-web`** | `web_search` `fetch_webpage` | `INTERNET` |
 | **`droid-mcp-flashlight`** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
+| **`droid-mcp-network`** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `PACKAGE_USAGE_STATS` `ACCESS_NETWORK_STATE` |
 | **`droid-mcp-all`** | All of the above | All of the above |
 
 ---
@@ -304,6 +305,16 @@ Web tools require internet connectivity. Search results include title, URL, and 
 
 Flashlight tools require a device with camera flash hardware. `set_flashlight_brightness` is only available on Android 13+ (API 33+) and uses `turnOnTorchWithStrengthLevel()`.
 
+### Network
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_data_usage` | Mobile data usage statistics | `days` (1-90, default 30) |
+| `get_cellular_signal` | Cellular signal strength (ASU, dBm, level) | — |
+| `is_vpn_active` | Check if VPN is active and get package name | — |
+
+`get_data_usage` returns bytes sent/received, packets, and query period. Requires PACKAGE_USAGE_STATS permission (user must grant in Settings > Apps > Special access > Usage access). `get_cellular_signal` works on API 28+ using TelephonyManager.signalStrength. `is_vpn_active` detects VPN connections and attempts to identify the VPN app package name.
+
 ---
 
 ## Desktop Connection
@@ -419,6 +430,7 @@ droid-mcp/
 ├── droid-mcp-tts/             Text-to-speech
 ├── droid-mcp-web/             Web search and page fetching
 ├── droid-mcp-flashlight/      Flashlight toggle and brightness
+├── droid-mcp-network/         Data usage, cellular signal, VPN detection
 ├── droid-mcp-all/             All modules combined
 └── sample-app/                Demo application
 ```

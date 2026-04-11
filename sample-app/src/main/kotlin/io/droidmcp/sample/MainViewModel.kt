@@ -22,6 +22,7 @@ import io.droidmcp.files.FilesTools
 import io.droidmcp.health.HealthTools
 import io.droidmcp.location.LocationTools
 import io.droidmcp.media.MediaTools
+import io.droidmcp.network.NetworkTools
 import io.droidmcp.notifications.NotificationsTools
 import io.droidmcp.screen.ScreenTools
 import io.droidmcp.settings.SettingsTools
@@ -82,6 +83,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (BluetoothTools.hasPermissions(context)) tools.addAll(BluetoothTools.all(context))
         if (WifiTools.hasPermissions(context)) tools.addAll(WifiTools.all(context))
         if (DownloadsTools.hasPermissions(context)) tools.addAll(DownloadsTools.all(context))
+        if (NetworkTools.hasPermissions(context)) tools.addAll(NetworkTools.all(context))
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)
