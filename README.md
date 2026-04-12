@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://jitpack.io/#stixez/droid-mcp"><img src="https://jitpack.io/v/stixez/droid-mcp.svg" alt="JitPack" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
