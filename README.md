@@ -67,18 +67,18 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.1.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.2.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.1.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.1.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.1.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.1.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.1.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.2.0")
     // ... see full list below
 
     // Or include everything
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.1.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.2.0")
 }
 ```
 
