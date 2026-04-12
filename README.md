@@ -234,7 +234,7 @@ Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
 | **Input validation** | All params validated and clamped. Phone numbers checked before SMS send. |
 | **Permission isolation** | Each module declares only its own permissions. Library never triggers permission requests. |
 | **Network security** | HTTP server on local network only. Optional Bearer token auth. |
-| **No telemetry** | No analytics, crash reporting, or external network calls. |
+| **No telemetry** | No analytics, crash reporting, or phone-home calls. The `web` module accesses the internet only when explicitly invoked by the LLM. |
 
 ---
 
