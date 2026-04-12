@@ -36,6 +36,7 @@ import io.droidmcp.screen.ScreenTools
 import io.droidmcp.settings.SettingsTools
 import io.droidmcp.sms.SmsTools
 import io.droidmcp.tts.TtsTools
+import io.droidmcp.web.WebTools
 import io.droidmcp.wifi.WifiTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,7 +92,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (BluetoothTools.hasPermissions(context)) tools.addAll(BluetoothTools.all(context))
         if (WifiTools.hasPermissions(context)) tools.addAll(WifiTools.all(context))
         if (DownloadsTools.hasPermissions(context)) tools.addAll(DownloadsTools.all(context))
-        if (NetworkTools.hasPermissions(context)) tools.addAll(NetworkTools.all(context))
+        tools.addAll(NetworkTools.all(context)) // PACKAGE_USAGE_STATS is a special permission; tools handle missing access
         if (TelephonyTools.hasPermissions(context)) tools.addAll(TelephonyTools.all(context))
         if (VibrationTools.hasPermissions(context)) tools.addAll(VibrationTools.all(context))
         if (FlashlightTools.hasPermissions(context)) tools.addAll(FlashlightTools.all(context))
@@ -102,6 +103,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(BiometricTools.all(context))
         tools.addAll(SensorTools.all(context))
         tools.addAll(AudioTools.all(context))
+        tools.addAll(WebTools.all(context))
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)

@@ -95,6 +95,55 @@ fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
         ToolCategory("Notifications", listOf(
             ToolButton("Active", "get_active_notifications"),
         )),
+        ToolCategory("Alarms", listOf(
+            ToolButton("Alarm", "create_alarm", mapOf("hour" to 8, "minute" to 0, "message" to "Test alarm")),
+            ToolButton("Timer", "create_timer", mapOf("seconds" to 10, "message" to "Test timer")),
+            ToolButton("Reminder", "create_reminder", mapOf("title" to "Test reminder", "datetime" to "$today 12:00")),
+        )),
+        ToolCategory("Telephony", listOf(
+            ToolButton("Phone #", "get_phone_number"),
+            ToolButton("SIM", "get_sim_info"),
+            ToolButton("Operator", "get_network_operator"),
+            ToolButton("Call State", "get_call_state"),
+        )),
+        ToolCategory("Vibration", listOf(
+            ToolButton("Vibrate", "vibrate", mapOf("duration_ms" to 200)),
+            ToolButton("Pattern", "vibrate_pattern", mapOf("timings" to listOf(0L, 100L, 100L, 200L))),
+        )),
+        ToolCategory("Flashlight", listOf(
+            ToolButton("On", "toggle_flashlight", mapOf("enabled" to true)),
+            ToolButton("Off", "toggle_flashlight", mapOf("enabled" to false)),
+        )),
+        ToolCategory("Biometric", listOf(
+            ToolButton("Availability", "check_biometric_availability"),
+            ToolButton("Enrollments", "get_biometric_enrollments"),
+        )),
+        ToolCategory("Network", listOf(
+            ToolButton("Data Usage", "get_data_usage"),
+            ToolButton("Signal", "get_cellular_signal"),
+            ToolButton("VPN", "is_vpn_active"),
+        )),
+        ToolCategory("Sensors", listOf(
+            ToolButton("Accel", "get_accelerometer"),
+            ToolButton("Gyro", "get_gyroscope"),
+            ToolButton("Light", "get_light_level"),
+            ToolButton("Proximity", "get_proximity"),
+        )),
+        ToolCategory("QR / Barcode", listOf(
+            ToolButton("Generate QR", "generate_qr_code", mapOf("text" to "https://droidmcp.io")),
+        )),
+        ToolCategory("Camera", listOf(
+            ToolButton("Photo", "take_photo"),
+            ToolButton("Video", "capture_video", mapOf("duration" to 5)),
+            ToolButton("Capabilities", "get_camera_capabilities"),
+        )),
+        ToolCategory("Audio", listOf(
+            ToolButton("Devices", "get_audio_devices"),
+        )),
+        ToolCategory("Web", listOf(
+            ToolButton("Search", "web_search", mapOf("query" to "DroidMCP")),
+            ToolButton("Fetch", "fetch_webpage", mapOf("url" to "http://example.com")),
+        )),
     )
 
     LazyColumn(

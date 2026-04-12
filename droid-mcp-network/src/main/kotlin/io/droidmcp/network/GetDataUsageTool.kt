@@ -50,7 +50,7 @@ class GetDataUsageTool(private val context: Context) : McpTool {
                 "query_period_days" to days,
             ))
         } catch (e: SecurityException) {
-            ToolResult.error("PACKAGE_USAGE_STATS permission not granted. Enable usage access in Settings.")
+            getDataUsageFallback(days)
         } catch (e: Exception) {
             getDataUsageFallback(days)
         }
