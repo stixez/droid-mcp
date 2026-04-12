@@ -8,6 +8,7 @@ local.properties
 
 # Claude Code (local only)
 .claude/settings.local.json
+.mcp.json
 
 # IDE
 .idea/

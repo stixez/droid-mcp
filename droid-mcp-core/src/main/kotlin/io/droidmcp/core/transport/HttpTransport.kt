@@ -13,6 +13,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.coroutines.flow.MutableSharedFlow
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class HttpTransport(
     private val registry: ToolRegistry,
@@ -22,46 +24,76 @@ class HttpTransport(
     @Volatile private var server: EmbeddedServer<*, *>? = null
     private val protocol = McpProtocolImpl(registry)
     private val sseEvents = MutableSharedFlow<String>()
+    private val sessions = ConcurrentHashMap<String, Boolean>()
 
     fun start() {
         if (server != null) return
         try {
-        server = embeddedServer(Netty, port = port) {
-            install(ContentNegotiation) { json() }
-            install(SSE)
-            routing {
-                route("/mcp") {
-                    post {
-                        if (!authenticate(call)) return@post
+            server = embeddedServer(Netty, port = port) {
+                install(ContentNegotiation) { json() }
+                install(SSE)
+                routing {
+                    route("/mcp") {
+                        post {
+                            if (!authenticate(call)) return@post
 
-                        val body = call.receiveText()
-                        val response = protocol.handleMessage(body)
-                        if (response.isNotEmpty()) {
-                            call.respondText(response, ContentType.Application.Json)
-                        } else {
-                            call.respond(HttpStatusCode.Accepted)
-                        }
-                    }
+                            val body = call.receiveText()
+                            val sessionId = call.request.header("Mcp-Session-Id")
 
-                    sse {
-                        if (authToken != null) {
-                            val token = call.request.queryParameters["token"]
-                            if (token != authToken) {
-                                call.respond(HttpStatusCode.Unauthorized)
-                                return@sse
+                            // Check if this is an initialize request
+                            val isInitialize = body.contains("\"method\"") &&
+                                body.contains("\"initialize\"")
+
+                            if (!isInitialize && sessionId != null && !sessions.containsKey(sessionId)) {
+                                call.respond(HttpStatusCode.NotFound, """{"error":"Unknown session"}""")
+                                return@post
+                            }
+
+                            val response = protocol.handleMessage(body)
+
+                            if (isInitialize && response.isNotEmpty()) {
+                                val newSessionId = UUID.randomUUID().toString()
+                                sessions[newSessionId] = true
+                                call.response.header("Mcp-Session-Id", newSessionId)
+                            }
+
+                            if (response.isNotEmpty()) {
+                                call.respondText(response, ContentType.Application.Json)
+                            } else {
+                                call.respond(HttpStatusCode.Accepted)
                             }
                         }
-                        sseEvents.collect { event ->
-                            send(event)
+
+                        sse {
+                            if (authToken != null) {
+                                val token = call.request.queryParameters["token"]
+                                if (token != authToken) {
+                                    call.respond(HttpStatusCode.Unauthorized)
+                                    return@sse
+                                }
+                            }
+                            sseEvents.collect { event ->
+                                send(event)
+                            }
+                        }
+
+                        delete {
+                            val sessionId = call.request.header("Mcp-Session-Id")
+                            if (sessionId != null) {
+                                sessions.remove(sessionId)
+                            }
+                            call.respond(HttpStatusCode.OK)
                         }
                     }
-                }
 
-                get("/health") {
-                    call.respondText("""{"status":"ok","tools":${registry.listTools().size}}""", ContentType.Application.Json)
+                    get("/health") {
+                        call.respondText(
+                            """{"status":"ok","tools":${registry.listTools().size}}""",
+                            ContentType.Application.Json
+                        )
+                    }
                 }
-            }
-        }.start(wait = false)
+            }.start(wait = false)
         } catch (e: Exception) {
             server = null
             throw e
