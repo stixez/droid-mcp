@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(./gradlew dependencies:*)",
-      "Bash([ -d \"C:/Users/cod7l/Documents/GitHub/droid-mcp/droid-mcp-$module\" ])"
-    ]
-  }
-}

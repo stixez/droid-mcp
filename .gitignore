@@ -6,6 +6,9 @@ docs/superpowers/
 build/
 local.properties
 
+# Claude Code (local only)
+.claude/settings.local.json
+
 # IDE
 .idea/
 *.iml
