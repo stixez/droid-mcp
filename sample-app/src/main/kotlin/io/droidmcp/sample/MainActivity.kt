@@ -1,8 +1,14 @@
 package io.droidmcp.sample
 
 import android.Manifest
+import android.app.Activity
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,8 +20,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.droidmcp.playback.NotificationListenerHolder
 import io.droidmcp.sample.ui.MainScreen
 import io.droidmcp.sample.ui.theme.DroidMcpTheme
+import io.droidmcp.screenshot.MediaProjectionHolder
 
 class MainActivity : ComponentActivity() {
 
@@ -25,11 +33,26 @@ class MainActivity : ComponentActivity() {
         if (results.isNotEmpty()) initViewModel()
     }
 
+    private val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val projection = projectionManager.getMediaProjection(result.resultCode, result.data!!)
+            MediaProjectionHolder.set(projection)
+        }
+    }
+
     private var viewModelRef: MainViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Configure NotificationListenerService component for playback tools
+        NotificationListenerHolder.set(
+            ComponentName(this, McpNotificationListenerService::class.java)
+        )
 
         setContent {
             DroidMcpTheme {
@@ -50,6 +73,7 @@ class MainActivity : ComponentActivity() {
                         onStopServer = { vm.stopServer() },
                         onCallTool = { name, params -> vm.callTool(name, params) },
                         onClearLogs = { vm.clearLogs() },
+                        onRequestSpecialPermission = { type -> requestSpecialPermission(type) },
                         contentPadding = contentPadding,
                     )
                 }
@@ -84,6 +108,26 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
         permissionLauncher.launch(permissions.toTypedArray())
+    }
+
+    private fun requestSpecialPermission(type: String) {
+        when (type) {
+            "notification_listener" -> {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
+            "dnd_access" -> {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+            }
+            "screen_capture" -> {
+                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+            }
+            "write_settings" -> {
+                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                })
+            }
+        }
     }
 
     private fun initViewModel() {

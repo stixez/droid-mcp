@@ -38,6 +38,16 @@ import io.droidmcp.sms.SmsTools
 import io.droidmcp.tts.TtsTools
 import io.droidmcp.web.WebTools
 import io.droidmcp.wifi.WifiTools
+import io.droidmcp.nfc.NfcTools
+import io.droidmcp.intent.IntentTools
+import io.droidmcp.playback.PlaybackTools
+import io.droidmcp.screenshot.ScreenshotTools
+import io.droidmcp.dnd.DndTools
+import io.droidmcp.keyguard.KeyguardTools
+import io.droidmcp.wallpaper.WallpaperTools
+import io.droidmcp.ringtone.RingtoneTools
+import io.droidmcp.usb.UsbTools
+import io.droidmcp.print.PrintTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -104,6 +114,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(SensorTools.all(context))
         tools.addAll(AudioTools.all(context))
         tools.addAll(WebTools.all(context))
+
+        // New modules — always available
+        // NFC, DND, Wallpaper use install-time (normal) permissions, auto-granted at install.
+        // Their tools handle special permissions (notification policy, WRITE_SETTINGS) gracefully at execution time.
+        tools.addAll(NfcTools.all(context))
+        tools.addAll(IntentTools.all(context))
+        tools.addAll(PlaybackTools.all(context))
+        tools.addAll(ScreenshotTools.all(context))
+        tools.addAll(DndTools.all(context))
+        tools.addAll(KeyguardTools.all(context))
+        tools.addAll(WallpaperTools.all(context))
+        tools.addAll(RingtoneTools.all(context))
+        tools.addAll(UsbTools.all(context))
+        tools.addAll(PrintTools.all(context))
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)

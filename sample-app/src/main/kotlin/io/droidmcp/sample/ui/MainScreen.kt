@@ -23,6 +23,7 @@ fun MainScreen(
     onStopServer: () -> Unit,
     onCallTool: (String, Map<String, Any>) -> Unit,
     onClearLogs: () -> Unit,
+    onRequestSpecialPermission: (String) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
@@ -143,7 +144,7 @@ fun MainScreen(
             modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (page) {
-                0 -> ToolsPage(onCallTool = onCallTool)
+                0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
                 1 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
             }
         }

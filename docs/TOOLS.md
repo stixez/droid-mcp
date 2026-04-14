@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 69 tools across 30 modules.
+Complete reference for all 91 tools across 40 modules.
 
 ---
 
@@ -252,3 +252,95 @@ Camera tools use Camera2 API for headless capture. Photos saved to Pictures/droi
 | `get_audio_devices` | List connected audio devices | -- |
 
 Returns device type, name, ID, and whether it is an output device. Useful for debugging audio routing.
+
+## NFC
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_nfc_status` | Check if NFC is available and enabled | -- |
+| `read_nfc_tag` | Read NDEF data from the last scanned NFC tag | -- |
+| `write_nfc_tag` | Write an NDEF record to the scanned tag | `type` (required, "text" or "uri"), `content` (required) |
+
+NFC tools use a tag cache — the host app must forward discovered tags via `NfcTagCache.update(tag)` from its `onNewIntent()`. Read/write operations work on the most recently scanned tag. Writing validates tag capacity and writability before attempting.
+
+## Intent / Share
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `send_intent` | Fire a safe Android intent | `action` (required), `data`, `type`, `package_name`, `extras` |
+| `share_content` | Share text via the Android share sheet | `text` (required), `subject`, `type` |
+| `open_deep_link` | Open a URI via ACTION_VIEW | `uri` (required), `package_name` |
+
+`send_intent` restricts actions to a safe allowlist: VIEW, DIAL, SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT, PICK, GET_CONTENT, CREATE_DOCUMENT, OPEN_DOCUMENT. Dangerous actions (CALL, DELETE, FACTORY_RESET, etc.) are blocked.
+
+## Playback
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_now_playing` | Get currently playing media info | -- |
+| `media_control` | Send playback commands | `command` (required: play/pause/stop/next/previous), `package_name` |
+
+Requires notification listener access (Settings > Special access > Notification access). The host app must register a `NotificationListenerService` and call `NotificationListenerHolder.set(componentName)` before using these tools.
+
+## Screenshot
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `capture_screen` | Capture a screenshot of the current screen | `format` (png/jpeg), `quality` (1-100, jpeg only) |
+
+Requires MediaProjection consent. The host app must obtain a projection token via `MediaProjectionManager.createScreenCaptureIntent()` and pass it to `MediaProjectionHolder.set(projection)`. Screenshots are saved to Pictures/droid-mcp.
+
+## Do Not Disturb
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_dnd_status` | Get current DND status and interruption filter | -- |
+| `set_dnd_mode` | Set DND mode | `mode` (required: off/priority/alarms/none) |
+
+`get_dnd_status` works without special permissions. `set_dnd_mode` requires notification policy access (Settings > Special access > Do Not Disturb access) — returns a clear error message if not granted.
+
+## Keyguard
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_lock_state` | Check if device is locked and screen state | -- |
+| `get_keyguard_info` | Get security details (PIN/pattern/password configured) | -- |
+
+Read-only queries using `KeyguardManager` and `PowerManager`. No permissions required.
+
+## Wallpaper
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_wallpaper_info` | Get current wallpaper dimensions and live wallpaper status | -- |
+| `set_wallpaper` | Set wallpaper from an image file | `path` (required), `target` (home/lock/both) |
+
+`set_wallpaper` validates that the file path is within external storage (same sandboxing as file tools). Checks `isSetWallpaperAllowed` before attempting.
+
+## Ringtone
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_ringtones` | List available ringtones by type | `type` (ringtone/notification/alarm), `limit` (1-100) |
+| `get_active_ringtone` | Get the currently set ringtone | `type` (ringtone/notification/alarm) |
+| `set_ringtone` | Set the default ringtone | `uri` (required, content:// URI or "silent"), `type` (ringtone/notification/alarm) |
+
+Read operations work without special permissions. `set_ringtone` requires WRITE_SETTINGS (Settings > Special access > Modify system settings). Only `content://` URIs are accepted for safety.
+
+## USB
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_usb_devices` | List all connected USB devices | -- |
+| `get_usb_device_info` | Get detailed info for a USB device | `device_name` (required) |
+
+Returns vendor/product IDs, manufacturer, product name, serial number, and per-interface endpoint details (direction, transfer type, max packet size). Requires USB host hardware support.
+
+## Print
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_printers` | List installed print service plugins and active jobs | -- |
+| `print_content` | Send content to the system print dialog | `content` (required), `job_name`, `is_html` |
+
+Plain text content is automatically wrapped in HTML. The print dialog opens asynchronously — the tool returns success when the dialog is triggered.

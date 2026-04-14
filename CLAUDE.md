@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, etc.) via Model Context Protocol — 69 tools across 30 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, etc.) via Model Context Protocol — 91 tools across 40 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **30 modules**, 69 tools, sample app with Compose UI
+- **40 modules**, 91 tools, sample app with Compose UI
 
 ## Key Conventions
 
@@ -89,6 +89,16 @@ droid-mcp-{name}/
 | `droid-mcp-qr` | `io.droidmcp.qr` | scan_qr_code, scan_barcode, generate_qr_code |
 | `droid-mcp-camera` | `io.droidmcp.camera` | take_photo, capture_video, get_camera_capabilities |
 | `droid-mcp-audio` | `io.droidmcp.audio` | get_audio_devices |
+| `droid-mcp-nfc` | `io.droidmcp.nfc` | get_nfc_status, read_nfc_tag, write_nfc_tag |
+| `droid-mcp-intent` | `io.droidmcp.intent` | send_intent, share_content, open_deep_link |
+| `droid-mcp-playback` | `io.droidmcp.playback` | get_now_playing, media_control |
+| `droid-mcp-screenshot` | `io.droidmcp.screenshot` | capture_screen |
+| `droid-mcp-dnd` | `io.droidmcp.dnd` | get_dnd_status, set_dnd_mode |
+| `droid-mcp-keyguard` | `io.droidmcp.keyguard` | get_lock_state, get_keyguard_info |
+| `droid-mcp-wallpaper` | `io.droidmcp.wallpaper` | get_wallpaper_info, set_wallpaper |
+| `droid-mcp-ringtone` | `io.droidmcp.ringtone` | list_ringtones, get_active_ringtone, set_ringtone |
+| `droid-mcp-usb` | `io.droidmcp.usb` | list_usb_devices, get_usb_device_info |
+| `droid-mcp-print` | `io.droidmcp.print` | list_printers, print_content |
 
 <!-- SECTION: new-tool-guide -->
 
@@ -160,3 +170,19 @@ object MyTools {
 - All numeric params clamped to safe ranges
 - `ToolRegistry` uses `ConcurrentHashMap` for thread safety
 - Settings read tools register without write permission; write tools require `canWrite()`
+- `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.
+- `set_wallpaper` validates file path against external storage root (same sandboxing as file tools)
+- `set_ringtone` only accepts `content://` URIs — rejects `file://` and other schemes
+- Playback tools use `NotificationListenerHolder` — host app must explicitly configure its service ComponentName
+- Screenshot uses `MediaProjectionHolder` — host app must obtain user consent and pass the projection token
+
+## Special Permissions
+
+Some modules require permissions that are granted via system Settings, not runtime dialogs. Tools handle missing access gracefully with clear error messages.
+
+| Module | Permission | Required for | How to grant |
+|--------|-----------|-------------|-------------|
+| playback | Notification Listener | All tools | Settings > Notification access |
+| screenshot | MediaProjection | `capture_screen` | `MediaProjectionManager.createScreenCaptureIntent()` |
+| dnd | DND Access | `set_dnd_mode` | Settings > DND access |
+| ringtone | WRITE_SETTINGS | `set_ringtone` | Settings > Modify system settings |

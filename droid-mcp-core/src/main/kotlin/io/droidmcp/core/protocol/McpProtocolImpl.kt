@@ -6,7 +6,7 @@ import kotlinx.serialization.json.*
 class McpProtocolImpl(
     private val registry: ToolRegistry,
     private val serverName: String = "droid-mcp",
-    private val serverVersion: String = "0.2.0",
+    private val serverVersion: String = "0.3.0",
 ) : McpProtocol {
 
     private val json = Json { ignoreUnknownKeys = true }

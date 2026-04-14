@@ -78,6 +78,8 @@ class HttpTransport(
                         }
 
                         delete {
+                            if (!authenticate(call)) return@delete
+
                             val sessionId = call.request.header("Mcp-Session-Id")
                             if (sessionId != null) {
                                 sessions.remove(sessionId)
@@ -87,6 +89,8 @@ class HttpTransport(
                     }
 
                     get("/health") {
+                        if (!authenticate(call)) return@get
+
                         call.respondText(
                             """{"status":"ok","tools":${registry.listTools().size}}""",
                             ContentType.Application.Json

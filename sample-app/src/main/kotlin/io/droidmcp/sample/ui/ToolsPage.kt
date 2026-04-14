@@ -3,6 +3,8 @@ package io.droidmcp.sample.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,11 +21,15 @@ private data class ToolButton(
 private data class ToolCategory(
     val name: String,
     val tools: List<ToolButton>,
+    val specialPermission: String? = null,
 )
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
+fun ToolsPage(
+    onCallTool: (String, Map<String, Any>) -> Unit,
+    onRequestSpecialPermission: (String) -> Unit = {},
+) {
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
     val categories = listOf(
@@ -144,6 +150,52 @@ fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
             ToolButton("Search", "web_search", mapOf("query" to "DroidMCP")),
             ToolButton("Fetch", "fetch_webpage", mapOf("url" to "http://example.com")),
         )),
+        ToolCategory("NFC", listOf(
+            ToolButton("Status", "get_nfc_status"),
+            ToolButton("Read Tag", "read_nfc_tag"),
+        )),
+        ToolCategory("Intent / Share", listOf(
+            ToolButton("Share Text", "share_content", mapOf("text" to "Hello from DroidMCP!")),
+            ToolButton("Open URL", "open_deep_link", mapOf("uri" to "https://github.com")),
+            ToolButton("Dial", "send_intent", mapOf("action" to "android.intent.action.DIAL", "data" to "tel:+1234567890")),
+        )),
+        ToolCategory("Playback", listOf(
+            ToolButton("Now Playing", "get_now_playing"),
+            ToolButton("Pause", "media_control", mapOf("command" to "pause")),
+            ToolButton("Play", "media_control", mapOf("command" to "play")),
+            ToolButton("Next", "media_control", mapOf("command" to "next")),
+            ToolButton("Previous", "media_control", mapOf("command" to "previous")),
+        ), specialPermission = "notification_listener"),
+        ToolCategory("Screenshot", listOf(
+            ToolButton("Capture", "capture_screen"),
+            ToolButton("JPEG", "capture_screen", mapOf("format" to "jpeg", "quality" to 80)),
+        ), specialPermission = "screen_capture"),
+        ToolCategory("Do Not Disturb", listOf(
+            ToolButton("Status", "get_dnd_status"),
+            ToolButton("Priority", "set_dnd_mode", mapOf("mode" to "priority")),
+            ToolButton("Alarms Only", "set_dnd_mode", mapOf("mode" to "alarms")),
+            ToolButton("Off", "set_dnd_mode", mapOf("mode" to "off")),
+        ), specialPermission = "dnd_access"),
+        ToolCategory("Keyguard", listOf(
+            ToolButton("Lock State", "get_lock_state"),
+            ToolButton("Security Info", "get_keyguard_info"),
+        )),
+        ToolCategory("Wallpaper", listOf(
+            ToolButton("Info", "get_wallpaper_info"),
+        )),
+        ToolCategory("Ringtone", listOf(
+            ToolButton("List", "list_ringtones"),
+            ToolButton("Notifications", "list_ringtones", mapOf("type" to "notification")),
+            ToolButton("Alarms", "list_ringtones", mapOf("type" to "alarm")),
+            ToolButton("Active", "get_active_ringtone"),
+        ), specialPermission = "write_settings"),
+        ToolCategory("USB", listOf(
+            ToolButton("Devices", "list_usb_devices"),
+        )),
+        ToolCategory("Print", listOf(
+            ToolButton("Printers", "list_printers"),
+            ToolButton("Print Test", "print_content", mapOf("content" to "Hello from DroidMCP!\nThis is a test print.")),
+        )),
     )
 
     LazyColumn(
@@ -152,7 +204,11 @@ fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(categories) { category ->
-            ToolCategoryCard(category = category, onCallTool = onCallTool)
+            ToolCategoryCard(
+                category = category,
+                onCallTool = onCallTool,
+                onRequestSpecialPermission = onRequestSpecialPermission,
+            )
         }
     }
 }
@@ -162,6 +218,7 @@ fun ToolsPage(onCallTool: (String, Map<String, Any>) -> Unit) {
 private fun ToolCategoryCard(
     category: ToolCategory,
     onCallTool: (String, Map<String, Any>) -> Unit,
+    onRequestSpecialPermission: (String) -> Unit,
 ) {
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -179,6 +236,29 @@ private fun ToolCategoryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                category.specialPermission?.let { perm ->
+                    AssistChip(
+                        onClick = { onRequestSpecialPermission(perm) },
+                        label = {
+                            Text(
+                                "Grant Access",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            leadingIconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        ),
+                    )
+                }
                 category.tools.forEach { btn ->
                     AssistChip(
                         onClick = { onCallTool(btn.tool, btn.params) },

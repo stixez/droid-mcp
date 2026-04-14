@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, and 60+ more tools.
+    Calendar, contacts, SMS, camera, location, sensors, and 80+ more tools.
   </p>
 </p>
 
@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-69-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-91-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
 </p>
 
@@ -46,7 +46,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 69 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 91 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -67,18 +67,18 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.3.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.2.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.2.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.2.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.2.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.3.0")
     // ... see full list below
 
     // Or include everything
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.2.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.3.0")
 }
 ```
 
@@ -160,7 +160,7 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-30 modules, 69 tools. Each module is independent — only the permissions for included modules are added to your manifest.
+40 modules, 91 tools. Each module is independent — only the permissions for included modules are added to your manifest.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
@@ -194,8 +194,29 @@ if (CalendarTools.hasPermissions(context)) {
 | **qr** | `scan_qr_code` `scan_barcode` `generate_qr_code` | `CAMERA` |
 | **camera** | `take_photo` `capture_video` `get_camera_capabilities` | `CAMERA` |
 | **audio** | `get_audio_devices` | None |
+| **nfc** | `get_nfc_status` `read_nfc_tag` `write_nfc_tag` | `NFC` |
+| **intent** | `send_intent` `share_content` `open_deep_link` | None |
+| **playback** | `get_now_playing` `media_control` | Notification Listener (special) |
+| **screenshot** | `capture_screen` | MediaProjection (special) |
+| **dnd** | `get_dnd_status` `set_dnd_mode` | `ACCESS_NOTIFICATION_POLICY` + DND Access (special) |
+| **keyguard** | `get_lock_state` `get_keyguard_info` | None |
+| **wallpaper** | `get_wallpaper_info` `set_wallpaper` | `SET_WALLPAPER` |
+| **ringtone** | `list_ringtones` `get_active_ringtone` `set_ringtone` | `WRITE_SETTINGS` (special, write only) |
+| **usb** | `list_usb_devices` `get_usb_device_info` | None |
+| **print** | `list_printers` `print_content` | None |
 
 Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
+
+### Special permissions
+
+Some modules require permissions that can't be requested at runtime. The tools work without them for read operations, and return clear error messages for write operations that need the grant.
+
+| Module | Permission | How to grant |
+|--------|-----------|-------------|
+| **playback** | Notification Listener | Settings > Apps > Special access > Notification access |
+| **screenshot** | MediaProjection | Host app calls `MediaProjectionManager.createScreenCaptureIntent()` and passes result to `MediaProjectionHolder.set()` |
+| **dnd** | DND Access (for `set_dnd_mode`) | Settings > Apps > Special access > Do Not Disturb access |
+| **ringtone** | WRITE_SETTINGS (for `set_ringtone`) | Settings > Apps > Special access > Modify system settings |
 
 ---
 
@@ -248,7 +269,7 @@ Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
 
 ## Sample App
 
-The `sample-app` module includes a Compose UI that registers all 69 tools with quick-test buttons for each one. Start the HTTP server from the app to connect desktop MCP clients.
+The `sample-app` module includes a Compose UI that registers all 91 tools with quick-test buttons for each one. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients.
 
 ---
 
