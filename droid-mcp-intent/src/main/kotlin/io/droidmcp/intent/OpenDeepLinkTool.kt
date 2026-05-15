@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -17,6 +18,7 @@ class OpenDeepLinkTool(private val context: Context) : McpTool {
         ToolParameter("uri", "The URI to open (e.g. 'https://maps.google.com/?q=...', 'geo:37.7749,-122.4194')", ParameterType.STRING, required = true),
         ToolParameter("package_name", "Optional: force open in a specific app", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uri = params["uri"]?.toString()

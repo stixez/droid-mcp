@@ -2,6 +2,7 @@ package io.droidmcp.web
 
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import okhttp3.OkHttpClient
@@ -16,6 +17,7 @@ class WebSearchTool : McpTool {
         ToolParameter("query", "Search query", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 
     private val client = OkHttpClient()
 

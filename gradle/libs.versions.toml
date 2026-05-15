@@ -11,6 +11,9 @@ kotlinx-serialization = "1.8.1"
 kotlinx-coroutines = "1.10.2"
 mcp-kotlin-sdk = "0.11.1"
 mlkit = "17.3.0"
+mlkit-text = "16.0.0"
+mlkit-label = "17.0.8"
+mlkit-face = "16.1.7"
 camerax = "1.4.1"
 zxing = "3.5.3"
 junit = "4.13.2"
@@ -40,6 +43,9 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 
 # ML Kit
 mlkit-barcode = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkit" }
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkit-text" }
+mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkit-label" }
+mlkit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "mlkit-face" }
 
 # CameraX
 camerax-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }

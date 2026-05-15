@@ -22,6 +22,7 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

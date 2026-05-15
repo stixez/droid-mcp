@@ -12,6 +12,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
         ToolParameter("query", "Search query (name, phone, or email)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

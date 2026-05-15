@@ -15,6 +15,7 @@ class ReadCallLogTool(private val context: Context) : McpTool {
         ToolParameter("type", "Filter by call type: 'all', 'incoming', 'outgoing', 'missed'. Default: 'all'", ParameterType.STRING),
         ToolParameter("offset", "Number of calls to skip for pagination. Default 0.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

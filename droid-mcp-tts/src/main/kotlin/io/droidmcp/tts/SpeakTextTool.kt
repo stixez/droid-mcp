@@ -5,6 +5,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -21,6 +22,7 @@ class SpeakTextTool(private val context: Context) : McpTool {
         ToolParameter("pitch", "Pitch of the speech (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
         ToolParameter("speed", "Speech rate (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

@@ -7,6 +7,7 @@ import android.util.DisplayMetrics
 import android.view.Display
 import android.view.WindowManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -15,6 +16,7 @@ class GetDisplayInfoTool(private val context: Context) : McpTool {
     override val name = "get_display_info"
     override val description = "Get display details including resolution, density, refresh rate, and HDR capabilities"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager

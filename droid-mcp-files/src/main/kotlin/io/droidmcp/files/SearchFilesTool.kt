@@ -15,6 +15,7 @@ class SearchFilesTool(private val context: Context) : McpTool {
         ToolParameter("path", "Root directory to search in. Default: /sdcard", ParameterType.STRING),
         ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

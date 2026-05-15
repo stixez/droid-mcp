@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -17,6 +18,7 @@ class SetRingtoneTool(private val context: Context) : McpTool {
         ToolParameter("uri", "Ringtone URI (from list_ringtones). Pass 'silent' to set to silent.", ParameterType.STRING, required = true),
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uriStr = params["uri"]?.toString()

@@ -7,11 +7,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml"><img src="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://jitpack.io/#stixez/droid-mcp"><img src="https://jitpack.io/v/stixez/droid-mcp.svg" alt="JitPack" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-91-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-99-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
 </p>
 
@@ -67,18 +68,19 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.4.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.3.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.3.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.3.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.3.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.4.0")
     // ... see full list below
 
     // Or include everything
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.3.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.4.0")
 }
 ```
 
@@ -160,7 +162,7 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-40 modules, 91 tools. Each module is independent — only the permissions for included modules are added to your manifest.
+41 modules, 99 tools. Each module is independent — only the permissions for included modules are added to your manifest.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
@@ -204,6 +206,7 @@ if (CalendarTools.hasPermissions(context)) {
 | **ringtone** | `list_ringtones` `get_active_ringtone` `set_ringtone` | `WRITE_SETTINGS` (special, write only) |
 | **usb** | `list_usb_devices` `get_usb_device_info` | None |
 | **print** | `list_printers` `print_content` | None |
+| **mlkit** | `recognize_text` `label_image` `detect_faces` | None (operates on local image files) |
 
 Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
 
@@ -269,7 +272,7 @@ Some modules require permissions that can't be requested at runtime. The tools w
 
 ## Sample App
 
-The `sample-app` module includes a Compose UI that registers all 91 tools with quick-test buttons for each one. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients.
+The `sample-app` module includes a Compose UI that registers all 99 tools with quick-test buttons for each one. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
 
 ---
 

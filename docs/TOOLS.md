@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 91 tools across 40 modules.
+Complete reference for all 99 tools across 41 modules.
 
 ---
 
@@ -344,3 +344,13 @@ Returns vendor/product IDs, manufacturer, product name, serial number, and per-i
 | `print_content` | Send content to the system print dialog | `content` (required), `job_name`, `is_html` |
 
 Plain text content is automatically wrapped in HTML. The print dialog opens asynchronously — the tool returns success when the dialog is triggered.
+
+## ML Kit
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `recognize_text` | Extract text from an image using ML Kit text recognition | `image_path` (required) |
+| `label_image` | Classify the contents of an image | `image_path` (required), `min_confidence` (0.0-1.0, default 0.5) |
+| `detect_faces` | Detect faces (bounding boxes, expression probabilities). Does NOT identify. | `image_path` (required) |
+
+All ML Kit tools operate on local image files under external storage (validated via the same sandboxing as the file tools). All inference runs fully on-device — no network calls. Returns include bounding boxes for text lines, confidence scores for labels, and face attribute probabilities (smiling, eyes open) plus Euler angles.

@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.util.Date
@@ -16,6 +17,7 @@ class GetAppInfoTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("package_name", "Package name of the app (e.g. com.example.app)", ParameterType.STRING, required = true),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val packageName = params["package_name"]?.toString()

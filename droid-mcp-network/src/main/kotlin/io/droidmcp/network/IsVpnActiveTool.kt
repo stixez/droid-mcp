@@ -11,6 +11,7 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.PermissionHelper
+import io.droidmcp.core.ToolAnnotations
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,6 +19,7 @@ class IsVpnActiveTool(private val context: Context) : McpTool {
     override val name = "is_vpn_active"
     override val description = "Check if a VPN connection is currently active and return the VPN package name if available."
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         if (!PermissionHelper.hasPermissions(context, listOf(Manifest.permission.ACCESS_NETWORK_STATE))) {

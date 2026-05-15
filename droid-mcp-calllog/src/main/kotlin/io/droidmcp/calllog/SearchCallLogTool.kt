@@ -14,6 +14,7 @@ class SearchCallLogTool(private val context: Context) : McpTool {
         ToolParameter("query", "Phone number or contact name to search for (substring match)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

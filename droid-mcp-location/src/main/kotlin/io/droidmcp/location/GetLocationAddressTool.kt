@@ -17,6 +17,7 @@ class GetLocationAddressTool(private val context: Context) : McpTool {
         ToolParameter("latitude", "Latitude in decimal degrees (e.g. 37.4219)", ParameterType.NUMBER, required = true),
         ToolParameter("longitude", "Longitude in decimal degrees (e.g. -122.0841)", ParameterType.NUMBER, required = true),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val latitude = (params["latitude"] as? Number)?.toDouble()

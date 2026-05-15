@@ -7,6 +7,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -18,6 +19,7 @@ class VibrateTool(private val context: Context) : McpTool {
         ToolParameter("duration_ms", "Duration of vibration in milliseconds (1-10000)", ParameterType.INTEGER, required = true),
         ToolParameter("amplitude", "Vibration amplitude (1-255), or null for default", ParameterType.INTEGER, required = false),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val duration = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 10000)

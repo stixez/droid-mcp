@@ -5,6 +5,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -13,6 +14,7 @@ class GetNowPlayingTool(private val context: Context) : McpTool {
     override val name = "get_now_playing"
     override val description = "Get information about the currently playing media from active media sessions. Requires notification listener access."
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager

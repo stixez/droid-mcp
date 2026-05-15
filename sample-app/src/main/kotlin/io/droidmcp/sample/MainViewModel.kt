@@ -3,9 +3,14 @@ package io.droidmcp.sample
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.wifi.WifiManager
+import android.os.Build
+import android.util.Base64
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.droidmcp.qr.GenerateQrCodeTool
 import io.droidmcp.alarms.AlarmsTools
 import io.droidmcp.apps.AppsTools
 import io.droidmcp.bluetooth.BluetoothTools
@@ -48,6 +53,7 @@ import io.droidmcp.wallpaper.WallpaperTools
 import io.droidmcp.ringtone.RingtoneTools
 import io.droidmcp.usb.UsbTools
 import io.droidmcp.print.PrintTools
+import io.droidmcp.mlkit.MlKitTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +70,8 @@ data class MainState(
     val tools: List<McpTool> = emptyList(),
     val serverRunning: Boolean = false,
     val serverUrl: String? = null,
+    val serverToken: String? = null,
+    val pairingQr: Bitmap? = null,
     val logs: List<ToolCallLog> = emptyList(),
     val loading: Boolean = false,
 )
@@ -128,10 +136,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(RingtoneTools.all(context))
         tools.addAll(UsbTools.all(context))
         tools.addAll(PrintTools.all(context))
+        tools.addAll(MlKitTools.all(context))
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)
-            .enableHttpServer(port = 8080)
+            .enableHttpServer(port = 8080, context = context)
             .build()
 
         _state.value = _state.value.copy(tools = tools)
@@ -152,15 +161,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startServer() {
         droidMcp?.startServer()
+        val url = "http://${getDeviceIp()}:8080/mcp"
+        val token = droidMcp?.serverToken
         _state.value = _state.value.copy(
             serverRunning = true,
-            serverUrl = "http://${getDeviceIp()}:8080/mcp"
+            serverUrl = url,
+            serverToken = token,
         )
+        viewModelScope.launch(Dispatchers.IO) {
+            val qr = generatePairingQr(url, token)
+            _state.value = _state.value.copy(pairingQr = qr)
+        }
     }
 
     fun stopServer() {
         droidMcp?.stopServer()
-        _state.value = _state.value.copy(serverRunning = false, serverUrl = null)
+        _state.value = _state.value.copy(
+            serverRunning = false,
+            serverUrl = null,
+            serverToken = null,
+            pairingQr = null,
+        )
+    }
+
+    private suspend fun generatePairingQr(url: String, token: String?): Bitmap? {
+        val name = Build.MODEL
+        val payload = buildString {
+            append("{\"v\":1,\"url\":\"")
+            append(url)
+            append("\"")
+            if (token != null) {
+                append(",\"token\":\"")
+                append(token)
+                append("\"")
+            }
+            append(",\"name\":\"")
+            append(name.replace("\"", "\\\""))
+            append("\"}")
+        }
+        val result = GenerateQrCodeTool().execute(mapOf("text" to payload, "size" to 600))
+        val base64 = result.data?.get("qr_image") as? String ?: return null
+        val bytes = Base64.decode(base64, Base64.NO_WRAP)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     fun clearLogs() {

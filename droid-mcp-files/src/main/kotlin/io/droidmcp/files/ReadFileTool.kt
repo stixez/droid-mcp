@@ -12,6 +12,7 @@ class ReadFileTool(private val context: Context) : McpTool {
         ToolParameter("path", "Absolute path to the file to read", ParameterType.STRING, required = true),
         ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     private val textExtensions = setOf(
         "txt", "md", "json", "xml", "csv", "log", "yaml", "yml", "toml", "ini",

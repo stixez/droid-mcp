@@ -15,6 +15,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         ToolParameter("end_date", "End date in YYYY-MM-DD format. Defaults to start_date.", ParameterType.STRING),
         ToolParameter("limit", "Max number of events to return. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)

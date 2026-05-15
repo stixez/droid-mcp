@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.RingtoneManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -15,6 +16,7 @@ class ListRingtonesTool(private val context: Context) : McpTool {
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
         ToolParameter("limit", "Maximum number of results (1-100, default: 50)", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val typeStr = params["type"]?.toString() ?: "ringtone"

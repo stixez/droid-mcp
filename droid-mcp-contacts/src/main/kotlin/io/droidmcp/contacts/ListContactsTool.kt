@@ -12,6 +12,7 @@ class ListContactsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max results per page. Default 50.", ParameterType.INTEGER),
         ToolParameter("offset", "Number of contacts to skip. Default 0.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50

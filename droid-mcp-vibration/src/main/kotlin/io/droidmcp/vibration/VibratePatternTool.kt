@@ -7,6 +7,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -18,6 +19,7 @@ class VibratePatternTool(private val context: Context) : McpTool {
         ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", ParameterType.ARRAY, required = true),
         ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", ParameterType.INTEGER, required = false),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         @Suppress("UNCHECKED_CAST")

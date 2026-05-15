@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -20,6 +21,7 @@ class SendIntentTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Target package for explicit intent (e.g. 'com.google.android.apps.maps')", ParameterType.STRING),
         ToolParameter("extras", "Key-value pairs to add as string extras", ParameterType.OBJECT),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     private val allowedActions = setOf(
         Intent.ACTION_VIEW,

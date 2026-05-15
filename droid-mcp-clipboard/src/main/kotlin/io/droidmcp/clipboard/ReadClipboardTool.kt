@@ -3,6 +3,7 @@ package io.droidmcp.clipboard
 import android.content.ClipboardManager
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -11,6 +12,7 @@ class ReadClipboardTool(private val context: Context) : McpTool {
     override val name = "read_clipboard"
     override val description = "Read the current clipboard content"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

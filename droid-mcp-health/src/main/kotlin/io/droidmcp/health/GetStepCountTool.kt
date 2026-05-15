@@ -22,6 +22,7 @@ class GetStepCountTool(private val context: Context) : McpTool {
         Requires ACTIVITY_RECOGNITION permission on Android 10+ (API 29+).
     """.trimIndent()
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager

@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ class GetAccelerometerTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)

@@ -57,6 +57,7 @@ include(
     ":droid-mcp-ringtone",
     ":droid-mcp-usb",
     ":droid-mcp-print",
+    ":droid-mcp-mlkit",
     ":droid-mcp-all",
     ":sample-app",
 )

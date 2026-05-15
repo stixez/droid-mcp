@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.TrafficStats
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ class GetDataUsageTool(private val context: Context) : McpTool {
             required = false,
         )
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val days = (params["days"] as? Number)?.toInt()?.coerceIn(1, 90) ?: 30

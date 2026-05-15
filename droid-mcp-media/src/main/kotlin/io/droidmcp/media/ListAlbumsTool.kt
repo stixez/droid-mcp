@@ -13,6 +13,7 @@ class ListAlbumsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max number of albums to return. Default 10.", ParameterType.INTEGER),
         ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
