@@ -11,6 +11,7 @@ class ReadContactTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("contact_id", "The contact ID", ParameterType.INTEGER, required = true),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val contactId = (params["contact_id"] as? Number)?.toLong()

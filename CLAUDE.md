@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, etc.) via Model Context Protocol — 91 tools across 40 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, etc.) via Model Context Protocol — 99 tools across 41 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **40 modules**, 91 tools, sample app with Compose UI
+- **41 modules**, 99 tools, sample app with Compose UI
 
 ## Key Conventions
 
@@ -99,6 +99,7 @@ droid-mcp-{name}/
 | `droid-mcp-ringtone` | `io.droidmcp.ringtone` | list_ringtones, get_active_ringtone, set_ringtone |
 | `droid-mcp-usb` | `io.droidmcp.usb` | list_usb_devices, get_usb_device_info |
 | `droid-mcp-print` | `io.droidmcp.print` | list_printers, print_content |
+| `droid-mcp-mlkit` | `io.droidmcp.mlkit` | recognize_text, label_image, detect_faces |
 
 <!-- SECTION: new-tool-guide -->
 
@@ -163,6 +164,9 @@ object MyTools {
 
 ## Security Decisions
 
+- HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
+- Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
+- mDNS (`_mcp._tcp`) broadcasts version/auth/readonly via TXT records; does NOT broadcast the bearer token.
 - File tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator`
 - SMS `send_message` validates phone number format before sending
 - HTTP transport: local network only, optional Bearer token auth

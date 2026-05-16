@@ -5,6 +5,7 @@ import android.hardware.usb.UsbConstants
 import android.hardware.usb.UsbManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -15,6 +16,7 @@ class GetUsbDeviceInfoTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("device_name", "Device name from list_usb_devices (e.g. '/dev/bus/usb/001/002')", ParameterType.STRING, required = true),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val deviceName = params["device_name"]?.toString()

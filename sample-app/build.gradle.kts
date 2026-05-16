@@ -14,7 +14,7 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "0.3.0"
+        versionName = "0.4.0"
     }
 
     buildFeatures {
@@ -45,6 +45,7 @@ dependencies {
     implementation(project(":droid-mcp-all"))
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
     // Compose
     implementation(platform("androidx.compose:compose-bom:2025.03.00"))

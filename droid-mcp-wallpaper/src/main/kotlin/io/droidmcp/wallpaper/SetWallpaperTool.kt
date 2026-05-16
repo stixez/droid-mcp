@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.os.Environment
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
@@ -18,6 +19,7 @@ class SetWallpaperTool(private val context: Context) : McpTool {
         ToolParameter("path", "Absolute path to the image file", ParameterType.STRING, required = true),
         ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()
@@ -31,7 +33,7 @@ class SetWallpaperTool(private val context: Context) : McpTool {
         // Sandbox to external storage, matching PathValidator pattern from file tools
         val canonical = File(path).canonicalPath
         val externalRoot = Environment.getExternalStorageDirectory().canonicalPath
-        if (!canonical.startsWith(externalRoot)) {
+        if (canonical != externalRoot && !canonical.startsWith(externalRoot + File.separator)) {
             return ToolResult.error("Access denied: path must be within external storage")
         }
 

@@ -62,4 +62,5 @@ dependencies {
     api(project(":droid-mcp-ringtone"))
     api(project(":droid-mcp-usb"))
     api(project(":droid-mcp-print"))
+    api(project(":droid-mcp-mlkit"))
 }

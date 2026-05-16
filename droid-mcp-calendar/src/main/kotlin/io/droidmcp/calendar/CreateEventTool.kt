@@ -19,6 +19,7 @@ class CreateEventTool(private val context: Context) : McpTool {
         ToolParameter("description", "Event description", ParameterType.STRING),
         ToolParameter("calendar_id", "Calendar ID. Defaults to primary calendar.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val title = params["title"]?.toString()

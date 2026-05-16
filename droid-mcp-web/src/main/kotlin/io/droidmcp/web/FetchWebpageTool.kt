@@ -2,6 +2,7 @@ package io.droidmcp.web
 
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import okhttp3.OkHttpClient
@@ -17,6 +18,7 @@ class FetchWebpageTool : McpTool {
         ToolParameter("url", "URL to fetch", ParameterType.STRING, required = true),
         ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

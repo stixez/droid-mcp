@@ -3,6 +3,7 @@ package io.droidmcp.telephony
 import android.content.Context
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -11,6 +12,7 @@ class GetNetworkOperatorTool(private val context: Context) : McpTool {
     override val name = "get_network_operator"
     override val description = "Get network operator information including name, ID, MCC, and MNC"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -16,6 +17,7 @@ class ShareContentTool(private val context: Context) : McpTool {
         ToolParameter("subject", "Optional subject line (used by email apps)", ParameterType.STRING),
         ToolParameter("type", "MIME type (default: 'text/plain')", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

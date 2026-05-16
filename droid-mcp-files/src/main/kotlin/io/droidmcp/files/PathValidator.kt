@@ -10,7 +10,9 @@ internal object PathValidator {
 
     fun isAllowed(path: String): Boolean {
         val canonical = File(path).canonicalPath
-        return allowedRoots.any { canonical.startsWith(it) }
+        return allowedRoots.any { root ->
+            canonical == root || canonical.startsWith(root + File.separator)
+        }
     }
 
     fun validate(path: String): String? {

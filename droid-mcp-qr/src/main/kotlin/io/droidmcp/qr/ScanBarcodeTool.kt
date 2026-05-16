@@ -8,6 +8,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ class ScanBarcodeTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("image_uri", "URI of the image file containing the barcode", ParameterType.STRING, required = true),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val imageUriStr = params["image_uri"]?.toString()

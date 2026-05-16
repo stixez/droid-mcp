@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
@@ -19,6 +20,7 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 

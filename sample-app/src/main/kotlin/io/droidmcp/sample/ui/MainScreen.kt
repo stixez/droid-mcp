@@ -1,12 +1,17 @@
 package io.droidmcp.sample.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
@@ -24,10 +29,12 @@ fun MainScreen(
     onCallTool: (String, Map<String, Any>) -> Unit,
     onClearLogs: () -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
+    onToggleReadOnly: (Boolean) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
 
     Column(
         modifier = Modifier
@@ -89,6 +96,33 @@ fun MainScreen(
                     }
                 }
 
+                // Read-only toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.readOnly,
+                        onCheckedChange = onToggleReadOnly,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Read-only mode",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.readOnly) "Destructive tools hidden from clients"
+                            else "All tools exposed",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 // Server URL pill
                 state.serverUrl?.let { url ->
                     Spacer(Modifier.height(10.dp))
@@ -104,6 +138,74 @@ fun MainScreen(
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         )
+                    }
+                }
+
+                // Pairing QR code
+                state.pairingQr?.let { bitmap ->
+                    Spacer(Modifier.height(10.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.medium,
+                        tonalElevation = 1.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        ) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Pairing QR code",
+                                modifier = Modifier.size(220.dp),
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "Scan to pair an MCP client",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // Bearer token row
+                state.serverToken?.let { token ->
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                        ) {
+                            Text(
+                                "Bearer ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                            Text(
+                                token,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = { clipboard.setText(AnnotatedString(token)) },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy bearer token",
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

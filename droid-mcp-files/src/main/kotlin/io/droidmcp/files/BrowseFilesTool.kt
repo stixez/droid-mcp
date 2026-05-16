@@ -14,6 +14,7 @@ class BrowseFilesTool(private val context: Context) : McpTool {
         ToolParameter("path", "Directory path to browse. Default: /sdcard", ParameterType.STRING),
         ToolParameter("limit", "Max number of entries to return. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString() ?: "/sdcard"

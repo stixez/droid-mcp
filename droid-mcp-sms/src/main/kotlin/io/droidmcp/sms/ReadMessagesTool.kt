@@ -16,6 +16,7 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         ToolParameter("since", "Only messages after this date (YYYY-MM-DD)", ParameterType.STRING),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val box = params["box"]?.toString() ?: "inbox"

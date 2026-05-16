@@ -12,6 +12,7 @@ import android.util.DisplayMetrics
 import android.view.WindowManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.delay
@@ -29,6 +30,7 @@ class CaptureScreenTool(private val context: Context) : McpTool {
         ToolParameter("quality", "JPEG quality 1-100 (default: 90). Only used if format is 'jpeg'.", ParameterType.INTEGER),
         ToolParameter("format", "Image format: 'png' (default) or 'jpeg'", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val projection = MediaProjectionHolder.projection

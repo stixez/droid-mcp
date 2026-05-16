@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -15,6 +16,7 @@ class SetVolumeTool(private val context: Context) : McpTool {
         ToolParameter("stream", "Audio stream to adjust: media, ring, alarm, notification (default: media)", ParameterType.STRING),
         ToolParameter("level", "Volume level (0 to max for the stream)", ParameterType.INTEGER, required = true),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val streamName = params["stream"]?.toString() ?: "media"

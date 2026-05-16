@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -12,6 +13,7 @@ class GetAudioDevicesTool(private val context: Context) : McpTool {
     override val name = "get_audio_devices"
     override val description = "Get list of connected audio devices (speakers, headphones, etc.)"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager

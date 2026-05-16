@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -16,6 +17,7 @@ class WriteClipboardTool(private val context: Context) : McpTool {
         ToolParameter("text", "Text content to write to clipboard", ParameterType.STRING, required = true),
         ToolParameter("label", "Label for the clip (default: droid-mcp)", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

@@ -3,6 +3,7 @@ package io.droidmcp.tts
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -14,6 +15,7 @@ class GetTtsInfoTool(private val context: Context) : McpTool {
     override val name = "get_tts_info"
     override val description = "Get information about the available TTS engines and supported languages"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         return suspendCancellableCoroutine { continuation ->

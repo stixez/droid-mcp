@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.view.Surface
 import android.view.WindowManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -16,6 +17,7 @@ class GetSettingsTool(private val context: Context) : McpTool {
     override val name = "get_settings"
     override val description = "Read current device settings including brightness, volume, WiFi, Bluetooth, airplane mode, and auto-rotate"
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val contentResolver = context.contentResolver

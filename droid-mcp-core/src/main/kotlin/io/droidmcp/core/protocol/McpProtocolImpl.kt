@@ -1,13 +1,21 @@
 package io.droidmcp.core.protocol
 
+import io.droidmcp.core.DROID_MCP_VERSION
+import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolRegistry
 import kotlinx.serialization.json.*
 
 class McpProtocolImpl(
     private val registry: ToolRegistry,
     private val serverName: String = "droid-mcp",
-    private val serverVersion: String = "0.3.0",
+    private val serverVersion: String = DROID_MCP_VERSION,
+    private val readOnly: Boolean = false,
 ) : McpProtocol {
+
+    private fun visibleTools(): List<McpTool> =
+        if (readOnly) registry.listTools().filter { it.annotations.readOnlyHint }
+        else registry.listTools()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -48,7 +56,7 @@ class McpProtocolImpl(
     }
 
     private fun handleToolsList(id: JsonElement?): String {
-        val tools = registry.listTools().map { tool ->
+        val tools = visibleTools().map { tool ->
             buildJsonObject {
                 put("name", tool.name)
                 put("description", tool.description)
@@ -67,6 +75,7 @@ class McpProtocolImpl(
                         tool.parameters.filter { it.required }.forEach { add(it.name) }
                     }
                 }
+                annotationsJson(tool.annotations)?.let { put("annotations", it) }
             }
         }
         val result = buildJsonObject {
@@ -78,6 +87,21 @@ class McpProtocolImpl(
     private suspend fun handleToolsCall(id: JsonElement?, params: JsonObject): String {
         val toolName = params["name"]?.jsonPrimitive?.content
             ?: return jsonRpcError(id, -32602, "Missing tool name")
+        if (readOnly) {
+            val tool = registry.listTools().firstOrNull { it.name == toolName }
+            if (tool != null && !tool.annotations.readOnlyHint) {
+                val content = buildJsonArray {
+                    addJsonObject {
+                        put("type", "text")
+                        put("text", "Tool '$toolName' is not available in read-only mode")
+                    }
+                }
+                return jsonRpcResponse(id, buildJsonObject {
+                    put("content", content)
+                    put("isError", true)
+                })
+            }
+        }
         val arguments = params["arguments"]?.jsonObject?.let { args ->
             args.entries.associate { (k, v) ->
                 k to when {
@@ -97,13 +121,7 @@ class McpProtocolImpl(
                     put("text", Json.encodeToString(JsonObject.serializer(),
                         buildJsonObject {
                             toolResult.data?.forEach { (k, v) ->
-                                when (v) {
-                                    is String -> put(k, v)
-                                    is Number -> put(k, v as Number)
-                                    is Boolean -> put(k, v)
-                                    null -> put(k, JsonNull)
-                                    else -> put(k, v.toString())
-                                }
+                                put(k, anyToJsonElement(v))
                             }
                         }
                     ))
@@ -126,6 +144,38 @@ class McpProtocolImpl(
                 put("isError", true)
             }
             jsonRpcResponse(id, result)
+        }
+    }
+
+    private fun anyToJsonElement(value: Any?): JsonElement = when (value) {
+        null -> JsonNull
+        is JsonElement -> value
+        is String -> JsonPrimitive(value)
+        is Number -> JsonPrimitive(value)
+        is Boolean -> JsonPrimitive(value)
+        is Map<*, *> -> buildJsonObject {
+            value.forEach { (k, v) ->
+                if (k is String) put(k, anyToJsonElement(v))
+            }
+        }
+        is Iterable<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        is Array<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        else -> JsonPrimitive(value.toString())
+    }
+
+    private fun annotationsJson(a: ToolAnnotations): JsonObject? {
+        val default = ToolAnnotations()
+        if (a == default) return null
+        return buildJsonObject {
+            if (a.readOnlyHint != default.readOnlyHint) put("readOnlyHint", a.readOnlyHint)
+            if (a.destructiveHint != default.destructiveHint) put("destructiveHint", a.destructiveHint)
+            if (a.idempotentHint != default.idempotentHint) put("idempotentHint", a.idempotentHint)
+            if (a.openWorldHint != default.openWorldHint) put("openWorldHint", a.openWorldHint)
+            a.title?.let { put("title", it) }
         }
     }
 

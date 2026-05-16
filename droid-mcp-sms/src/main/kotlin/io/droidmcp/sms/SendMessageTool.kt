@@ -15,6 +15,7 @@ class SendMessageTool(private val context: Context) : McpTool {
         ToolParameter("to", "Recipient phone number", ParameterType.STRING, required = true),
         ToolParameter("body", "Message text", ParameterType.STRING, required = true),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val to = params["to"]?.toString()

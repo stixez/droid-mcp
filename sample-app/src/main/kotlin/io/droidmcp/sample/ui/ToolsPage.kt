@@ -196,6 +196,23 @@ fun ToolsPage(
             ToolButton("Printers", "list_printers"),
             ToolButton("Print Test", "print_content", mapOf("content" to "Hello from DroidMCP!\nThis is a test print.")),
         )),
+        ToolCategory("ML Kit", listOf(
+            ToolButton(
+                "OCR",
+                "recognize_text",
+                mapOf("image_path" to "/sdcard/Download/mlkit-test.png"),
+            ),
+            ToolButton(
+                "Labels",
+                "label_image",
+                mapOf("image_path" to "/sdcard/Download/mlkit-test.png", "min_confidence" to 0.3),
+            ),
+            ToolButton(
+                "Faces",
+                "detect_faces",
+                mapOf("image_path" to "/sdcard/Download/mlkit-test.png"),
+            ),
+        )),
     )
 
     LazyColumn(

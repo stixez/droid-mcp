@@ -15,6 +15,7 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
         ToolParameter("media_id", "MediaStore media ID (from search_media results)", ParameterType.INTEGER, required = true),
         ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val mediaId = (params["media_id"] as? Number)?.toLong()

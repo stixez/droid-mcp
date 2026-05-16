@@ -4,6 +4,7 @@ import android.content.Context
 import android.nfc.NfcAdapter
 import android.nfc.tech.Ndef
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -12,6 +13,7 @@ class ReadNfcTagTool(private val context: Context) : McpTool {
     override val name = "read_nfc_tag"
     override val description = "Read NDEF data from the last scanned NFC tag. Returns cached tag data from the most recent scan, or indicates no tag has been scanned yet."
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val adapter = NfcAdapter.getDefaultAdapter(context)

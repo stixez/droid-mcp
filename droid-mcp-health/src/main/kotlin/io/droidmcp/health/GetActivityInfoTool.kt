@@ -10,6 +10,7 @@ class GetActivityInfoTool(private val context: Context) : McpTool {
     override val name = "get_activity_info"
     override val description = "Get basic activity and fitness sensor information for the device. Returns which motion sensors are available (step counter, step detector, accelerometer, etc.) and their specifications. Does not require any permissions."
     override val parameters = emptyList<ToolParameter>()
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
