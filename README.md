@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, and 80+ more tools.
+    Calendar, contacts, SMS, camera, location, sensors, and 90+ more tools.
   </p>
 </p>
 
@@ -47,7 +47,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 91 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 99 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -121,10 +121,16 @@ Start the server on the phone:
 val mcp = DroidMcp.builder()
     .addTools(DeviceTools.all(context))
     .addTools(CalendarTools.all(context))
-    .enableHttpServer(port = 8080, token = "your-secret-token")
+    .enableHttpServer(
+        port = 8080,
+        // token = null → auto-generated via SecureRandom (read it from mcp.serverToken)
+        // readOnly = true → hide destructive tools from clients
+        context = context,        // enables mDNS broadcast on _mcp._tcp
+    )
     .build()
 
 mcp.startServer()
+val token = mcp.serverToken  // share via QR / pairing
 ```
 
 Connect from Claude Code (`~/.claude/settings.json`):
@@ -136,12 +142,14 @@ Connect from Claude Code (`~/.claude/settings.json`):
       "type": "http",
       "url": "http://<phone-ip>:8080/mcp",
       "headers": {
-        "Authorization": "Bearer your-secret-token"
+        "Authorization": "Bearer <token-from-mcp.serverToken>"
       }
     }
   }
 }
 ```
+
+The phone broadcasts itself on the local network via mDNS (`_mcp._tcp`) — the sample app's pairing QR encodes the URL and token, so clients can scan and connect without copying the IP by hand.
 
 Now Claude can read your calendar, search contacts, check battery level, and use any other registered tool — directly from your terminal.
 
@@ -257,7 +265,9 @@ Some modules require permissions that can't be requested at runtime. The tools w
 | **Path sandboxing** | File tools restricted to external storage. System paths rejected. |
 | **Input validation** | All params validated and clamped. Phone numbers checked before SMS send. |
 | **Permission isolation** | Each module declares only its own permissions. Library never triggers permission requests. |
-| **Network security** | HTTP server on local network only. Optional Bearer token auth. |
+| **Network security** | HTTP server on local network only. Bearer token auth required by default — auto-generated via `SecureRandom` if not supplied (accessible via `DroidMcp.serverToken`). |
+| **Read-only mode** | `enableHttpServer(readOnly = true)` filters destructive tools from `tools/list` and rejects `tools/call` for non-read-only tools. |
+| **Tool annotations** | Every tool advertises `readOnlyHint` / `destructiveHint` / `idempotentHint` per MCP spec so clients can decide which to expose. |
 | **No telemetry** | No analytics, crash reporting, or phone-home calls. The `web` module accesses the internet only when explicitly invoked by the LLM. |
 
 ---
