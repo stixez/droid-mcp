@@ -18,10 +18,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.coroutines.flow.MutableSharedFlow
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.Collections
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 class HttpTransport(
     private val registry: ToolRegistry,
@@ -38,13 +39,23 @@ class HttpTransport(
         else -> generateToken()
     }
 
-    val mdnsServiceName: String = "droid-mcp-${Build.MODEL.replace(' ', '-')}"
+    private val effectiveTokenBytes: ByteArray? = effectiveToken?.toByteArray(Charsets.UTF_8)
+
+    val mdnsServiceName: String = run {
+        val sanitized = Build.MODEL.replace(Regex("[^A-Za-z0-9-]"), "-")
+        "droid-mcp-$sanitized".take(MAX_NSD_NAME_LENGTH)
+    }
 
     @Volatile private var server: EmbeddedServer<*, *>? = null
     @Volatile private var nsdRegistration: NsdManager.RegistrationListener? = null
     private val protocol = McpProtocolImpl(registry, readOnly = readOnly)
     private val sseEvents = MutableSharedFlow<String>()
-    private val sessions = ConcurrentHashMap<String, Boolean>()
+    private val sessions: MutableMap<String, Boolean> = Collections.synchronizedMap(
+        object : LinkedHashMap<String, Boolean>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: Map.Entry<String, Boolean>?): Boolean =
+                size > MAX_SESSIONS
+        }
+    )
 
     fun start() {
         if (server != null) return
@@ -60,8 +71,7 @@ class HttpTransport(
                             val body = call.receiveText()
                             val sessionId = call.request.header("Mcp-Session-Id")
 
-                            val isInitialize = body.contains("\"method\"") &&
-                                body.contains("\"initialize\"")
+                            val isInitialize = INITIALIZE_METHOD_REGEX.containsMatchIn(body)
 
                             if (!isInitialize && sessionId != null && !sessions.containsKey(sessionId)) {
                                 call.respond(HttpStatusCode.NotFound, """{"error":"Unknown session"}""")
@@ -84,9 +94,9 @@ class HttpTransport(
                         }
 
                         sse {
-                            if (effectiveToken != null) {
+                            if (effectiveTokenBytes != null) {
                                 val token = call.request.queryParameters["token"]
-                                if (token != effectiveToken) {
+                                if (!tokensMatch(token)) {
                                     call.response.header("WWW-Authenticate", "Bearer realm=\"droid-mcp\"")
                                     call.respond(HttpStatusCode.Unauthorized)
                                     return@sse
@@ -134,9 +144,9 @@ class HttpTransport(
     fun isRunning(): Boolean = server != null
 
     private suspend fun authenticate(call: ApplicationCall): Boolean {
-        val expected = effectiveToken ?: return true
+        if (effectiveTokenBytes == null) return true
         val token = call.request.header("Authorization")?.removePrefix("Bearer ")
-        if (token != expected) {
+        if (!tokensMatch(token)) {
             call.response.header("WWW-Authenticate", "Bearer realm=\"droid-mcp\"")
             call.respond(HttpStatusCode.Unauthorized, """{"error":"Invalid or missing token"}""")
             return false
@@ -144,10 +154,22 @@ class HttpTransport(
         return true
     }
 
+    private fun tokensMatch(provided: String?): Boolean {
+        val expected = effectiveTokenBytes ?: return true
+        val providedBytes = provided?.toByteArray(Charsets.UTF_8) ?: return false
+        return MessageDigest.isEqual(expected, providedBytes)
+    }
+
     private fun generateToken(): String {
         val bytes = ByteArray(32)
         SecureRandom().nextBytes(bytes)
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
+
+    companion object {
+        private const val MAX_SESSIONS = 1024
+        private const val MAX_NSD_NAME_LENGTH = 63
+        private val INITIALIZE_METHOD_REGEX = Regex("\"method\"\\s*:\\s*\"initialize\"")
     }
 
     private fun registerNsd() {

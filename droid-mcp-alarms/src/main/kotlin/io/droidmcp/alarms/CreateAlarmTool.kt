@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.AlarmClock
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -18,6 +19,7 @@ class CreateAlarmTool(private val context: Context) : McpTool {
         ToolParameter("message", "Label/message for the alarm", ParameterType.STRING),
         ToolParameter("days", "Comma-separated days to repeat (e.g. mon,tue,wed). Leave empty for one-time alarm.", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     private val dayMap = mapOf(
         "mon" to java.util.Calendar.MONDAY,

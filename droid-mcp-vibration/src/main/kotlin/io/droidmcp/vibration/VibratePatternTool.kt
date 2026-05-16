@@ -19,7 +19,7 @@ class VibratePatternTool(private val context: Context) : McpTool {
         ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", ParameterType.ARRAY, required = true),
         ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", ParameterType.INTEGER, required = false),
     )
-    override val annotations = ToolAnnotations(idempotentHint = true)
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         @Suppress("UNCHECKED_CAST")

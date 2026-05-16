@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -21,6 +22,7 @@ class PrintContentTool(private val context: Context) : McpTool {
         ToolParameter("job_name", "Print job name (default: 'droid-mcp print')", ParameterType.STRING),
         ToolParameter("is_html", "Whether content is HTML (default: false, wraps text in basic HTML)", ParameterType.BOOLEAN),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val content = params["content"]?.toString()

@@ -29,6 +29,7 @@ fun MainScreen(
     onCallTool: (String, Map<String, Any>) -> Unit,
     onClearLogs: () -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
+    onToggleReadOnly: (Boolean) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
@@ -92,6 +93,33 @@ fun MainScreen(
                                 label = { Text("Stopped") },
                             )
                         }
+                    }
+                }
+
+                // Read-only toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.readOnly,
+                        onCheckedChange = onToggleReadOnly,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Read-only mode",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.readOnly) "Destructive tools hidden from clients"
+                            else "All tools exposed",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
 

@@ -22,7 +22,7 @@ class SpeakTextTool(private val context: Context) : McpTool {
         ToolParameter("pitch", "Pitch of the speech (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
         ToolParameter("speed", "Speech rate (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
     )
-    override val annotations = ToolAnnotations(idempotentHint = true)
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

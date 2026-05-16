@@ -40,18 +40,19 @@ class LabelImageTool(private val context: Context) : McpTool {
             val options = ImageLabelerOptions.Builder()
                 .setConfidenceThreshold(threshold)
                 .build()
-            val labeler = ImageLabeling.getClient(options)
-            val labels = labeler.process(image).awaitResult().map { label ->
-                mapOf(
-                    "text" to label.text,
-                    "confidence" to label.confidence,
-                    "index" to label.index,
-                )
+            ImageLabeling.getClient(options).use { labeler ->
+                val labels = labeler.process(image).awaitResult().map { label ->
+                    mapOf(
+                        "text" to label.text,
+                        "confidence" to label.confidence,
+                        "index" to label.index,
+                    )
+                }
+                ToolResult.success(mapOf(
+                    "label_count" to labels.size,
+                    "labels" to labels,
+                ))
             }
-            ToolResult.success(mapOf(
-                "label_count" to labels.size,
-                "labels" to labels,
-            ))
         } catch (e: Exception) {
             ToolResult.error("Image labeling failed: ${e.message}")
         }

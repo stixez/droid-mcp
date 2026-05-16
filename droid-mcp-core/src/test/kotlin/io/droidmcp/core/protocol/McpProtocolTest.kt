@@ -187,6 +187,42 @@ class McpProtocolTest {
     }
 
     @Test
+    fun `handleToolsCall serializes nested maps and lists as JSON not toString`() = runTest {
+        val nestedRegistry = ToolRegistry()
+        nestedRegistry.register(object : McpTool {
+            override val name = "nested"
+            override val description = "returns nested data"
+            override val parameters = emptyList<ToolParameter>()
+            override suspend fun execute(params: Map<String, Any>): ToolResult = ToolResult.success(mapOf(
+                "items" to listOf(
+                    mapOf("a" to 1, "b" to "two"),
+                    mapOf("a" to 3, "b" to "four"),
+                ),
+                "single" to mapOf("k" to "v"),
+                "count" to 2,
+            ))
+        })
+        val nestedProtocol = McpProtocolImpl(nestedRegistry)
+
+        val request = """{"jsonrpc":"2.0","id":30,"method":"tools/call","params":{"name":"nested","arguments":{}}}"""
+        val response = nestedProtocol.handleMessage(request)
+        val text = Json.parseToJsonElement(response).jsonObject["result"]
+            ?.jsonObject?.get("content")?.jsonArray?.first()?.jsonObject
+            ?.get("text")?.jsonPrimitive?.content
+            ?: error("missing content text")
+
+        // text should be parseable JSON, not Kotlin toString
+        assertThat(text).doesNotContain("=")
+        val parsed = Json.parseToJsonElement(text).jsonObject
+        val items = parsed["items"]?.jsonArray ?: error("items missing")
+        assertThat(items).hasSize(2)
+        assertThat(items[0].jsonObject["a"]?.jsonPrimitive?.content).isEqualTo("1")
+        assertThat(items[0].jsonObject["b"]?.jsonPrimitive?.content).isEqualTo("two")
+        assertThat(parsed["single"]?.jsonObject?.get("k")?.jsonPrimitive?.content).isEqualTo("v")
+        assertThat(parsed["count"]?.jsonPrimitive?.content).isEqualTo("2")
+    }
+
+    @Test
     fun `handleUnknownMethod returns method not found error`() = runTest {
         val request = """{"jsonrpc":"2.0","id":5,"method":"unknown/method","params":{}}"""
         val response = protocol.handleMessage(request)

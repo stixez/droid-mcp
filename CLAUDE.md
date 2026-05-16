@@ -165,7 +165,7 @@ object MyTools {
 ## Security Decisions
 
 - HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
-- Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with JSON-RPC `-32601`.
+- Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
 - mDNS (`_mcp._tcp`) broadcasts version/auth/readonly via TXT records; does NOT broadcast the bearer token.
 - File tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator`
 - SMS `send_message` validates phone number format before sending

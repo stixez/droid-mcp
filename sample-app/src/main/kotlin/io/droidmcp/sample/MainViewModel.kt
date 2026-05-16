@@ -5,11 +5,14 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.wifi.WifiManager
+import android.net.ConnectivityManager
 import android.os.Build
 import android.util.Base64
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import java.net.Inet4Address
 import io.droidmcp.qr.GenerateQrCodeTool
 import io.droidmcp.alarms.AlarmsTools
 import io.droidmcp.apps.AppsTools
@@ -74,6 +77,7 @@ data class MainState(
     val pairingQr: Bitmap? = null,
     val logs: List<ToolCallLog> = emptyList(),
     val loading: Boolean = false,
+    val readOnly: Boolean = false,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -140,7 +144,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         droidMcp = DroidMcp.builder()
             .addTools(tools)
-            .enableHttpServer(port = 8080, context = context)
+            .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
             .build()
 
         _state.value = _state.value.copy(tools = tools)
@@ -184,22 +188,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun setReadOnly(value: Boolean) {
+        if (_state.value.serverRunning) return // toggle disabled while running
+        _state.value = _state.value.copy(readOnly = value)
+        rebuildDroidMcp()
+    }
+
+    private fun rebuildDroidMcp() {
+        val tools = _state.value.tools
+        droidMcp = DroidMcp.builder()
+            .addTools(tools)
+            .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
+            .build()
+    }
+
     private suspend fun generatePairingQr(url: String, token: String?): Bitmap? {
-        val name = Build.MODEL
-        val payload = buildString {
-            append("{\"v\":1,\"url\":\"")
-            append(url)
-            append("\"")
-            if (token != null) {
-                append(",\"token\":\"")
-                append(token)
-                append("\"")
-            }
-            append(",\"name\":\"")
-            append(name.replace("\"", "\\\""))
-            append("\"}")
+        val payload = buildJsonObject {
+            put("v", 1)
+            put("url", url)
+            if (token != null) put("token", token)
+            put("name", Build.MODEL)
         }
-        val result = GenerateQrCodeTool().execute(mapOf("text" to payload, "size" to 600))
+        val result = GenerateQrCodeTool().execute(mapOf("text" to payload.toString(), "size" to 600))
         val base64 = result.data?.get("qr_image") as? String ?: return null
         val bytes = Base64.decode(base64, Base64.NO_WRAP)
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -214,10 +224,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun getDeviceIp(): String {
-        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val ip = wifiManager.connectionInfo.ipAddress
-        return if (ip != 0) {
-            "${ip and 0xFF}.${ip shr 8 and 0xFF}.${ip shr 16 and 0xFF}.${ip shr 24 and 0xFF}"
-        } else "localhost"
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return "localhost"
+        val network = cm.activeNetwork ?: return "localhost"
+        val linkProperties = cm.getLinkProperties(network) ?: return "localhost"
+        return linkProperties.linkAddresses
+            .map { it.address }
+            .firstOrNull { it is Inet4Address && !it.isLoopbackAddress && !it.isAnyLocalAddress }
+            ?.hostAddress
+            ?: "localhost"
     }
 }

@@ -8,6 +8,7 @@ import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ class GenerateQrCodeTool : McpTool {
         ToolParameter("text", "Text content to encode in the QR code", ParameterType.STRING, required = true),
         ToolParameter("size", "Image size in pixels (100-1000, default 300)", ParameterType.INTEGER, required = false),
     )
+    override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val text = params["text"]?.toString()

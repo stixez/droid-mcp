@@ -34,25 +34,26 @@ class RecognizeTextTool(private val context: Context) : McpTool {
 
         return try {
             val image = InputImage.fromFilePath(context, Uri.fromFile(file))
-            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            val result = recognizer.process(image).awaitResult()
-            val lines = result.textBlocks.flatMap { it.lines }.map { line ->
-                val box = line.boundingBox
-                mapOf(
-                    "text" to line.text,
-                    "bounding_box" to if (box != null) mapOf(
-                        "left" to box.left,
-                        "top" to box.top,
-                        "right" to box.right,
-                        "bottom" to box.bottom,
-                    ) else null,
-                )
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).use { recognizer ->
+                val result = recognizer.process(image).awaitResult()
+                val lines = result.textBlocks.flatMap { it.lines }.map { line ->
+                    val box = line.boundingBox
+                    mapOf(
+                        "text" to line.text,
+                        "bounding_box" to if (box != null) mapOf(
+                            "left" to box.left,
+                            "top" to box.top,
+                            "right" to box.right,
+                            "bottom" to box.bottom,
+                        ) else null,
+                    )
+                }
+                ToolResult.success(mapOf(
+                    "text" to result.text,
+                    "line_count" to lines.size,
+                    "lines" to lines,
+                ))
             }
-            ToolResult.success(mapOf(
-                "text" to result.text,
-                "line_count" to lines.size,
-                "lines" to lines,
-            ))
         } catch (e: Exception) {
             ToolResult.error("Text recognition failed: ${e.message}")
         }

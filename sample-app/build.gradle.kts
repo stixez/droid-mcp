@@ -45,6 +45,7 @@ dependencies {
     implementation(project(":droid-mcp-all"))
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
     // Compose
     implementation(platform("androidx.compose:compose-bom:2025.03.00"))

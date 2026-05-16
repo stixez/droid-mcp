@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -17,6 +18,7 @@ class ToggleWifiTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("enabled", "Whether to enable (true) or disable (false) WiFi", ParameterType.BOOLEAN, required = true),
     )
+    override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val enabled = params["enabled"] as? Boolean

@@ -121,13 +121,7 @@ class McpProtocolImpl(
                     put("text", Json.encodeToString(JsonObject.serializer(),
                         buildJsonObject {
                             toolResult.data?.forEach { (k, v) ->
-                                when (v) {
-                                    is String -> put(k, v)
-                                    is Number -> put(k, v as Number)
-                                    is Boolean -> put(k, v)
-                                    null -> put(k, JsonNull)
-                                    else -> put(k, v.toString())
-                                }
+                                put(k, anyToJsonElement(v))
                             }
                         }
                     ))
@@ -151,6 +145,26 @@ class McpProtocolImpl(
             }
             jsonRpcResponse(id, result)
         }
+    }
+
+    private fun anyToJsonElement(value: Any?): JsonElement = when (value) {
+        null -> JsonNull
+        is JsonElement -> value
+        is String -> JsonPrimitive(value)
+        is Number -> JsonPrimitive(value)
+        is Boolean -> JsonPrimitive(value)
+        is Map<*, *> -> buildJsonObject {
+            value.forEach { (k, v) ->
+                if (k is String) put(k, anyToJsonElement(v))
+            }
+        }
+        is Iterable<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        is Array<*> -> buildJsonArray {
+            value.forEach { add(anyToJsonElement(it)) }
+        }
+        else -> JsonPrimitive(value.toString())
     }
 
     private fun annotationsJson(a: ToolAnnotations): JsonObject? {

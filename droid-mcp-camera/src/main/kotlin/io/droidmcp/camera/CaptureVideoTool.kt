@@ -18,6 +18,7 @@ import android.os.HandlerThread
 import android.provider.MediaStore
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,7 @@ class CaptureVideoTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("duration_sec", "Recording duration in seconds (1-60, default 10)", ParameterType.INTEGER, required = false),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     @Suppress("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {

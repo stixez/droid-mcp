@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - `HttpTransport` now requires a bearer token by default; one is auto-generated with `SecureRandom` if not supplied and exposed via `DroidMcp.serverToken`
-- New `enableHttpServer(readOnly = true)` flag exposes only read-only tools and rejects `tools/call` for destructive tools with JSON-RPC `-32601`
+- New `enableHttpServer(readOnly = true)` flag exposes only read-only tools and rejects `tools/call` for destructive tools with an MCP content error (`isError: true`)
 - 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`
 - Sample app displays the bearer token with a copy-to-clipboard button
 

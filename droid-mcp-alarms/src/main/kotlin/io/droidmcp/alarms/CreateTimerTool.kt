@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.AlarmClock
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -16,6 +17,7 @@ class CreateTimerTool(private val context: Context) : McpTool {
         ToolParameter("seconds", "Duration of the timer in seconds", ParameterType.INTEGER, required = true),
         ToolParameter("message", "Label/message for the timer", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val seconds = (params["seconds"] as? Number)?.toInt()

@@ -18,7 +18,7 @@ class SetRingtoneTool(private val context: Context) : McpTool {
         ToolParameter("uri", "Ringtone URI (from list_ringtones). Pass 'silent' to set to silent.", ParameterType.STRING, required = true),
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
     )
-    override val annotations = ToolAnnotations(idempotentHint = true)
+    override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uriStr = params["uri"]?.toString()

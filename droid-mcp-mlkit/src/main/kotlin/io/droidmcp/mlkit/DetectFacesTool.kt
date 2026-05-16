@@ -38,27 +38,28 @@ class DetectFacesTool(private val context: Context) : McpTool {
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                 .build()
-            val detector = FaceDetection.getClient(options)
-            val faces = detector.process(image).awaitResult().map { face ->
-                val box = face.boundingBox
-                mapOf(
-                    "bounding_box" to mapOf(
-                        "left" to box.left,
-                        "top" to box.top,
-                        "right" to box.right,
-                        "bottom" to box.bottom,
-                    ),
-                    "smiling_probability" to face.smilingProbability,
-                    "left_eye_open_probability" to face.leftEyeOpenProbability,
-                    "right_eye_open_probability" to face.rightEyeOpenProbability,
-                    "head_euler_angle_y" to face.headEulerAngleY,
-                    "head_euler_angle_z" to face.headEulerAngleZ,
-                )
+            FaceDetection.getClient(options).use { detector ->
+                val faces = detector.process(image).awaitResult().map { face ->
+                    val box = face.boundingBox
+                    mapOf(
+                        "bounding_box" to mapOf(
+                            "left" to box.left,
+                            "top" to box.top,
+                            "right" to box.right,
+                            "bottom" to box.bottom,
+                        ),
+                        "smiling_probability" to face.smilingProbability,
+                        "left_eye_open_probability" to face.leftEyeOpenProbability,
+                        "right_eye_open_probability" to face.rightEyeOpenProbability,
+                        "head_euler_angle_y" to face.headEulerAngleY,
+                        "head_euler_angle_z" to face.headEulerAngleZ,
+                    )
+                }
+                ToolResult.success(mapOf(
+                    "face_count" to faces.size,
+                    "faces" to faces,
+                ))
             }
-            ToolResult.success(mapOf(
-                "face_count" to faces.size,
-                "faces" to faces,
-            ))
         } catch (e: Exception) {
             ToolResult.error("Face detection failed: ${e.message}")
         }

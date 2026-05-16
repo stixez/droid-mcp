@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.session.MediaSessionManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
@@ -15,6 +16,7 @@ class MediaControlTool(private val context: Context) : McpTool {
         ToolParameter("command", "Command: 'play', 'pause', 'stop', 'next', 'previous'", ParameterType.STRING, required = true),
         ToolParameter("package_name", "Target a specific app's media session by package name", ParameterType.STRING),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val command = params["command"]?.toString()

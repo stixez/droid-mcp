@@ -19,7 +19,7 @@ class SetWallpaperTool(private val context: Context) : McpTool {
         ToolParameter("path", "Absolute path to the image file", ParameterType.STRING, required = true),
         ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING),
     )
-    override val annotations = ToolAnnotations(idempotentHint = true)
+    override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()

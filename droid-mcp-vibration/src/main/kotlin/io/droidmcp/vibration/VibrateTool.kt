@@ -19,7 +19,7 @@ class VibrateTool(private val context: Context) : McpTool {
         ToolParameter("duration_ms", "Duration of vibration in milliseconds (1-10000)", ParameterType.INTEGER, required = true),
         ToolParameter("amplitude", "Vibration amplitude (1-255), or null for default", ParameterType.INTEGER, required = false),
     )
-    override val annotations = ToolAnnotations(idempotentHint = true)
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val duration = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 10000)

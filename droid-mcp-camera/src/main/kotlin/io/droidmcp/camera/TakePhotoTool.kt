@@ -19,6 +19,7 @@ import android.provider.MediaStore
 import android.util.Base64
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
+import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("return_data", "Return image as base64 data (may be large)", ParameterType.BOOLEAN, required = false),
     )
+    override val annotations = ToolAnnotations(destructiveHint = true)
 
     @Suppress("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
