@@ -5,8 +5,6 @@ All notable changes to droid-mcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
 ## [0.4.0] - 2026-05-15
 
 ### Added
@@ -55,7 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Modules: device, calendar, contacts, SMS, files, notifications, call log, media, location, health, clipboard, apps, alarms, settings, bluetooth, wifi, downloads, screen, TTS, web, all
 - Sample app with Compose UI
 
-[Unreleased]: https://github.com/stixez/droid-mcp/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/stixez/droid-mcp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/stixez/droid-mcp/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/stixez/droid-mcp/compare/v0.1.0...v0.2.0
