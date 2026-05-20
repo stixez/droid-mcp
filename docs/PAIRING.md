@@ -19,7 +19,7 @@ Both are opt-in. mDNS only activates when the Builder is given an Android `Conte
 
 | Key       | Value                              | Meaning                                     |
 |-----------|------------------------------------|---------------------------------------------|
-| `version` | e.g. `0.4.0`                       | droid-mcp version running on the device     |
+| `version` | e.g. `0.9.0`                       | droid-mcp version running on the device     |
 | `auth`    | `bearer` \| `none`                 | Whether the `/mcp` endpoint requires a token |
 | `readonly`| `true` \| `false`                  | Whether destructive tools are gated         |
 

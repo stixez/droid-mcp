@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Declared at the library level so consumers don't have to add it
+        manually. Settings.canDrawOverlays() returns false unless the merged
+        manifest carries this declaration, even after the user toggles the
+        permission on in system Settings.
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+</manifest>

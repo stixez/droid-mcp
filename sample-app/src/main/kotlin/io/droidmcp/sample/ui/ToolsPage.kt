@@ -166,6 +166,50 @@ fun ToolsPage(
             ToolButton("Next", "media_control", mapOf("command" to "next")),
             ToolButton("Previous", "media_control", mapOf("command" to "previous")),
         ), specialPermission = "notification_listener"),
+        ToolCategory("Notifications (Reply)", listOf(
+            ToolButton("List Repliable", "list_repliable_notifications", mapOf("limit" to 20)),
+            ToolButton("Reply (stub)", "reply_to_notification", mapOf("key" to "stub-key", "text" to "Sample reply from droid-mcp")),
+            ToolButton("Dismiss (stub)", "dismiss_notification", mapOf("key" to "stub-key")),
+            ToolButton("Invoke Action (stub)", "invoke_notification_action", mapOf("key" to "stub-key", "action_label" to "Mark as read")),
+        ), specialPermission = "notification_listener"),
+        ToolCategory("Notification Watch", listOf(
+            ToolButton("Watch WhatsApp", "watch_notifications", mapOf("package_name" to "com.whatsapp", "ttl_seconds" to 600)),
+            ToolButton("List Watches", "list_notification_watches"),
+            ToolButton("Unwatch (stub)", "unwatch_notifications", mapOf("watch_id" to "stub-id")),
+        ), specialPermission = "notification_listener"),
+        ToolCategory("Accessibility", listOf(
+            ToolButton("Active Window", "get_active_window_info"),
+            ToolButton("Query Screen", "query_screen", mapOf("max_nodes" to 200)),
+            ToolButton("Home", "global_action", mapOf("action" to "home")),
+            ToolButton("Back", "global_action", mapOf("action" to "back")),
+            ToolButton("Recents", "global_action", mapOf("action" to "recents")),
+            ToolButton("A11y Screenshot", "take_screenshot_via_a11y", mapOf("format" to "jpeg", "quality" to 80)),
+            ToolButton("Tap (200,400)", "tap", mapOf("x" to 200, "y" to 400)),
+            ToolButton("Find Settings", "find_and_tap", mapOf("match" to "Settings")),
+            ToolButton("Scroll Down", "scroll_to_find", mapOf("match" to "About", "direction" to "down")),
+        ), specialPermission = "accessibility"),
+        ToolCategory("IME", listOf(
+            ToolButton("Active?", "is_ime_active"),
+            ToolButton("Type", "type_text", mapOf("text" to "Hello from droid-mcp")),
+            ToolButton("Enter", "commit_keystroke", mapOf("key" to "enter")),
+            ToolButton("Backspace", "commit_keystroke", mapOf("key" to "backspace")),
+            ToolButton("Restore Keyboard", "switch_to_previous_ime"),
+        ), specialPermission = "ime_settings"),
+        ToolCategory("Overlay", emptyList(), specialPermission = "overlay"),
+        ToolCategory("Shizuku", listOf(
+            ToolButton("Top Window", "get_top_window"),
+            ToolButton("Quiet Screenshot", "capture_screen_quiet"),
+            ToolButton("Force-stop YouTube", "force_stop_app", mapOf("package_name" to "com.google.android.youtube")),
+            ToolButton("List Calc Perms", "list_app_permissions", mapOf("package_name" to "com.android.calculator2")),
+            ToolButton("Put 'mock_loc' on", "put_secure_setting", mapOf("key" to "mock_location", "value" to "1")),
+        ), specialPermission = "shizuku"),
+        ToolCategory("Root", listOf(
+            // Same tool names as Shizuku — host's choice of backend at registration.
+            // When root is granted the sample-app last-write-wins routes these via libsu.
+            ToolButton("Top Window", "get_top_window"),
+            ToolButton("Quiet Screenshot", "capture_screen_quiet"),
+            ToolButton("Force-stop YouTube", "force_stop_app", mapOf("package_name" to "com.google.android.youtube")),
+        ), specialPermission = "root"),
         ToolCategory("Screenshot", listOf(
             ToolButton("Capture", "capture_screen"),
             ToolButton("JPEG", "capture_screen", mapOf("format" to "jpeg", "quality" to 80)),

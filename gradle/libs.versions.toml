@@ -20,6 +20,8 @@ junit = "4.13.2"
 junit5 = "5.11.4"
 mockk = "1.13.16"
 truth = "1.4.4"
+shizuku = "13.1.5"
+libsu = "5.2.2"
 
 [libraries]
 # AndroidX Core
@@ -28,6 +30,14 @@ androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "a
 
 # MCP SDK
 mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-kotlin-sdk" }
+
+# Shizuku (Tier 4 shell backend)
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
+
+# libsu (Tier 5 shell backend — root via su)
+libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
+libsu-io = { module = "com.github.topjohnwu.libsu:io", version.ref = "libsu" }
 
 # Ktor Server
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }

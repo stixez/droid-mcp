@@ -11,6 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") } // libsu (com.github.topjohnwu.libsu:core)
     }
 }
 
@@ -58,6 +59,15 @@ include(
     ":droid-mcp-usb",
     ":droid-mcp-print",
     ":droid-mcp-mlkit",
+    ":droid-mcp-notification-listener",
+    ":droid-mcp-notifications-reply",
+    ":droid-mcp-notification-watch",
+    ":droid-mcp-accessibility",
+    ":droid-mcp-ime",
+    ":droid-mcp-overlay",
+    ":droid-mcp-shell-core",
+    ":droid-mcp-shizuku",
+    ":droid-mcp-root",
     ":droid-mcp-all",
     ":sample-app",
 )

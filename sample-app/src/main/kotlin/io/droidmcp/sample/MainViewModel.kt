@@ -48,7 +48,14 @@ import io.droidmcp.web.WebTools
 import io.droidmcp.wifi.WifiTools
 import io.droidmcp.nfc.NfcTools
 import io.droidmcp.intent.IntentTools
+import io.droidmcp.accessibility.AccessibilityTools
+import io.droidmcp.ime.ImeTools
+import io.droidmcp.notificationsreply.NotificationsReplyTools
+import io.droidmcp.notificationwatch.NotificationWatchTools
+import io.droidmcp.overlay.OverlayTools
 import io.droidmcp.playback.PlaybackTools
+import io.droidmcp.root.RootTools
+import io.droidmcp.shizuku.ShizukuTools
 import io.droidmcp.screenshot.ScreenshotTools
 import io.droidmcp.dnd.DndTools
 import io.droidmcp.keyguard.KeyguardTools
@@ -133,6 +140,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(NfcTools.all(context))
         tools.addAll(IntentTools.all(context))
         tools.addAll(PlaybackTools.all(context))
+        tools.addAll(NotificationsReplyTools.all(context))
+        tools.addAll(NotificationWatchTools.all(context))
+        tools.addAll(AccessibilityTools.all(context))
+        tools.addAll(ImeTools.all(context))
+        tools.addAll(ShizukuTools.all(context))
+        // Root tools share the same names as Shizuku tools and would overwrite.
+        // The sample app demonstrates registering both so users can see the
+        // two permission flows; in practice, a host should pick one OR write
+        // a fallback wrapper.
+        if (RootTools.isRootAvailable()) {
+            // Last write wins — when root is granted, route the shell tools
+            // through libsu instead of Shizuku.
+            tools.addAll(RootTools.all(context))
+        }
+        // OverlayTools.all is intentionally empty — overlay is host-API only.
         tools.addAll(ScreenshotTools.all(context))
         tools.addAll(DndTools.all(context))
         tools.addAll(KeyguardTools.all(context))

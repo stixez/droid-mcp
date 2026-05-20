@@ -63,4 +63,18 @@ dependencies {
     api(project(":droid-mcp-usb"))
     api(project(":droid-mcp-print"))
     api(project(":droid-mcp-mlkit"))
+    api(project(":droid-mcp-notification-listener"))
+    api(project(":droid-mcp-notifications-reply"))
+    api(project(":droid-mcp-notification-watch"))
+    api(project(":droid-mcp-accessibility"))
+    api(project(":droid-mcp-ime"))
+    api(project(":droid-mcp-overlay"))
+    api(project(":droid-mcp-shell-core"))
+    // NOTE: :droid-mcp-shizuku and :droid-mcp-root are intentionally NOT
+    // included in :droid-mcp-all. They pull in third-party deps with native
+    // code (dev.rikka.shizuku, libsu) that consumers who don't want
+    // shell-UID / root admin tools shouldn't pay for. Hosts opt in
+    // explicitly:
+    //   implementation(":droid-mcp-shizuku")  // Tier 4
+    //   implementation(":droid-mcp-root")     // Tier 5
 }

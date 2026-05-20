@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, and 90+ more tools.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and 135+ more tools.
   </p>
 </p>
 
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-99-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-145-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
 </p>
 
@@ -47,7 +47,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 99 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 145 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -68,19 +68,25 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.9.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.9.0")
     // ... see full list below
 
-    // Or include everything
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.4.0")
+    // Or include everything (except Tier 4/5 power-user modules)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.9.0")
+
+    // Power-user tiers — opt in only if you want them (they pull third-party deps)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.9.0")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.9.0")       // Tier 5: root-UID admin (pulls libsu)
 }
 ```
 
@@ -170,7 +176,9 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-41 modules, 99 tools. Each module is independent — only the permissions for included modules are added to your manifest.
+50 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
+
+The table below lists the 48 user-callable modules. Two support modules (`notification-listener` and `shell-core`) are bundled but aren't directly user-callable — they provide shared infrastructure that the listener-based and shell-based modules wire against.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
@@ -207,6 +215,13 @@ if (CalendarTools.hasPermissions(context)) {
 | **nfc** | `get_nfc_status` `read_nfc_tag` `write_nfc_tag` | `NFC` |
 | **intent** | `send_intent` `share_content` `open_deep_link` | None |
 | **playback** | `get_now_playing` `media_control` | Notification Listener (special) |
+| **notifications-reply** | `list_repliable_notifications` `reply_to_notification` `dismiss_notification` `invoke_notification_action` | Notification Listener (special) |
+| **notification-watch** | `watch_notifications` `unwatch_notifications` `list_notification_watches` (+ `NotificationListenerBus` SharedFlow API) | Notification Listener (special) |
+| **accessibility** | `query_screen` `find_node` `wait_for_text` `click_node` `long_click_node` `set_node_text` `scroll_node` `gesture` `global_action` `get_active_window_info` `take_screenshot_via_a11y` `tap` `long_press` `find_and_tap` `scroll_to_find` | Accessibility Service (special) |
+| **ime** | `is_ime_active` `type_text` `commit_keystroke` `delete_text` `set_selection` `get_text_around_cursor` `switch_to_previous_ime` | Input Method enabled + selected (special) |
+| **overlay** | (programmatic `OverlayController` only — no LLM tools) | `SYSTEM_ALERT_WINDOW` (special) |
+| **shizuku** | `install_apk` `uninstall_app` `clear_app_data` `force_stop_app` `disable_app` `enable_app` `grant_permission` `revoke_permission` `list_app_permissions` `put_secure_setting` `put_global_setting` `put_system_setting` `get_top_window` `set_app_standby_bucket` `make_app_inactive` `capture_screen_quiet` `run_shell` | Shizuku service running + permission granted (special). Backed by `ShellBackend` interface shared with `:droid-mcp-root`. |
+| **root** | (same 17 tools as `shizuku`, routed via `su` instead of Shizuku binder) | Device rooted + host granted root via superuser manager (Magisk / KernelSU / SuperSU). Strictly more powerful: `/system` writes, `pm hide`, `/data/data/<pkg>` access. |
 | **screenshot** | `capture_screen` | MediaProjection (special) |
 | **dnd** | `get_dnd_status` `set_dnd_mode` | `ACCESS_NOTIFICATION_POLICY` + DND Access (special) |
 | **keyguard** | `get_lock_state` `get_keyguard_info` | None |
@@ -218,6 +233,18 @@ if (CalendarTools.hasPermissions(context)) {
 
 Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
 
+### Capability tiers
+
+Modules are grouped into five tiers by the kind of permission they need. **Tiers 1–3 are the core surface; Tiers 4–5 are opt-in power tools** for hosts that need shell-UID or root-UID admin — they pull third-party native dependencies and stay outside `:droid-mcp-all` to keep the default APK lean.
+
+| Tier | What | Modules |
+|---|---|---|
+| **1. Runtime / install-time perms** | Standard `<uses-permission>` grants | `device` `calendar` `contacts` `sms` `files` `media` `location` `calllog` `health` `apps` `alarms` `settings` `bluetooth` `wifi` `downloads` `screen` `tts` `web` `flashlight` `network` `telephony` `vibration` `biometric` `sensors` `qr` `camera` `audio` `nfc` `intent` `clipboard` `notifications` `keyguard` `wallpaper` `usb` `print` `mlkit` |
+| **2. Notification Listener** | Settings > Apps > Special access > Notification access | `playback` `notifications-reply` `notification-watch` |
+| **3. Accessibility / IME / Overlay / DND / Ringtone / Screenshot** | Per-feature Settings toggles | `accessibility` `ime` `overlay` `dnd` `ringtone` `screenshot` |
+| **4. Shell-UID (opt-in)** | Shizuku activated + permission granted to host app | `shizuku` (pulls `dev.rikka.shizuku`; see [docs/SHIZUKU.md](docs/SHIZUKU.md)) |
+| **5. Root-UID (opt-in)** | Device rooted + superuser-manager grant | `root` (pulls `com.github.topjohnwu.libsu`; see [docs/ROOT.md](docs/ROOT.md)) |
+
 ### Special permissions
 
 Some modules require permissions that can't be requested at runtime. The tools work without them for read operations, and return clear error messages for write operations that need the grant.
@@ -225,6 +252,13 @@ Some modules require permissions that can't be requested at runtime. The tools w
 | Module | Permission | How to grant |
 |--------|-----------|-------------|
 | **playback** | Notification Listener | Settings > Apps > Special access > Notification access |
+| **notifications-reply** | Notification Listener (service must extend `McpNotificationListenerServiceBase`) | Settings > Apps > Special access > Notification access |
+| **notification-watch** | Notification Listener (shares listener service with `notifications-reply`) | Settings > Apps > Special access > Notification access |
+| **accessibility** | Accessibility Service (service must extend `DroidMcpAccessibilityService`) | Settings > Accessibility > Installed apps |
+| **ime** | Input Method enabled + selected (service must extend `DroidMcpInputMethodService`) | Settings > System > Languages & input > On-screen keyboard, plus the IME picker |
+| **overlay** | Draw over other apps | Settings > Apps > Special access > Display over other apps |
+| **shizuku** | Shizuku service running + permission granted to host app | Install Shizuku, activate via wireless debugging (Android 11+) or ADB, grant the runtime permission. See [docs/SHIZUKU.md](docs/SHIZUKU.md). |
+| **root** | Device rooted + superuser manager grants root to host app | Root via Magisk / KernelSU / SuperSU; on first `Shell.cmd(...)` call the manager surfaces a permission prompt. See [docs/ROOT.md](docs/ROOT.md). |
 | **screenshot** | MediaProjection | Host app calls `MediaProjectionManager.createScreenCaptureIntent()` and passes result to `MediaProjectionHolder.set()` |
 | **dnd** | DND Access (for `set_dnd_mode`) | Settings > Apps > Special access > Do Not Disturb access |
 | **ringtone** | WRITE_SETTINGS (for `set_ringtone`) | Settings > Apps > Special access > Modify system settings |
@@ -282,7 +316,7 @@ Some modules require permissions that can't be requested at runtime. The tools w
 
 ## Sample App
 
-The `sample-app` module includes a Compose UI that registers all 99 tools with quick-test buttons for each one. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
+The `sample-app` module includes a Compose UI that exercises the full tool surface — every module is registered (subject to permission availability) with quick-test buttons for representative tools in each category. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
 
 ---
 

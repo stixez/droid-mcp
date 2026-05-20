@@ -14,7 +14,7 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "0.4.0"
+        versionName = "0.9.0"
     }
 
     buildFeatures {
@@ -43,6 +43,10 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-all"))
+    // Tier 4 — opt-in (pulls dev.rikka.shizuku). The sample app exercises Shizuku tools, so we add it here.
+    implementation(project(":droid-mcp-shizuku"))
+    // Tier 5 — opt-in (pulls libsu). Same shell tool surface as Shizuku, just routed via su.
+    implementation(project(":droid-mcp-root"))
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
