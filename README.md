@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
   <img src="https://img.shields.io/badge/tools-99-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
+  <a href="https://buymeacoffee.com/stixe"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 </p>
 
 ---
