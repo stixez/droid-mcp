@@ -176,9 +176,9 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-50 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
+53 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
 
-The table below lists the 48 user-callable modules. Two support modules (`notification-listener` and `shell-core`) are bundled but aren't directly user-callable — they provide shared infrastructure that the listener-based and shell-based modules wire against.
+The table below lists the 48 user-callable modules. The remaining five are infrastructure with no LLM tools: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
@@ -232,6 +232,18 @@ The table below lists the 48 user-callable modules. Two support modules (`notifi
 | **mlkit** | `recognize_text` `label_image` `detect_faces` | None (operates on local image files) |
 
 Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
+
+### Hardening modules (0.10.0)
+
+Three opt-in infrastructure modules harden the HTTP transport and operations. They expose no LLM tools — they're programmatic APIs the host wires in. Each pulls a third-party dependency, so all three stay outside `:droid-mcp-all`.
+
+| Module | API | Dependency |
+|--------|-----|-----------|
+| **audit** | `RoomAuditSink` — persists every HTTP `tools/call` to a private Room DB (retention, `observe()`, `exportJson()`, `clear()`). Wire via `DroidMcp.Builder.withAuditSink(...)`. The dependency-free `AuditSink` hook itself lives in core. | Room + KSP |
+| **tls** | `SelfSignedCert.loadOrCreate(file)` → a `TlsConfig` for `DroidMcp.Builder.enableTls(...)`. Self-signed cert; clients pin `DroidMcp.tlsFingerprint`. | BouncyCastle |
+| **server-service** | `DroidMcpServerService` — abstract foreground service keeping the HTTP server alive across screen-off / task-killers. | androidx.core |
+
+Per-tool gating (`DroidMcp.setToolEnabled` / `setDisabledTools`) and token rotation / per-client pairing (`rotateToken` / `pairClient` / `revokeClient`) are built into **core** — no extra module. See [docs/SECURITY.md](docs/SECURITY.md) for the threat model.
 
 ### Capability tiers
 

@@ -1,9 +1,12 @@
 package io.droidmcp.core.protocol
 
+import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DROID_MCP_VERSION
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
+import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolRegistry
+import io.droidmcp.core.ToolResult
 import kotlinx.serialization.json.*
 
 class McpProtocolImpl(
@@ -11,15 +14,19 @@ class McpProtocolImpl(
     private val serverName: String = "droid-mcp",
     private val serverVersion: String = DROID_MCP_VERSION,
     private val readOnly: Boolean = false,
+    private val auditSink: AuditSink? = null,
 ) : McpProtocol {
 
     private fun visibleTools(): List<McpTool> =
-        if (readOnly) registry.listTools().filter { it.annotations.readOnlyHint }
-        else registry.listTools()
+        if (readOnly) registry.listEnabledTools().filter { it.annotations.readOnlyHint }
+        else registry.listEnabledTools()
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun handleMessage(jsonRequest: String): String {
+    override suspend fun handleMessage(jsonRequest: String): String =
+        handleMessage(jsonRequest, clientLabel = null)
+
+    override suspend fun handleMessage(jsonRequest: String, clientLabel: String?): String {
         return try {
             val request = json.parseToJsonElement(jsonRequest).jsonObject
             val id = request["id"]
@@ -29,7 +36,7 @@ class McpProtocolImpl(
             when (method) {
                 "initialize" -> handleInitialize(id, params)
                 "tools/list" -> handleToolsList(id)
-                "tools/call" -> handleToolsCall(id, params)
+                "tools/call" -> handleToolsCall(id, params, clientLabel)
                 "notifications/initialized" -> ""
                 "ping" -> jsonRpcResponse(id, buildJsonObject { put("status", "ok") })
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
@@ -84,7 +91,11 @@ class McpProtocolImpl(
         return jsonRpcResponse(id, result)
     }
 
-    private suspend fun handleToolsCall(id: JsonElement?, params: JsonObject): String {
+    private suspend fun handleToolsCall(
+        id: JsonElement?,
+        params: JsonObject,
+        clientLabel: String?,
+    ): String {
         val toolName = params["name"]?.jsonPrimitive?.content
             ?: return jsonRpcError(id, -32602, "Missing tool name")
         if (readOnly) {
@@ -102,6 +113,7 @@ class McpProtocolImpl(
                 })
             }
         }
+        val argumentsJson = params["arguments"]?.jsonObject?.toString()
         val arguments = params["arguments"]?.jsonObject?.let { args ->
             args.entries.associate { (k, v) ->
                 k to when {
@@ -112,7 +124,10 @@ class McpProtocolImpl(
             }
         } ?: emptyMap()
 
+        val startedAt = System.nanoTime()
         val toolResult = registry.executeTool(toolName, arguments)
+        val durationMs = (System.nanoTime() - startedAt) / 1_000_000
+        recordAudit(toolName, clientLabel, argumentsJson, toolResult, durationMs)
 
         return if (toolResult.isSuccess) {
             val content = buildJsonArray {
@@ -144,6 +159,31 @@ class McpProtocolImpl(
                 put("isError", true)
             }
             jsonRpcResponse(id, result)
+        }
+    }
+
+    private fun recordAudit(
+        toolName: String,
+        clientLabel: String?,
+        argumentsJson: String?,
+        result: ToolResult,
+        durationMs: Long,
+    ) {
+        val sink = auditSink ?: return
+        try {
+            sink.record(
+                ToolCallAudit(
+                    timestamp = System.currentTimeMillis(),
+                    toolName = toolName,
+                    clientLabel = clientLabel,
+                    argumentsJson = argumentsJson,
+                    success = result.isSuccess,
+                    errorMessage = result.errorMessage,
+                    durationMs = durationMs,
+                )
+            )
+        } catch (_: Exception) {
+            // A broken audit backend must never fail a tool call.
         }
     }
 

@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 145 tools across 50 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 145 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **50 modules**, 145 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`.
+- **53 modules**, 145 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
 
 ## Key Conventions
 
@@ -50,7 +50,7 @@ droid-mcp-{name}/
     {ToolName}Tool.kt         — individual tool implementations
 ```
 
-**Convenience:** `droid-mcp-all` — `api()` dependency on every module *except* Tier 4/5 power-user modules (`droid-mcp-shizuku`, `droid-mcp-root`). Those pull third-party deps (`dev.rikka.shizuku`, `libsu`) and stay explicit opt-ins to keep the default APK lean.
+**Convenience:** `droid-mcp-all` — `api()` dependency on every module *except* the opt-in power/hardening modules: Tier 4/5 (`droid-mcp-shizuku`, `droid-mcp-root`) and the 0.10.0 hardening trio (`droid-mcp-audit`, `droid-mcp-tls`, `droid-mcp-server-service`). Those pull third-party deps (`dev.rikka.shizuku`, `libsu`, Room+KSP, BouncyCastle) or extra manifest permissions and stay explicit opt-ins to keep the default APK lean.
 **Sample:** `sample-app` — Compose UI, Material 3, dynamic colors, all tools registered
 
 <!-- SECTION: modules -->
@@ -109,6 +109,9 @@ droid-mcp-{name}/
 | `droid-mcp-shell-core` | `io.droidmcp.shell` | Backend-agnostic shell tools (ShellBackend interface + 17 tool implementations: install_apk, uninstall_app, clear_app_data, force_stop_app, disable_app, enable_app, grant_permission, revoke_permission, list_app_permissions, put_secure_setting, put_global_setting, put_system_setting, get_top_window, set_app_standby_bucket, make_app_inactive, capture_screen_quiet, run_shell) |
 | `droid-mcp-shizuku` | `io.droidmcp.shizuku` | ShizukuShellBackend + ShizukuTools provider — wires shell-core tools against the Shizuku binder |
 | `droid-mcp-root` | `io.droidmcp.root` | RootShellBackend + RootTools provider — wires shell-core tools against libsu's `su` shell |
+| `droid-mcp-audit` | `io.droidmcp.audit` | RoomAuditSink — Room-backed `AuditSink` for the core `tools/call` audit hook (opt-in; pulls Room+KSP) |
+| `droid-mcp-tls` | `io.droidmcp.tls` | SelfSignedCert — BouncyCastle PKCS12 cert generation → `TlsConfig` for `enableTls` (opt-in) |
+| `droid-mcp-server-service` | `io.droidmcp.server` | DroidMcpServerService — abstract foreground service keeping the HTTP server alive (opt-in) |
 
 <!-- SECTION: new-tool-guide -->
 

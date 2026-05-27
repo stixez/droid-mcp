@@ -5,6 +5,31 @@ All notable changes to droid-mcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-05-27
+
+Hardening release. No new capability tiers and no new LLM tools — instead the HTTP transport, the `McpTool` API, and the operational story graduate to something a downstream app can build on through 1.0. Everything is additive: existing tool shapes, the `DroidMcp.Builder` surface, and the wire protocol are unchanged.
+
+### Added
+- **Per-tool gating** (`:droid-mcp-core`) — `DroidMcp.setToolEnabled(name, enabled)` / `setDisabledTools(names)` / `disabledTools()`, backed by `ToolRegistry.listEnabledTools()`. A gated tool disappears from `tools/list` and is rejected by `tools/call` (new `tool_disabled` error code) without being unregistered, so a host can drive a checkbox grid without rebuilding the server.
+- **Token rotation + per-client pairing** (`:droid-mcp-core`) — new `TokenStore` holds a primary bearer token plus revocable per-client tokens, each tied to an opaque label. `DroidMcp.rotateToken()` mints a fresh primary (paired clients unaffected); `pairClient(label)` / `revokeClient(label)` / `pairedClients()` manage named clients. `HttpTransport.authenticate` now resolves a request to its owning client label (`primary` / the client label / `anonymous` on an open server) for audit attribution. Constant-time token comparison preserved.
+- **Audit hook** (`:droid-mcp-core`) — `AuditSink` functional interface + `ToolCallAudit` record (timestamp, tool, client label, arguments JSON, success, error, duration). The protocol records every HTTP `tools/call` after execution and swallows sink exceptions so a broken backend never fails a call. Wire it with `DroidMcp.Builder.withAuditSink(...)`. In-process calls are not audited (the host owns that path).
+- **`droid-mcp-audit`** (new, opt-in) — `RoomAuditSink`, a Room-backed `AuditSink` persisting calls to a private on-device DB with fire-and-forget writes, configurable retention (default 7 days), reactive `observe()` browsing, `count()`, `clear()`, and `exportJson()`. Pulls Room + KSP; excluded from `:droid-mcp-all`.
+- **TLS** (`:droid-mcp-core`) — `TlsConfig` (keystore + alias + HTTPS port + lazily-computed SHA-256 cert fingerprint). `DroidMcp.Builder.enableTls(config)` binds a Ktor SSL connector on the HTTPS port instead of plaintext; `DroidMcp.tlsFingerprint` exposes the fingerprint to pin in the pairing QR. mDNS advertises `tls=true` and the HTTPS port. Core only *consumes* a keystore — no certificate-building dependency.
+- **`droid-mcp-tls`** (new, opt-in) — `SelfSignedCert.loadOrCreate(file)` generates (and persists) a self-signed cert via BouncyCastle into a PKCS12 keystore (the one type Android's runtime supports), returning a `TlsConfig`. Key generation/signing go through the platform providers; no security provider is registered. Excluded from `:droid-mcp-all`.
+- **`droid-mcp-server-service`** (new, opt-in) — `DroidMcpServerService`, an abstract foreground service that keeps the HTTP server alive across screen-off / task-killers. Host subclasses it, supplies a configured `DroidMcp` via `createServer()`, declares it `android:foregroundServiceType="specialUse"`, and starts/stops with `DroidMcpServerService.start/stop(...)`. Low-priority ongoing notification. Excluded from `:droid-mcp-all`.
+- `docs/SECURITY.md` (threat model), `docs/MIGRATION-0-TO-1.md`, `docs/VERSIONING.md`.
+- Sample app: persists every HTTP call through `RoomAuditSink`; opt-in `:droid-mcp-audit` / `:droid-mcp-tls` / `:droid-mcp-server-service` dependencies; BouncyCastle's duplicate OSGi manifest excluded in the packaging block (hosts using `droid-mcp-tls` need the same exclude — see `docs/SECURITY.md`).
+
+### Changed
+- **`DROID_MCP_VERSION` corrected to `0.10.0`** — it had been stuck at `0.4.0` through every 0.5–0.9 release (a latent bug; it's broadcast in `serverInfo` and mDNS). `gradle.properties` `VERSION_NAME` and the maven-publish version likewise bumped from their stale `0.4.0` / `0.3.0` values.
+- `McpProtocol` gains an additive `handleMessage(jsonRequest, clientLabel)` overload (defaults to the unattributed form) so the transport can attribute audit records. Existing single-arg callers unchanged.
+- `HttpTransport.effectiveToken` is now a getter (tracks `rotateToken()`) instead of a construction-time `val`.
+
+### Known limitations
+- **TLS handshake is device-verified only.** Cert generation, PKCS12 round-trip, and fingerprint stability are unit-tested on the JVM, but the live Netty TLS handshake on-device is validated manually, not in CI.
+- **Dokka API-docs site not yet wired.** The API-freeze docs (SECURITY / MIGRATION / VERSIONING) ship in this release; the generated Dokka site + GitHub Pages publish is the one remaining 0.10.0 doc item.
+- **Audit log stores tool arguments in plaintext.** The persisted DB contains whatever the LLM passed (message text, contacts, locations). It lives in the host's private storage; the host owns encryption/retention/deletion. See `docs/SECURITY.md`.
+
 ## [0.9.0] - 2026-05-20
 
 Tier 5 (Root) release. Same 17 shell tools as 0.8.0, backed by libsu's `su` shell instead of the Shizuku binder proxy. Strictly more powerful — capable of `/system` writes, freezing apps via `pm hide`, reading `/data/data/<pkg>`, etc. Tool surface is identical (same names, same parameters), so host apps swap backends without re-prompting the LLM.
@@ -148,6 +173,7 @@ EdgeClaw-driven consumer alignment release. All additions are additive — no br
     in 0.9.0. The footnote below therefore compares against v0.4.0 directly.
     If a future cut backfills intermediate tags, add footnotes for them.
 -->
+[0.10.0]: https://github.com/stixez/droid-mcp/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/stixez/droid-mcp/compare/v0.4.0...v0.9.0
 [0.4.0]: https://github.com/stixez/droid-mcp/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/stixez/droid-mcp/compare/v0.2.0...v0.3.0

@@ -21,6 +21,7 @@ import io.droidmcp.calendar.CalendarTools
 import io.droidmcp.calllog.CallLogTools
 import io.droidmcp.clipboard.ClipboardTools
 import io.droidmcp.contacts.ContactsTools
+import io.droidmcp.audit.RoomAuditSink
 import io.droidmcp.core.DroidMcp
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolResult
@@ -96,6 +97,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var droidMcp: DroidMcp? = null
 
+    /** Persists every HTTP tools/call to a private Room DB (0.10.0 hardening). */
+    private val auditSink = RoomAuditSink(context)
+
     fun initialize() {
         val tools = mutableListOf<McpTool>()
 
@@ -167,6 +171,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         droidMcp = DroidMcp.builder()
             .addTools(tools)
             .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
+            .withAuditSink(auditSink)
             .build()
 
         _state.value = _state.value.copy(tools = tools)
@@ -221,6 +226,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         droidMcp = DroidMcp.builder()
             .addTools(tools)
             .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
+            .withAuditSink(auditSink)
             .build()
     }
 
@@ -243,6 +249,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         droidMcp?.stopServer()
+        auditSink.close()
+        super.onCleared()
     }
 
     private fun getDeviceIp(): String {

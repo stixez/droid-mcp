@@ -22,6 +22,9 @@ mockk = "1.13.16"
 truth = "1.4.4"
 shizuku = "13.1.5"
 libsu = "5.2.2"
+room = "2.6.1"
+ksp = "2.1.20-1.0.32"
+bouncycastle = "1.78.1"
 
 [libraries]
 # AndroidX Core
@@ -38,6 +41,15 @@ shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizu
 # libsu (Tier 5 shell backend — root via su)
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-io = { module = "com.github.topjohnwu.libsu:io", version.ref = "libsu" }
+
+# Room (audit log persistence — opt-in droid-mcp-audit module)
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+# BouncyCastle (self-signed cert generation — opt-in droid-mcp-tls module)
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 # Ktor Server
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
@@ -83,3 +95,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

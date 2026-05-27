@@ -68,6 +68,9 @@ include(
     ":droid-mcp-shell-core",
     ":droid-mcp-shizuku",
     ":droid-mcp-root",
+    ":droid-mcp-audit",
+    ":droid-mcp-tls",
+    ":droid-mcp-server-service",
     ":droid-mcp-all",
     ":sample-app",
 )
