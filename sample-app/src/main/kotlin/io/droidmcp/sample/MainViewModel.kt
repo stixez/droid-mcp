@@ -228,10 +228,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startServer() {
         // Run the server inside a foreground service so it survives screen-off /
-        // backgrounding. The service picks up droidMcp via McpServerHolder and
-        // calls startServer() on it; we set serverRunning optimistically (the
-        // service starts immediately after startForegroundService).
-        McpServerHolder.server = droidMcp
+        // backgrounding. The service picks up droidMcp via McpServerHolder (kept
+        // in sync by newServer()) and calls startServer() on it; we set
+        // serverRunning optimistically (the service starts immediately after
+        // startForegroundService).
+        //
+        // Reusing the same DroidMcp across Start→Stop→Start is safe:
+        // HttpTransport.start() rebuilds a fresh embeddedServer each call and
+        // stop() nulls it, so the transport rebinds cleanly on every start.
         DroidMcpServerService.start(context, McpServerService::class.java)
         val tls = _state.value.tlsEnabled
         val scheme = if (tls) "https" else "http"
