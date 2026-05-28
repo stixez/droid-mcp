@@ -30,6 +30,7 @@ fun MainScreen(
     onClearLogs: () -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
     onToggleReadOnly: (Boolean) -> Unit = {},
+    onToggleTls: (Boolean) -> Unit = {},
     onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
     onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
     onClearAuditLog: () -> Unit = {},
@@ -124,6 +125,73 @@ fun MainScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                }
+
+                // TLS toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.tlsEnabled,
+                        onCheckedChange = onToggleTls,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "TLS (HTTPS)",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.tlsEnabled) "Self-signed, served on :8443 — pin the fingerprint"
+                            else "Plaintext HTTP on :8080",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // TLS fingerprint pill (shown whenever a cert is configured)
+                state.tlsFingerprint?.let { fingerprint ->
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                        ) {
+                            Text(
+                                "SHA-256 ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                fingerprint,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = { clipboard.setText(AnnotatedString(fingerprint)) },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy TLS fingerprint",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
                     }
                 }
 

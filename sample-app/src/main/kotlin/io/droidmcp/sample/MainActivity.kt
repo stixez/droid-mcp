@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
                         onClearLogs = { vm.clearLogs() },
                         onRequestSpecialPermission = { type -> requestSpecialPermission(type) },
                         onToggleReadOnly = { value -> vm.setReadOnly(value) },
+                        onToggleTls = { value -> vm.setTls(value) },
                         onToggleTool = { name, enabled -> vm.setToolEnabled(name, enabled) },
                         onSetToolsEnabled = { names, enabled -> vm.setToolsEnabled(names, enabled) },
                         onClearAuditLog = { vm.clearAuditLog() },

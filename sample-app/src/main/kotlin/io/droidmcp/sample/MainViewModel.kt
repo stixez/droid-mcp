@@ -26,6 +26,9 @@ import io.droidmcp.core.DroidMcp
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.transport.TlsConfig
+import io.droidmcp.tls.SelfSignedCert
+import java.io.File
 import io.droidmcp.device.DeviceTools
 import io.droidmcp.downloads.DownloadsTools
 import io.droidmcp.files.FilesTools
@@ -92,6 +95,10 @@ data class MainState(
     val disabledTools: Set<String> = emptySet(),
     /** Persisted HTTP tools/call audit trail, newest first (0.10.0 hardening). */
     val auditLog: List<ToolCallAudit> = emptyList(),
+    /** Whether the HTTP server terminates TLS (binds the HTTPS port, https scheme). */
+    val tlsEnabled: Boolean = false,
+    /** SHA-256 fingerprint of the self-signed cert to pin client-side; null when plaintext. */
+    val tlsFingerprint: String? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -187,11 +194,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(PrintTools.all(context))
         tools.addAll(MlKitTools.all(context))
 
-        droidMcp = DroidMcp.builder()
-            .addTools(tools)
-            .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
-            .withAuditSink(auditSink)
-            .build()
+        droidMcp = newServer(tools)
 
         // A rebuild (or re-init on a permission grant) starts from a fresh
         // registry, so re-apply any gating the user had set — pruned to the
@@ -201,7 +204,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val gated = _state.value.disabledTools intersect tools.map { it.name }.toSet()
         droidMcp?.setDisabledTools(gated)
 
-        _state.value = _state.value.copy(tools = tools, disabledTools = gated)
+        _state.value = _state.value.copy(
+            tools = tools,
+            disabledTools = gated,
+            tlsFingerprint = droidMcp?.tlsFingerprint,
+        )
     }
 
     fun callTool(name: String, params: Map<String, Any>) {
@@ -219,15 +226,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startServer() {
         droidMcp?.startServer()
-        val url = "http://${getDeviceIp()}:8080/mcp"
+        val tls = _state.value.tlsEnabled
+        val scheme = if (tls) "https" else "http"
+        val port = if (tls) HTTPS_PORT else HTTP_PORT
+        val url = "$scheme://${getDeviceIp()}:$port/mcp"
         val token = droidMcp?.serverToken
+        val fingerprint = droidMcp?.tlsFingerprint
         _state.value = _state.value.copy(
             serverRunning = true,
             serverUrl = url,
             serverToken = token,
+            tlsFingerprint = fingerprint,
         )
         viewModelScope.launch(Dispatchers.IO) {
-            val qr = generatePairingQr(url, token)
+            val qr = generatePairingQr(url, token, fingerprint)
             _state.value = _state.value.copy(pairingQr = qr)
         }
     }
@@ -246,6 +258,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.serverRunning) return // toggle disabled while running
         _state.value = _state.value.copy(readOnly = value)
         rebuildDroidMcp()
+    }
+
+    /**
+     * Toggle TLS on the HTTP transport. Like [setReadOnly], it rebuilds the
+     * server, so it's only allowed while stopped. Generating the self-signed
+     * cert on first enable can touch disk, so it runs off the main thread; the
+     * fingerprint lands in state when the rebuild completes.
+     */
+    fun setTls(value: Boolean) {
+        if (_state.value.serverRunning) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.value = _state.value.copy(tlsEnabled = value)
+            rebuildDroidMcp()
+            _state.value = _state.value.copy(tlsFingerprint = droidMcp?.tlsFingerprint)
+        }
     }
 
     /**
@@ -275,27 +302,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun rebuildDroidMcp() {
-        val tools = _state.value.tools
-        droidMcp = DroidMcp.builder()
-            .addTools(tools)
-            .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
-            .withAuditSink(auditSink)
-            .build()
-        // Preserve gating across the rebuild that a read-only toggle triggers.
+        droidMcp = newServer(_state.value.tools)
+        // Preserve gating across the rebuild that a read-only / TLS toggle triggers.
         droidMcp?.setDisabledTools(_state.value.disabledTools)
     }
 
-    private suspend fun generatePairingQr(url: String, token: String?): Bitmap? {
+    /**
+     * Build a [DroidMcp] for the current [tools] honoring the read-only and TLS
+     * toggles. The single place the server is assembled — both [initialize] and
+     * [rebuildDroidMcp] route through here.
+     */
+    private fun newServer(tools: List<McpTool>): DroidMcp {
+        val builder = DroidMcp.builder()
+            .addTools(tools)
+            .enableHttpServer(port = HTTP_PORT, readOnly = _state.value.readOnly, context = context)
+            .withAuditSink(auditSink)
+        if (_state.value.tlsEnabled) builder.enableTls(loadTlsConfig())
+        return builder.build()
+    }
+
+    /**
+     * Load (or generate + persist on first use) the self-signed cert from the
+     * opt-in droid-mcp-tls module. Persisting keeps the pinned fingerprint
+     * stable across restarts. Cached after the first load so a later rebuild
+     * (e.g. a permission-grant re-init on the main thread) reuses it instead of
+     * re-reading the keystore off disk.
+     */
+    private var cachedTlsConfig: TlsConfig? = null
+
+    private fun loadTlsConfig(): TlsConfig =
+        cachedTlsConfig ?: SelfSignedCert
+            .loadOrCreate(File(context.filesDir, "droid-mcp-tls.p12"), httpsPort = HTTPS_PORT)
+            .also { cachedTlsConfig = it }
+
+    private suspend fun generatePairingQr(url: String, token: String?, tlsFingerprint: String?): Bitmap? {
         val payload = buildJsonObject {
             put("v", 1)
             put("url", url)
             if (token != null) put("token", token)
+            // Self-signed cert: the client pins this instead of validating a chain.
+            if (tlsFingerprint != null) put("tls_fingerprint", tlsFingerprint)
             put("name", Build.MODEL)
         }
         val result = GenerateQrCodeTool().execute(mapOf("text" to payload.toString(), "size" to 600))
         val base64 = result.data?.get("qr_image") as? String ?: return null
         val bytes = Base64.decode(base64, Base64.NO_WRAP)
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
+    private companion object {
+        const val HTTP_PORT = 8080
+        const val HTTPS_PORT = 8443
     }
 
     fun clearLogs() {
