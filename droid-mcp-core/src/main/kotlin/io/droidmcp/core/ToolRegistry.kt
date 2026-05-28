@@ -49,7 +49,12 @@ class ToolRegistry {
         disabled = if (enabled) disabled - name else disabled + name
     }
 
-    /** Replace the entire disabled set in one atomic swap (e.g. from a checkbox grid). */
+    /**
+     * Replace the entire disabled set in one atomic swap (e.g. from a checkbox
+     * grid). `@Synchronized` on the same monitor as [setToolEnabled] so a full
+     * replace can't interleave with a single-tool toggle and lose its update.
+     */
+    @Synchronized
     fun setDisabledTools(names: Set<String>) {
         disabled = names.toSet()
     }

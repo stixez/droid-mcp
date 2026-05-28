@@ -162,7 +162,7 @@ class HttpTransport(
                 if (authenticate(call) == null) return@get
 
                 call.respondText(
-                    """{"status":"ok","tools":${registry.listTools().size},"readonly":$readOnly}""",
+                    """{"status":"ok","tools":${registry.listEnabledTools().size},"readonly":$readOnly}""",
                     ContentType.Application.Json
                 )
             }

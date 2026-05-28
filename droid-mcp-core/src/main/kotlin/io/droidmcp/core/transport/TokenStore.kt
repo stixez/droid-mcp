@@ -70,8 +70,14 @@ class TokenStore(seedPrimary: String? = null) {
     /** Revoke a client's token. @return true if a client with that label existed. */
     fun revoke(label: String): Boolean = clients.remove(label) != null
 
-    /** Snapshot of paired clients (does not include the primary). */
-    fun pairedClients(): List<PairedClient> = clients.values.sortedBy { it.createdAt }
+    /**
+     * Snapshot of paired clients (does not include the primary), oldest first.
+     * Ties on [PairedClient.createdAt] (two pairings within the same millisecond)
+     * break deterministically on the unique label, so the order is stable rather
+     * than dependent on map iteration order.
+     */
+    fun pairedClients(): List<PairedClient> =
+        clients.values.sortedWith(compareBy({ it.createdAt }, { it.label }))
 
     private fun constantTimeEquals(expected: String, providedBytes: ByteArray): Boolean =
         MessageDigest.isEqual(expected.toByteArray(Charsets.UTF_8), providedBytes)
