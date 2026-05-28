@@ -86,6 +86,8 @@ data class MainState(
     val logs: List<ToolCallLog> = emptyList(),
     val loading: Boolean = false,
     val readOnly: Boolean = false,
+    /** Tool names the host has gated off — hidden from tools/list, rejected by tools/call. */
+    val disabledTools: Set<String> = emptySet(),
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -174,7 +176,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .withAuditSink(auditSink)
             .build()
 
-        _state.value = _state.value.copy(tools = tools)
+        // A rebuild (or re-init on a permission grant) starts from a fresh
+        // registry, so re-apply any gating the user had set — pruned to the
+        // tools that actually exist now. A tool that dropped out of the
+        // registry (e.g. permission revoked, root no longer available) must not
+        // linger in the disabled set, or it would skew the UI counts/badge.
+        val gated = _state.value.disabledTools intersect tools.map { it.name }.toSet()
+        droidMcp?.setDisabledTools(gated)
+
+        _state.value = _state.value.copy(tools = tools, disabledTools = gated)
     }
 
     fun callTool(name: String, params: Map<String, Any>) {
@@ -221,6 +231,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rebuildDroidMcp()
     }
 
+    /**
+     * Gate a single tool on or off at runtime. Takes effect immediately on the
+     * live registry — no rebuild, even while the server is running.
+     */
+    fun setToolEnabled(name: String, enabled: Boolean) {
+        droidMcp?.setToolEnabled(name, enabled)
+        _state.value = _state.value.copy(
+            disabledTools = droidMcp?.disabledTools() ?: _state.value.disabledTools,
+        )
+    }
+
+    /**
+     * Enable or disable a batch of tools in one swap — the grid's bulk actions,
+     * scoped to whatever the user currently has filtered into view (so "Disable
+     * all" while a filter is active only touches the visible tools). [names]
+     * always come from the live registry, so this can't introduce stale entries.
+     */
+    fun setToolsEnabled(names: Set<String>, enabled: Boolean) {
+        val updated = if (enabled) _state.value.disabledTools - names
+        else _state.value.disabledTools + names
+        droidMcp?.setDisabledTools(updated)
+        _state.value = _state.value.copy(
+            disabledTools = droidMcp?.disabledTools() ?: updated,
+        )
+    }
+
     private fun rebuildDroidMcp() {
         val tools = _state.value.tools
         droidMcp = DroidMcp.builder()
@@ -228,6 +264,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .enableHttpServer(port = 8080, readOnly = _state.value.readOnly, context = context)
             .withAuditSink(auditSink)
             .build()
+        // Preserve gating across the rebuild that a read-only toggle triggers.
+        droidMcp?.setDisabledTools(_state.value.disabledTools)
     }
 
     private suspend fun generatePairingQr(url: String, token: String?): Bitmap? {

@@ -30,9 +30,11 @@ fun MainScreen(
     onClearLogs: () -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
     onToggleReadOnly: (Boolean) -> Unit = {},
+    onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
+    onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
 
@@ -226,6 +228,21 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Text("Gating")
+                        if (state.disabledTools.isNotEmpty()) {
+                            Badge { Text("${state.disabledTools.size}") }
+                        }
+                    }
+                },
+            )
+            Tab(
+                selected = pagerState.currentPage == 2,
+                onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                text = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text("Activity")
                         if (state.logs.isNotEmpty()) {
                             Badge { Text("${state.logs.size}") }
@@ -247,7 +264,13 @@ fun MainScreen(
         ) { page ->
             when (page) {
                 0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
-                1 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
+                1 -> GatingPage(
+                    tools = state.tools,
+                    disabledTools = state.disabledTools,
+                    onToggleTool = onToggleTool,
+                    onSetMany = onSetToolsEnabled,
+                )
+                2 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
             }
         }
     }

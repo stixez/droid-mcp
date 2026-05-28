@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
                         onClearLogs = { vm.clearLogs() },
                         onRequestSpecialPermission = { type -> requestSpecialPermission(type) },
                         onToggleReadOnly = { value -> vm.setReadOnly(value) },
+                        onToggleTool = { name, enabled -> vm.setToolEnabled(name, enabled) },
+                        onSetToolsEnabled = { names, enabled -> vm.setToolsEnabled(names, enabled) },
                         contentPadding = contentPadding,
                     )
                 }
