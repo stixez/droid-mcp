@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 145 tools across 50 modules (48 user-callable + 2 support: `notification-listener`, `shell-core`).
+Complete reference for all 145 tools. They live in 50 of droid-mcp's 53 modules — 48 user-callable plus 2 support (`notification-listener`, `shell-core`); the 3 opt-in hardening modules (`audit`, `tls`, `server-service`) expose no tools.
 
 ---
 
@@ -115,7 +115,7 @@ Step data is sensor-based (not Health Connect). Values reset on device reboot.
 |------|-------------|------------|
 | `get_settings` | Read brightness, volume, WiFi, Bluetooth status | -- |
 | `set_brightness` | Set screen brightness | `level` (required, 0-255) |
-| `set_volume` | Set volume level | `stream` (media/ring/alarm), `level` (required) |
+| `set_volume` | Set volume level | `stream` (media/ring/alarm/notification), `level` (required) |
 | `toggle_wifi` | Toggle WiFi on/off | `enabled` (required) |
 
 On API 29+, `toggle_wifi` opens the system WiFi settings panel instead of toggling directly.
@@ -415,7 +415,7 @@ Requires `SYSTEM_ALERT_WINDOW` (Settings > Apps > Special access > Display over 
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `run_shell` | Run an arbitrary command via the backend. **Default-deny**: the host must register allowed prefixes via `ShellAllowlist.set(...)` before this tool succeeds. Stdout truncated at `max_stdout_bytes` (1024-65536, default 8192). | `command` (required), `max_stdout_bytes` |
+| `run_shell` | Run an arbitrary command via the backend. **Default-deny**: the host must register allowed prefixes via `ShellAllowlist.set(...)` before this tool succeeds. Prefer the argv form (`args` array) for anything with whitespace/quotes; the string form whitespace-splits naively. Stdout truncated at `max_stdout_bytes` (1024-65536, default 8192). | `command` (required), `args` (array, optional), `max_stdout_bytes` |
 
 Requires Shizuku activated + the host app granted permission. See [docs/SHIZUKU.md](../docs/SHIZUKU.md). Deep `dumpsys` tools (`batterystats`, `procstats`, full notification dumpsys) are deferred to a future release because their raw output overwhelms an LLM's token budget without bespoke parsing.
 

@@ -68,25 +68,25 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.10.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.9.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.10.0")
     // ... see full list below
 
     // Or include everything (except Tier 4/5 power-user modules)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.9.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.10.0")
 
     // Power-user tiers — opt in only if you want them (they pull third-party deps)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.9.0")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.9.0")       // Tier 5: root-UID admin (pulls libsu)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.10.0")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.10.0")       // Tier 5: root-UID admin (pulls libsu)
 }
 ```
 
@@ -178,7 +178,7 @@ if (CalendarTools.hasPermissions(context)) {
 
 53 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
 
-The table below lists the 48 user-callable modules. The remaining five are infrastructure with no LLM tools: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
+The table below lists 48 of them (`core` plus the tool modules; `overlay` is listed too, though it exposes a programmatic API rather than LLM tools). The remaining five are infrastructure: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
@@ -329,6 +329,14 @@ Some modules require permissions that can't be requested at runtime. The tools w
 ## Sample App
 
 The `sample-app` module includes a Compose UI that exercises the full tool surface — every module is registered (subject to permission availability) with quick-test buttons for representative tools in each category. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
+
+It also demonstrates the 0.10.0 hardening features end-to-end:
+
+- **Tools** tab — quick-test buttons per category.
+- **Gating** tab — a per-tool switch grid (with filter + bulk enable/disable) that toggles tools off the live `tools/list` / `tools/call` surface without restarting the server.
+- **Audit** tab — browse the persisted `RoomAuditSink` log of HTTP calls (tool, client, outcome, duration, arguments), clear it, or export to JSON.
+- **TLS** toggle — serve over HTTPS with a self-signed cert; the SHA-256 fingerprint is shown (copyable) and folded into the pairing QR for the client to pin.
+- The server runs inside a **foreground service** (`DroidMcpServerService`) so it survives screen-off / backgrounding.
 
 ---
 
