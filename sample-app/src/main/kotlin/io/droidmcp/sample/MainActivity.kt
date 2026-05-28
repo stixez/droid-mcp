@@ -2,10 +2,13 @@ package io.droidmcp.sample
 
 import android.Manifest
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -95,6 +98,8 @@ class MainActivity : ComponentActivity() {
                         onToggleReadOnly = { value -> vm.setReadOnly(value) },
                         onToggleTool = { name, enabled -> vm.setToolEnabled(name, enabled) },
                         onSetToolsEnabled = { names, enabled -> vm.setToolsEnabled(names, enabled) },
+                        onClearAuditLog = { vm.clearAuditLog() },
+                        onExportAuditLog = { vm.exportAuditLog { json -> copyAuditToClipboard(json) } },
                         contentPadding = contentPadding,
                     )
                 }
@@ -186,6 +191,13 @@ class MainActivity : ComponentActivity() {
 
     private fun initViewModel() {
         viewModelRef?.initialize()
+    }
+
+    /** Export the audit JSON to the clipboard — the sample's "do something with it" sink. */
+    private fun copyAuditToClipboard(json: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("droid-mcp audit", json))
+        Toast.makeText(this, "Audit log copied (${json.length} chars)", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

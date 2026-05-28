@@ -32,9 +32,11 @@ fun MainScreen(
     onToggleReadOnly: (Boolean) -> Unit = {},
     onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
     onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
+    onClearAuditLog: () -> Unit = {},
+    onExportAuditLog: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
+    val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
 
@@ -250,6 +252,21 @@ fun MainScreen(
                     }
                 },
             )
+            Tab(
+                selected = pagerState.currentPage == 3,
+                onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
+                text = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Audit")
+                        if (state.auditLog.isNotEmpty()) {
+                            Badge { Text("${state.auditLog.size}") }
+                        }
+                    }
+                },
+            )
         }
 
         // ── Loading indicator ────────────────────────────────────────────────
@@ -271,6 +288,11 @@ fun MainScreen(
                     onSetMany = onSetToolsEnabled,
                 )
                 2 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
+                3 -> AuditPage(
+                    entries = state.auditLog,
+                    onClear = onClearAuditLog,
+                    onExport = onExportAuditLog,
+                )
             }
         }
     }

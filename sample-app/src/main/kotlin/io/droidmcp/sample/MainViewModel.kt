@@ -24,6 +24,7 @@ import io.droidmcp.contacts.ContactsTools
 import io.droidmcp.audit.RoomAuditSink
 import io.droidmcp.core.DroidMcp
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolResult
 import io.droidmcp.device.DeviceTools
 import io.droidmcp.downloads.DownloadsTools
@@ -68,6 +69,7 @@ import io.droidmcp.mlkit.MlKitTools
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class ToolCallLog(
@@ -88,6 +90,8 @@ data class MainState(
     val readOnly: Boolean = false,
     /** Tool names the host has gated off — hidden from tools/list, rejected by tools/call. */
     val disabledTools: Set<String> = emptySet(),
+    /** Persisted HTTP tools/call audit trail, newest first (0.10.0 hardening). */
+    val auditLog: List<ToolCallAudit> = emptyList(),
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -101,6 +105,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Persists every HTTP tools/call to a private Room DB (0.10.0 hardening). */
     private val auditSink = RoomAuditSink(context)
+
+    init {
+        // Stream the persisted audit trail into state for the Audit tab. Room's
+        // Flow re-emits on every insert/prune, so the UI stays live without
+        // polling. Started once; survives initialize() re-runs.
+        viewModelScope.launch {
+            auditSink.observe(limit = 200)
+                .catch { /* DB closed during teardown — ignore */ }
+                .collect { entries ->
+                    _state.value = _state.value.copy(auditLog = entries)
+                }
+        }
+    }
 
     fun initialize() {
         val tools = mutableListOf<McpTool>()
@@ -283,6 +300,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearLogs() {
         _state.value = _state.value.copy(logs = emptyList())
+    }
+
+    /** Wipe the persisted audit trail. The observe() stream refreshes the UI. */
+    fun clearAuditLog() {
+        viewModelScope.launch { auditSink.clear() }
+    }
+
+    /**
+     * Serialize the full audit history to JSON off the main thread, then hand it
+     * back on the main thread (e.g. for the UI to copy to the clipboard).
+     */
+    fun exportAuditLog(onReady: (String) -> Unit) {
+        viewModelScope.launch {
+            val json = auditSink.exportJson()
+            onReady(json)
+        }
     }
 
     override fun onCleared() {
