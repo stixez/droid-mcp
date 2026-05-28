@@ -175,7 +175,7 @@ private fun AuditCard(entry: ToolCallAudit, format: SimpleDateFormat) {
             if (!args.isNullOrBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (expanded) args else args.take(120) + if (args.length > 120) "…" else "",
+                    args,
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

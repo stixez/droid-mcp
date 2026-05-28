@@ -74,6 +74,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ToolCallLog(
     val toolName: String,
@@ -268,7 +269,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun setTls(value: Boolean) {
         if (_state.value.serverRunning) return
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+            // Keep ONLY the blocking cert work (RSA keygen + keystore I/O on the
+            // first enable) off the main thread. The state mutation + server
+            // rebuild then run on the main dispatcher — same as setReadOnly — so
+            // they can't interleave with initialize()/setReadOnly mutating _state
+            // and reassigning droidMcp from the main thread (permission grants
+            // call initialize() regardless of server state).
+            if (value) withContext(Dispatchers.IO) { loadTlsConfig() }
             _state.value = _state.value.copy(tlsEnabled = value)
             rebuildDroidMcp()
             _state.value = _state.value.copy(tlsFingerprint = droidMcp?.tlsFingerprint)
@@ -377,7 +385,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         droidMcp?.stopServer()
-        auditSink.close()
+        // viewModelScope (and the audit observe() collector) is already being
+        // cancelled as part of teardown by the time onCleared runs. The Flow's
+        // .catch handles errors routed through the Flow, but db.close() can also
+        // throw synchronously while an observer is still draining — guard it so a
+        // teardown-time DB exception can't crash the process.
+        try {
+            auditSink.close()
+        } catch (_: Exception) {
+        }
         super.onCleared()
     }
 
