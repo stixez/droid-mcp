@@ -27,6 +27,7 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.transport.TlsConfig
+import io.droidmcp.server.DroidMcpServerService
 import io.droidmcp.tls.SelfSignedCert
 import java.io.File
 import io.droidmcp.device.DeviceTools
@@ -226,7 +227,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startServer() {
-        droidMcp?.startServer()
+        // Run the server inside a foreground service so it survives screen-off /
+        // backgrounding. The service picks up droidMcp via McpServerHolder and
+        // calls startServer() on it; we set serverRunning optimistically (the
+        // service starts immediately after startForegroundService).
+        McpServerHolder.server = droidMcp
+        DroidMcpServerService.start(context, McpServerService::class.java)
         val tls = _state.value.tlsEnabled
         val scheme = if (tls) "https" else "http"
         val port = if (tls) HTTPS_PORT else HTTP_PORT
@@ -246,7 +252,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun stopServer() {
-        droidMcp?.stopServer()
+        // Tears down the foreground service, whose onDestroy stops the HTTP
+        // listener on the shared DroidMcp.
+        DroidMcpServerService.stop(context, McpServerService::class.java)
         _state.value = _state.value.copy(
             serverRunning = false,
             serverUrl = null,
@@ -326,7 +334,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .enableHttpServer(port = HTTP_PORT, readOnly = _state.value.readOnly, context = context)
             .withAuditSink(auditSink)
         if (_state.value.tlsEnabled) builder.enableTls(loadTlsConfig())
-        return builder.build()
+        // Publish to the holder so the foreground service runs THIS instance —
+        // the same one the UI drives for in-process calls and live gating.
+        return builder.build().also { McpServerHolder.server = it }
     }
 
     /**
@@ -384,7 +394,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
-        droidMcp?.stopServer()
+        // Don't let the server outlive the UI: stop the service before closing
+        // the audit sink it writes through (otherwise a late HTTP call could try
+        // to record into a closing DB — harmless thanks to RoomAuditSink's own
+        // guard, but cleaner to stop first).
+        DroidMcpServerService.stop(context, McpServerService::class.java)
         // viewModelScope (and the audit observe() collector) is already being
         // cancelled as part of teardown by the time onCleared runs. The Flow's
         // .catch handles errors routed through the Flow, but db.close() can also

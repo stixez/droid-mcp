@@ -30,6 +30,9 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- Foreground service hosting the MCP HTTP server (droid-mcp-server-service). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
@@ -82,6 +85,20 @@
             <meta-data
                 android:name="android.view.im"
                 android:resource="@xml/droid_mcp_ime_config" />
+        </service>
+
+        <!--
+            Foreground service that keeps the MCP HTTP server alive across
+            screen-off / backgrounding. specialUse subtype because the server
+            doesn't fit a standard FGS type (location/media/etc.).
+        -->
+        <service
+            android:name=".McpServerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="mcp_server" />
         </service>
 
         <!--
