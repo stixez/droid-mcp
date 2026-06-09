@@ -5,6 +5,13 @@ import android.os.Build
 import android.telephony.SmsManager
 import io.droidmcp.core.*
 
+/**
+ * Sends an SMS to `to` with text `body` via `SmsManager` (version-checked: system service on
+ * API 31+, else `getDefault()`). The recipient must match [phoneRegex] or an error is returned;
+ * bodies over 160 chars are split with `divideMessage`/`sendMultipartTextMessage`. Requires
+ * `SEND_SMS`. Output on success: `sent` (true), echoed `to`, and `body_length`; failures return
+ * an error with the exception message.
+ */
 class SendMessageTool(private val context: Context) : McpTool {
 
     private val phoneRegex = Regex("^\\+?[0-9\\s\\-().]{7,20}$")

@@ -6,6 +6,12 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Reads calendar events in a date range via `ContentResolver` on `CalendarContract.Events`,
+ * filtered by `DTSTART` between `start_date` and end-of-`end_date`. Requires `READ_CALENDAR`.
+ * Output: `events` (list of {id, title, start, end, location, description, all_day} with times
+ * formatted `yyyy-MM-dd HH:mm`) and `count`, capped at `limit` (1–100, default 10).
+ */
 class ReadCalendarTool(private val context: Context) : McpTool {
 
     override val name = "read_calendar"

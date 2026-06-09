@@ -8,6 +8,18 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `long_press` — dispatch a long-press gesture (a held stroke via [tapPath]) at
+ * the given screen coordinates and await completion.
+ *
+ * Params: required `x`, `y` (screen pixels; non-negative, non-NaN);
+ * `duration_ms` (optional hold, clamped 100–5000ms, default 800).
+ *
+ * On success returns `success = true`, `x`, `y`, `duration_ms`. Error codes:
+ * `accessibility_not_enabled` (service not bound), `invalid_coords`
+ * (non-numeric / negative / NaN), `gesture_failed` (dispatch cancelled or
+ * rejected).
+ */
 class LongPressTool(private val context: Context) : McpTool {
 
     override val name = "long_press"

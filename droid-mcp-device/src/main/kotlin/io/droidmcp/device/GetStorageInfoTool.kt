@@ -7,6 +7,11 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports internal data-partition storage via [StatFs] on the data directory: `total_bytes`,
+ * `available_bytes`, `used_bytes`, plus human-readable `total_gb` / `available_gb` strings.
+ * No permissions.
+ */
 class GetStorageInfoTool : McpTool {
 
     override val name = "get_storage_info"

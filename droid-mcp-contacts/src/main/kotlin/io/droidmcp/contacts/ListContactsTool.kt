@@ -4,6 +4,13 @@ import android.content.Context
 import android.provider.ContactsContract
 import io.droidmcp.core.*
 
+/**
+ * Lists all contacts (name + phone presence only) via `ContentResolver` on
+ * `ContactsContract.Contacts`, sorted by display name, with cursor-based pagination.
+ * Requires `READ_CONTACTS`. Output: `contacts` (list of {id, name, has_phone}), plus
+ * `count`, `offset`, and `limit`. `limit` clamps to 1–100 (default 50); `offset` is
+ * non-negative (default 0).
+ */
 class ListContactsTool(private val context: Context) : McpTool {
 
     override val name = "list_contacts"

@@ -10,6 +10,11 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Opens a `uri` via ACTION_VIEW (http/https, app schemes, geo:, tel:, etc.), optionally
+ * forced to a specific app via `package_name`, with `FLAG_ACTIVITY_NEW_TASK`. No permissions.
+ * Output: `success`, `uri`, `package`.
+ */
 class OpenDeepLinkTool(private val context: Context) : McpTool {
 
     override val name = "open_deep_link"

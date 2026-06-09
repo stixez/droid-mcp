@@ -11,6 +11,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * The shared selector parameter list reused by every node-action tool
+ * ([ClickNodeTool], [LongClickNodeTool], [SetNodeTextTool], [ScrollNodeTool]):
+ * `text`, `view_id`, `class_name`, `package_name`, `index`. See [parseSelector]
+ * for the validation rules.
+ */
 private fun nodeSelectorParams(): List<ToolParameter> = listOf(
     ToolParameter("text", "Substring match against node text / contentDescription.", ParameterType.STRING, required = false),
     ToolParameter("view_id", "Exact match against view-id resource name.", ParameterType.STRING, required = false),
@@ -19,6 +25,15 @@ private fun nodeSelectorParams(): List<ToolParameter> = listOf(
     ToolParameter("index", "If the selector matches multiple nodes, zero-indexed pick. Must be >= 0. Default 0.", ParameterType.INTEGER, required = false),
 )
 
+/**
+ * Parsed selector for the node-action tools.
+ *
+ * @property text Case-insensitive substring against text + content-description.
+ * @property viewId Exact view-id resource name.
+ * @property className Exact node class.
+ * @property packageName Exact node package.
+ * @property index Zero-based pick among BFS-ordered matches (>= 0).
+ */
 private data class SelectorCriteria(
     val text: String?,
     val viewId: String?,
@@ -27,6 +42,14 @@ private data class SelectorCriteria(
     val index: Int,
 )
 
+/**
+ * Parse and validate the shared selector params into a [SelectorCriteria].
+ *
+ * @param params The raw tool params.
+ * @return `success` with the criteria, or `failure` carrying an
+ *   [IllegalArgumentException] whose message becomes the tool error when no
+ *   selector field is supplied or `index` is negative.
+ */
 private fun parseSelector(params: Map<String, Any>): Result<SelectorCriteria> {
     val text = (params["text"] as? String)?.takeIf { it.isNotBlank() }
     val viewId = (params["view_id"] as? String)?.takeIf { it.isNotBlank() }
@@ -42,6 +65,26 @@ private fun parseSelector(params: Map<String, Any>): Result<SelectorCriteria> {
     return Result.success(SelectorCriteria(text, viewId, className, pkg, index))
 }
 
+/**
+ * Resolve a node from the shared selector and invoke a single
+ * `AccessibilityNodeInfo.performAction` on it. Shared by all four node-action
+ * tools.
+ *
+ * On success returns `success = true`, `action` (the [actionName] string), and
+ * the matched node's `view_id`. Error cases (all long-form messages except
+ * `node_not_editable`, which is short-form): service not bound
+ * ([notConnectedError]), invalid selector (from [parseSelector]), no node
+ * matched, `node_not_editable` when `requireEditable` and the node isn't
+ * editable, and a "performAction returned false" message when the node rejects
+ * the action.
+ *
+ * @param action The `AccessibilityNodeInfo.ACTION_*` constant to perform.
+ * @param params The raw tool params (selector + any action-specific keys).
+ * @param arguments Optional action arguments (e.g. set-text payload).
+ * @param requireEditable When true, fails with `node_not_editable` unless the
+ *   matched node reports `isEditable`.
+ * @return The [ToolResult] to hand back from the calling tool's `execute`.
+ */
 private fun perform(
     action: Int,
     params: Map<String, Any>,
@@ -78,6 +121,8 @@ private fun perform(
     return result ?: ToolResult.error(notConnectedError())
 }
 
+/** Map an `AccessibilityNodeInfo.ACTION_*` constant to the short string echoed
+ *  back in the `action` result key. */
 private fun actionName(action: Int): String = when (action) {
     AccessibilityNodeInfo.ACTION_CLICK -> "click"
     AccessibilityNodeInfo.ACTION_LONG_CLICK -> "long_click"
@@ -87,6 +132,11 @@ private fun actionName(action: Int): String = when (action) {
     else -> "action_$action"
 }
 
+/**
+ * `click_node` — resolve a node via the shared selector and perform
+ * `ACTION_CLICK` on it. See [perform] for the result/error shape; on success
+ * returns `success`, `action = "click"`, and the matched `view_id`.
+ */
 class ClickNodeTool(private val context: Context) : McpTool {
     override val name = "click_node"
     override val description = "Perform ACTION_CLICK on a node matched by the selector."
@@ -96,6 +146,12 @@ class ClickNodeTool(private val context: Context) : McpTool {
         perform(AccessibilityNodeInfo.ACTION_CLICK, params)
 }
 
+/**
+ * `long_click_node` — resolve a node via the shared selector and perform
+ * `ACTION_LONG_CLICK` on it. See [perform] for the result/error shape; on
+ * success returns `success`, `action = "long_click"`, and the matched
+ * `view_id`.
+ */
 class LongClickNodeTool(private val context: Context) : McpTool {
     override val name = "long_click_node"
     override val description = "Perform ACTION_LONG_CLICK on a node matched by the selector."
@@ -105,6 +161,16 @@ class LongClickNodeTool(private val context: Context) : McpTool {
         perform(AccessibilityNodeInfo.ACTION_LONG_CLICK, params)
 }
 
+/**
+ * `set_node_text` — replace the text of an editable node via `ACTION_SET_TEXT`.
+ * Works for most native EditText fields; some apps disable accessibility
+ * text-set, in which case the IME tools are the fallback.
+ *
+ * Params: the shared selector plus required `text` (replacement string). The
+ * matched node must report `isEditable` or the call fails with the short-form
+ * `node_not_editable`. See [perform]; on success returns `success`,
+ * `action = "set_text"`, and the matched `view_id`.
+ */
 class SetNodeTextTool(private val context: Context) : McpTool {
     override val name = "set_node_text"
     override val description = "Replace the text of an editable node via ACTION_SET_TEXT. Works for most native EditText fields; some apps disable accessibility text-set, in which case use the IME tools instead."
@@ -122,6 +188,15 @@ class SetNodeTextTool(private val context: Context) : McpTool {
     }
 }
 
+/**
+ * `scroll_node` — scroll a scrollable node forward or backward via
+ * `ACTION_SCROLL_FORWARD` / `ACTION_SCROLL_BACKWARD`.
+ *
+ * Params: the shared selector plus optional `direction` (`forward` default, or
+ * `backward`/`back`). An unrecognized `direction` returns a validation error.
+ * See [perform]; on success returns `success`, the `action`
+ * (`scroll_forward`/`scroll_backward`), and the matched `view_id`.
+ */
 class ScrollNodeTool(private val context: Context) : McpTool {
     override val name = "scroll_node"
     override val description = "Scroll a scrollable node forward or backward."

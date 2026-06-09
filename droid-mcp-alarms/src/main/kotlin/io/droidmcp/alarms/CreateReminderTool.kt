@@ -13,6 +13,16 @@ import io.droidmcp.core.ToolResult
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Creates a reminder as a 30-minute calendar event with an alert, inserted into the device's primary
+ * calendar via [CalendarContract]. Takes a `title`, a `datetime` (`yyyy-MM-dd HH:mm`), and optional
+ * `minutes_before` (default 10) for the alert lead time.
+ *
+ * Requires both [Manifest.permission.READ_CALENDAR] and [Manifest.permission.WRITE_CALENDAR]
+ * (checked at runtime; returns an error if either is missing). Fails if no calendar exists on the device.
+ *
+ * Result keys: `success`, `event_id`, `title`, `datetime`, `minutes_before`.
+ */
 class CreateReminderTool(private val context: Context) : McpTool {
 
     override val name = "create_reminder"

@@ -20,6 +20,25 @@ import io.droidmcp.core.ToolResult
  *    the full command line. The tool whitespace-splits — quotes are NOT
  *    honoured, so this form is unsuitable for arguments containing spaces.
  *    Allowlist matching is against the full string.
+ *
+ * **Allowlist enforcement**: a candidate "allowlist key" is built from the
+ * request — the raw command line in string form, or `command` + space-joined
+ * `args` in argv form — and checked against [ShellAllowlist.isAllowed] (a
+ * prefix match against the host-registered set). If it doesn't match (including
+ * the default empty allowlist, which disables the tool entirely), `execute`
+ * short-circuits with a `run_shell_not_enabled` [ToolResult.error] whose detail
+ * lists the current allowlist snapshot — the command is never spawned.
+ *
+ * Privilege: requires a working [ShellBackend] AND a host-configured
+ * [ShellAllowlist].
+ *
+ * Params: `command` (required), `args` (optional argv array), `max_stdout_bytes`
+ * (optional, clamped 1024–65536, default 8192; the same byte cap is applied to
+ * stderr).
+ *
+ * On success the result map carries `exit_code`, `stdout`, `stderr`,
+ * `stdout_truncated`, and `stderr_truncated`. Note the raw process `exit_code`
+ * is reported as data: a non-zero exit is still a successful tool call.
  */
 class RunShellTool(private val shell: ShellBackend) : McpTool {
 

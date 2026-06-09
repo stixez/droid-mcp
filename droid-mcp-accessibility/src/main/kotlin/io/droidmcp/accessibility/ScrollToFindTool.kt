@@ -12,14 +12,30 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 /**
- * Direction uses **reading semantics**:
+ * `scroll_to_find` — repeatedly swipe in `direction` until `match` appears in
+ * the active window's UI tree or `max_scrolls` is exhausted. The current screen
+ * is checked first, so a match already visible on iteration 0 returns without
+ * any swipe.
+ *
+ * `direction` uses **reading semantics** — it names where the content you want
+ * lives, not where the finger moves (the inversion is handled by
+ * [swipeCoordsFor]):
  * - `down` → reveal content below the current viewport (finger swipes up)
  * - `up` → reveal content above (finger swipes down)
  * - `right` → reveal content to the right (finger swipes left)
  * - `left` → reveal content to the left (finger swipes right)
  *
- * Finger physics is hidden inside the implementation; the LLM-facing semantics
- * match how a human would describe scrolling toward unseen content.
+ * `match` is a case-insensitive substring against text + content-description.
+ *
+ * Params: required `match`; optional `direction` (default `down`), `max_scrolls`
+ * (clamped 1–20, default 5).
+ *
+ * On success returns `found = true`, `scrolls` (Int iterations performed before
+ * the hit), and `node` (the matched node projection, shaped like
+ * [NodeQuery.toMap]). Error codes: `accessibility_not_enabled` (service not
+ * bound), `invalid_selector` (missing `match` or bad `direction`),
+ * `gesture_failed` (a swipe was cancelled), `scroll_exhausted` (no match after
+ * `max_scrolls`).
  */
 class ScrollToFindTool(private val context: Context) : McpTool {
 
@@ -91,16 +107,13 @@ class ScrollToFindTool(private val context: Context) : McpTool {
 }
 
 /**
- * Reading-direction-to-finger-physics swipe coords. Lifted to internal so the
- * direction-inversion math is testable without spinning up an
- * AccessibilityService. The mapping is the contract EdgeClaw locked:
+ * Start/end coordinates of a single swipe stroke (screen pixels), as returned
+ * by [swipeCoordsFor].
  *
- *   - `down`  → finger sweeps UP   → content moves up   → reveals what was below
- *   - `up`    → finger sweeps DOWN → content moves down → reveals what was above
- *   - `right` → finger sweeps LEFT → content shifts left → reveals what was to the right
- *   - `left`  → finger sweeps RIGHT → content shifts right → reveals what was to the left
- *
- * Uses 35% offsets around the screen center for a substantial scroll distance.
+ * @property startX Stroke start X.
+ * @property startY Stroke start Y.
+ * @property endX Stroke end X.
+ * @property endY Stroke end Y.
  */
 internal data class SwipeCoords(
     val startX: Float,
@@ -109,6 +122,24 @@ internal data class SwipeCoords(
     val endY: Float,
 )
 
+/**
+ * Translate a reading-direction into finger-physics swipe coordinates. Lifted
+ * to internal so the direction-inversion math is testable without spinning up
+ * an AccessibilityService. The mapping is the locked contract:
+ *
+ *   - `down`  → finger sweeps UP   → content moves up   → reveals what was below
+ *   - `up`    → finger sweeps DOWN → content moves down → reveals what was above
+ *   - `right` → finger sweeps LEFT → content shifts left → reveals what was to the right
+ *   - `left`  → finger sweeps RIGHT → content shifts right → reveals what was to the left
+ *
+ * Uses 35% offsets around the screen center for a substantial scroll distance.
+ *
+ * @param direction One of `down` / `up` / `left` / `right` (already validated
+ *   by the caller; any other value throws).
+ * @param width Screen width in pixels.
+ * @param height Screen height in pixels.
+ * @return The [SwipeCoords] for the stroke that reveals content in [direction].
+ */
 internal fun swipeCoordsFor(
     direction: String,
     width: Float,

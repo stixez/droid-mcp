@@ -8,6 +8,18 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `tap` — dispatch a single-tap gesture (a ~50ms stroke via [tapPath]) at the
+ * given screen coordinates and await completion. Use when no node matches the
+ * selector or for raw coord-based input.
+ *
+ * Params: required `x`, `y` (screen pixels; must be non-negative, non-NaN).
+ *
+ * On success returns `success = true`, `x`, `y`. Error codes:
+ * `accessibility_not_enabled` (service not bound), `invalid_coords`
+ * (non-numeric / negative / NaN), `gesture_failed` (dispatch cancelled or
+ * rejected).
+ */
 class TapTool(private val context: Context) : McpTool {
 
     override val name = "tap"

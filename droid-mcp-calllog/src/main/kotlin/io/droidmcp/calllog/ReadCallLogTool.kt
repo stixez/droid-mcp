@@ -6,6 +6,14 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Reads recent calls from `CallLog.Calls` via `ContentResolver`, newest first, with optional
+ * call-type filtering and cursor-based pagination. Requires `READ_CALL_LOG`. `type` is one of
+ * 'all' (default), 'incoming', 'outgoing', 'missed' (any other value returns an error); `limit`
+ * clamps to 1–100 (default 10) and `offset` is non-negative (default 0). Output: `calls` (list
+ * of {id, number, name (cached display name, may be null), type via [callTypeName], date
+ * formatted `yyyy-MM-dd HH:mm`, duration_seconds}), `count`, and the echoed `filter`.
+ */
 class ReadCallLogTool(private val context: Context) : McpTool {
 
     override val name = "read_call_log"

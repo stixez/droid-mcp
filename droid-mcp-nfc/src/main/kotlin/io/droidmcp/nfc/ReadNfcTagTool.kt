@@ -8,6 +8,18 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reads NDEF data from the most recently scanned NFC tag.
+ *
+ * Does not actively scan: it returns the tag cached in [NfcTagCache], which the
+ * host Activity populates from `onNewIntent()` via NFC foreground dispatch.
+ * Requires NFC to be available and enabled. Read-only.
+ *
+ * Output keys: `has_tag`; when a tag is cached, `tag_id` (hex), `is_ndef`, and
+ * `tech_list` (non-NDEF tags) or `is_ndef`/`max_size`/`is_writable`/`records`
+ * (each record: `tnf`, `type`, `payload`). When no tag is cached: `has_tag`
+ * false plus a `message`.
+ */
 class ReadNfcTagTool(private val context: Context) : McpTool {
 
     override val name = "read_nfc_tag"

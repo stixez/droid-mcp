@@ -12,6 +12,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Lists files (directories excluded) in the public Downloads directory, sortable by
+ * `date` (default), `name`, or `size` via the `sort_by` param.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Output: `files` (each `{name, size_bytes, last_modified, extension}`) capped at the
+ * `limit` param, plus `count`, `sort_by`, and `directory`.
+ */
 class ListDownloadsTool(private val context: Context) : McpTool {
 
     override val name = "list_downloads"

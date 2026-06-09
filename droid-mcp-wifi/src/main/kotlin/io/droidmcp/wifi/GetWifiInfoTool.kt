@@ -9,6 +9,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports the current WiFi connection. Requires `ACCESS_WIFI_STATE`; `ssid`/`bssid` also need
+ * `ACCESS_FINE_LOCATION` on API 26+ and are `null` (or filtered placeholder MAC) without it.
+ *
+ * Output keys: `is_connected`, `ssid`, `bssid`, `ip_address`, `link_speed_mbps`, `rssi`
+ * (signal strength in dBm), `frequency_mhz`.
+ */
 class GetWifiInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_wifi_info"

@@ -13,6 +13,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Renders text or HTML content in an off-screen [WebView] and hands it to [PrintManager.print],
+ * which opens the system print UI. Plain text is HTML-escaped and wrapped in a monospace `<pre>`
+ * block; pass `is_html = true` to print raw HTML as-is.
+ *
+ * No permissions required. The print job is dispatched on the main thread once the WebView finishes
+ * loading; `success` indicates the dialog was launched, not that anything was printed.
+ *
+ * Output keys: `success`, `job_name`, `content_length`, `message`.
+ */
 class PrintContentTool(private val context: Context) : McpTool {
 
     override val name = "print_content"

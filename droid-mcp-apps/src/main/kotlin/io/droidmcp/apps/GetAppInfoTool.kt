@@ -10,6 +10,13 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.util.Date
 
+/**
+ * Returns details for one installed app identified by `package_name`. No permissions,
+ * though API 30+ package visibility rules may make some packages invisible (reported as
+ * "App not found").
+ * Output: `app_name`, `package_name`, `version_name`, `version_code`, `install_date`,
+ * `last_update`, and `permissions` (the app's requested permissions).
+ */
 class GetAppInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_app_info"

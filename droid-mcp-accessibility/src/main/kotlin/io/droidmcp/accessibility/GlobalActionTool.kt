@@ -8,6 +8,22 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `global_action` — dispatch a system-wide `AccessibilityService` global
+ * action: `back`, `home`, `recents`, `notifications`, `quick_settings`,
+ * `power_dialog`, `lock_screen`, or `screenshot` (see the companion `MAP`).
+ *
+ * The action string is lowercased before lookup. [AccessibilityTools.idempotentGlobalActions]
+ * lists the subset dispatchers may mark as safe to retry.
+ *
+ * Params: required `action`.
+ *
+ * On success returns `success = true` and the resolved `action` name. Errors
+ * are long-form messages: `action is required`, an "Unknown action" message
+ * listing the valid keys, the [notConnectedError] message when the service is
+ * not bound, and a "performGlobalAction returned false" message when the system
+ * rejects the action.
+ */
 class GlobalActionTool(private val context: Context) : McpTool {
 
     override val name = "global_action"

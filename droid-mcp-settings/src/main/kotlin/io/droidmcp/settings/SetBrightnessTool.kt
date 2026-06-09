@@ -10,6 +10,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sets screen brightness (0-255, clamped). Requires `WRITE_SETTINGS`; when not granted it launches
+ * the system grant screen and returns an error instead of writing.
+ *
+ * Output keys on success: `success` (true), `brightness` (the clamped value applied).
+ */
 class SetBrightnessTool(private val context: Context) : McpTool {
 
     override val name = "set_brightness"

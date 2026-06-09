@@ -15,6 +15,14 @@ import io.droidmcp.core.ToolAnnotations
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Reports whether the active network is carried over a VPN. Requires `ACCESS_NETWORK_STATE`
+ * (checked up front). On API 23+ inspects `NetworkCapabilities.TRANSPORT_VPN` and attempts to
+ * resolve the owning app's package name via reflection on the hidden `ownerUid` field (often
+ * `"unknown"`); below API 23 uses the deprecated `TYPE_VPN` network info (package always null).
+ * Output: `is_active`, `vpn_package_name` (nullable / `"unknown"`). Returns [ToolResult.error]
+ * when permission is missing or on failure.
+ */
 class IsVpnActiveTool(private val context: Context) : McpTool {
     override val name = "is_vpn_active"
     override val description = "Check if a VPN connection is currently active and return the VPN package name if available."

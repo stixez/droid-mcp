@@ -22,10 +22,25 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Captures the device screen via MediaProjection and saves it as a PNG or JPEG.
+ *
+ * Mirrors the display into a [android.media.ImageReader] through a
+ * [android.hardware.display.VirtualDisplay], grabs one frame, and writes it to
+ * `Pictures/droid-mcp/`. Requires an active MediaProjection: the host app must
+ * obtain user consent and register the projection token via
+ * [MediaProjectionHolder]; if absent, returns an error. Destructive hint (it
+ * writes a file to external storage). On API 34+ the host must run a
+ * `mediaProjection` foreground service (manifest declares
+ * `FOREGROUND_SERVICE_MEDIA_PROJECTION`).
+ *
+ * Output keys: `success`, `path` (absolute file path), `width`, `height`,
+ * `format`, `size_bytes`.
+ */
 class CaptureScreenTool(private val context: Context) : McpTool {
 
     override val name = "capture_screen"
-    override val description = "Capture a screenshot of the current screen. Requires MediaProjection consent from the host app. Returns the file path to the saved PNG image."
+    override val description = "Capture a screenshot of the current screen. Requires MediaProjection consent from the host app. Returns the file path to the saved image (PNG by default, or JPEG)."
     override val parameters = listOf(
         ToolParameter("quality", "JPEG quality 1-100 (default: 90). Only used if format is 'jpeg'.", ParameterType.INTEGER),
         ToolParameter("format", "Image format: 'png' (default) or 'jpeg'", ParameterType.STRING),

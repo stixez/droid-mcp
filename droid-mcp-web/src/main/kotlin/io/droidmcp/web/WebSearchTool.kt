@@ -9,6 +9,16 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
 
+/**
+ * Searches the web by scraping DuckDuckGo's HTML endpoint (`html.duckduckgo.com`) with OkHttp and
+ * parsing results with Jsoup. Reaches the network (`openWorldHint`); requires `INTERNET`
+ * (always-granted). Results depend on DuckDuckGo's HTML structure (`.result` / `.result__a` /
+ * `.result__snippet`) — a markup change can yield zero parsed results without an error. Any HTTP or
+ * parse failure is caught and returned as a [ToolResult.error]; a non-2xx status returns an error too.
+ *
+ * Output map: `query` (echoed), `results` (`List<Map>` each with `title`/`url`/`snippet`),
+ * `result_count` (Int).
+ */
 class WebSearchTool : McpTool {
 
     override val name = "web_search"

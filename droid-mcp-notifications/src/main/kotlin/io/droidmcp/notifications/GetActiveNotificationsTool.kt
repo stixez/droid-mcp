@@ -8,6 +8,17 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Reads the host app's currently active (status-bar) notifications via [NotificationManager.getActiveNotifications].
+ *
+ * No permissions required, but limited to API 23+ (Android 6.0). KNOWN LIMITATION: this only returns
+ * notifications posted by the MCP host app itself — cross-app notification access requires a
+ * `NotificationListenerService` (not included in this build), which is the domain of the
+ * `droid-mcp-notifications-reply` / `droid-mcp-notification-watch` modules.
+ *
+ * Result keys: `notifications` (list of maps with `id`, `tag`, `package_name`, `title`, `text`,
+ * `timestamp`, `is_ongoing`, `is_foreground_service`), `count`, and a `note` describing the limitation.
+ */
 class GetActiveNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "get_active_notifications"

@@ -33,6 +33,18 @@ private suspend fun putSetting(
     }
 }
 
+/**
+ * `settings put secure <key> <value>` — write a `Settings.Secure` value, which
+ * most apps cannot do without privileged shell access. Idempotent. Delegates
+ * to [putSetting]; treated as failure on non-zero exit or non-empty stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `key` (required), `value` (required).
+ *
+ * On success the result map carries `success` (true), `namespace`
+ * (`"secure"`), `key`, and `value`.
+ */
 class PutSecureSettingTool(private val shell: ShellBackend) : McpTool {
     override val name = "put_secure_setting"
     override val description = "Write a Settings.Secure value via `settings put secure`. Examples: location-mode, accessibility-enabled toggles. Most apps cannot write these without privileged shell access. Idempotent."
@@ -44,6 +56,18 @@ class PutSecureSettingTool(private val shell: ShellBackend) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "secure", params)
 }
 
+/**
+ * `settings put global <key> <value>` — write a `Settings.Global` value (e.g.
+ * `airplane_mode_on`, `wifi_on`). Idempotent. Delegates to [putSetting];
+ * treated as failure on non-zero exit or non-empty stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `key` (required), `value` (required).
+ *
+ * On success the result map carries `success` (true), `namespace`
+ * (`"global"`), `key`, and `value`.
+ */
 class PutGlobalSettingTool(private val shell: ShellBackend) : McpTool {
     override val name = "put_global_setting"
     override val description = "Write a Settings.Global value via `settings put global`. Examples: airplane_mode_on, wifi_on. Idempotent."
@@ -55,6 +79,18 @@ class PutGlobalSettingTool(private val shell: ShellBackend) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "global", params)
 }
 
+/**
+ * `settings put system <key> <value>` — write a `Settings.System` value (e.g.
+ * `screen_brightness`, `screen_off_timeout`). Idempotent. Delegates to
+ * [putSetting]; treated as failure on non-zero exit or non-empty stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `key` (required), `value` (required).
+ *
+ * On success the result map carries `success` (true), `namespace`
+ * (`"system"`), `key`, and `value`.
+ */
 class PutSystemSettingTool(private val shell: ShellBackend) : McpTool {
     override val name = "put_system_setting"
     override val description = "Write a Settings.System value via `settings put system`. Examples: screen_brightness, screen_off_timeout. Idempotent."

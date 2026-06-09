@@ -9,6 +9,19 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports detailed descriptor info for one connected USB device, looked up by `device_name` in
+ * [UsbManager.getDeviceList]. Enumerates interfaces and their endpoints.
+ *
+ * No permissions required (descriptor metadata only; actual data transfer would need user-granted
+ * device permission). Returns an error if USB host mode is unsupported or the device is absent.
+ * Read-only.
+ *
+ * Output keys: `name`, `vendor_id`, `product_id`, `device_class`, `device_subclass`,
+ * `device_protocol`, `manufacturer`, `product`, `serial_number`, `version`, `interface_count`,
+ * `interfaces` (each with `id`, `class`, `subclass`, `protocol`, `endpoint_count`, `endpoints`),
+ * `has_permission`.
+ */
 class GetUsbDeviceInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_usb_device_info"

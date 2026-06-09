@@ -12,6 +12,17 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Locale
 import kotlin.coroutines.resume
 
+/**
+ * Speaks text aloud through the device [TextToSpeech] engine, suspending until playback completes.
+ * No permissions required.
+ *
+ * Initializes a one-shot engine, applies pitch/speed (each clamped to 0.5–2.0) and language (falls
+ * back to English if the requested BCP-47 tag is unsupported or missing data), speaks with
+ * `QUEUE_FLUSH`, then shuts the engine down. Cancelling the coroutine shuts down the engine.
+ *
+ * Output map (on completion): `success` (true), `text_length` (Int), `language` (the requested tag,
+ * not necessarily the one actually used after fallback).
+ */
 class SpeakTextTool(private val context: Context) : McpTool {
 
     override val name = "speak_text"

@@ -32,6 +32,18 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Captures a still JPEG headlessly (no preview) via Camera2, preferring the back-facing camera at its
+ * maximum JPEG resolution, then saves it to `MediaStore` under `Pictures/droid-mcp`. With
+ * `return_data = true` the JPEG bytes are also returned base64-encoded (rejected if over ~10 MB).
+ * Capture is bounded by a 10-second timeout.
+ *
+ * Requires [Manifest.permission.CAMERA] and camera hardware; uses
+ * [android.hardware.camera2.params.SessionConfiguration] (API 28+, met by the SDK's min API).
+ *
+ * Result keys: `file_path` (MediaStore content URI), `width`, `height`, and optionally `image_data`
+ * (base64 JPEG when `return_data` is set).
+ */
 class TakePhotoTool(private val context: Context) : McpTool {
 
     override val name = "take_photo"

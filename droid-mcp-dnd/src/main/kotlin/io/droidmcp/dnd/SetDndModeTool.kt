@@ -8,6 +8,17 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sets the Do Not Disturb interruption filter.
+ *
+ * Calls [android.app.NotificationManager.setInterruptionFilter]. Requires DND
+ * policy access (`isNotificationPolicyAccessGranted`), a special access granted
+ * via Settings > Apps > Special access > Do Not Disturb access; without it the
+ * tool returns an error. Idempotent (setting the same mode twice has the same
+ * effect).
+ *
+ * Output keys: `success`, `mode`.
+ */
 class SetDndModeTool(private val context: Context) : McpTool {
 
     override val name = "set_dnd_mode"

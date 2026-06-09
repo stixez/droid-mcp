@@ -10,6 +10,15 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.ParameterType
 
+/**
+ * Sets the torch brightness via [CameraManager.turnOnTorchWithStrengthLevel] (level 0 turns it off).
+ *
+ * Requires Android 13+ (API 33+, `TIRAMISU`), the `CAMERA` permission, and a camera with
+ * `FLASH_INFO_AVAILABLE`. Returns an error on older API levels. The `level` param is clamped to 0–255;
+ * note the underlying API caps strength at the camera's reported maximum, which may be below 255.
+ *
+ * Output map: `level` (the clamped value applied) and `status` ("on"/"off").
+ */
 class SetFlashlightBrightnessTool(private val context: Context) : McpTool {
     override val name = "set_flashlight_brightness"
     override val description = "Set flashlight brightness level (Android 13+ only, API 33+)"

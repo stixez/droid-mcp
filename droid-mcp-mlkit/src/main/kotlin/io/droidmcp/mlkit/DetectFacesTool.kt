@@ -12,6 +12,18 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
 
+/**
+ * Detects faces in a local image with on-device ML Kit face detection (accurate mode, full
+ * classification). Returns bounding boxes plus expression/eye-open probabilities and head Euler
+ * angles. Does NOT identify or recognize individuals.
+ *
+ * No permissions required; `image_path` is sandboxed to the external-storage root via
+ * [PathValidator] and must point at an existing file. Read-only.
+ *
+ * Output keys: `face_count`, `faces` (each with `bounding_box` {`left`, `top`, `right`, `bottom`},
+ * `smiling_probability`, `left_eye_open_probability`, `right_eye_open_probability`,
+ * `head_euler_angle_y`, `head_euler_angle_z`).
+ */
 class DetectFacesTool(private val context: Context) : McpTool {
 
     override val name = "detect_faces"

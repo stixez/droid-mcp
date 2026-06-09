@@ -7,6 +7,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports current wallpaper metadata via [WallpaperManager]: desired minimum dimensions, whether
+ * a live wallpaper is active (and its package/service), and whether setting a wallpaper is permitted
+ * by device policy.
+ *
+ * No permissions required. Read-only.
+ *
+ * Output keys: `desired_width`, `desired_height`, `is_live_wallpaper`, `live_wallpaper_package`,
+ * `live_wallpaper_service`, `is_set_wallpaper_allowed`.
+ */
 class GetWallpaperInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_wallpaper_info"

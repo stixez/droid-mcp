@@ -6,8 +6,13 @@ import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
 
+/**
+ * Provider for the health/fitness tools: [GetStepCountTool] and [GetActivityInfoTool].
+ * Only step counting is permission-gated; [GetActivityInfoTool] needs no permission.
+ */
 object HealthTools {
 
+    /** All health [McpTool]s bound to [context]. */
     fun all(context: Context): List<McpTool> = listOf(
         GetStepCountTool(context),
         GetActivityInfoTool(context),
@@ -24,6 +29,7 @@ object HealthTools {
             emptyList()
         }
 
+    /** True when [requiredPermissions] are granted (always true below API 29). */
     fun hasPermissions(context: Context): Boolean =
         PermissionHelper.hasPermissions(context, requiredPermissions())
 }

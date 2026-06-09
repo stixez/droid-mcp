@@ -9,6 +9,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Creates a clock alarm by firing an [AlarmClock.ACTION_SET_ALARM] intent at the system clock app
+ * (with `EXTRA_SKIP_UI`, so no UI is shown). Optional `message` label and `days` (comma-separated
+ * `mon`..`sun`) for a repeating alarm; omit `days` for a one-time alarm.
+ *
+ * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest;
+ * a normal install-time permission). Reading existing alarms is not possible via any standard API.
+ *
+ * Result keys: `success`, `hour`, `minute`, `message`, `days`.
+ */
 class CreateAlarmTool(private val context: Context) : McpTool {
 
     override val name = "create_alarm"

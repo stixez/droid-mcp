@@ -12,6 +12,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Searches the public Downloads directory (top level only, files excluding directories)
+ * for filenames containing a case-insensitive substring, sorted newest-first.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Output: `files` (each `{name, size_bytes, last_modified, extension}`) capped at the
+ * `limit` param, plus `count` and `query`.
+ */
 class SearchDownloadsTool(private val context: Context) : McpTool {
 
     override val name = "search_downloads"

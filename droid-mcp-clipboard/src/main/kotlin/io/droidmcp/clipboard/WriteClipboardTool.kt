@@ -9,6 +9,11 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Writes plain text to the system primary clip via `ClipboardManager.setPrimaryClip`. No
+ * permissions required. `text` is mandatory; `label` defaults to "droid-mcp". Output: `success`
+ * (true), the resolved `label`, and `length` (character count of the written text).
+ */
 class WriteClipboardTool(private val context: Context) : McpTool {
 
     override val name = "write_clipboard"

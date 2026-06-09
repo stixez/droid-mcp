@@ -10,6 +10,12 @@ import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Reads the `TYPE_LIGHT` ambient-light sensor (illuminance in lux). No permissions. With
+ * `duration_ms` (1-5000) it collects a series of samples; otherwise a single reading. See
+ * [readSensor]. Output: latest `lux`, `accuracy`, `timestamp`, plus a `readings` list of
+ * `{lux,timestamp}`. Returns [ToolResult.error] when the device has no light sensor.
+ */
 class GetLightLevelTool(private val context: Context) : McpTool {
 
     override val name = "get_light_level"

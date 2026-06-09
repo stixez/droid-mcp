@@ -22,6 +22,24 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import java.util.Collections
 import java.util.UUID
 
+/**
+ * Ktor/Netty MCP server for desktop clients. Exposes the JSON-RPC surface at `POST /mcp`
+ * (plus an `SSE` channel and a `/health` probe), enforces bearer auth via a [TokenStore]
+ * when [requireAuth] is set, optionally terminates TLS, and advertises itself over mDNS
+ * (`_mcp._tcp`). Prefer building one through
+ * [DroidMcp.Builder.enableHttpServer][io.droidmcp.core.DroidMcp.Builder.enableHttpServer]
+ * rather than directly.
+ *
+ * @param registry Tools to serve.
+ * @param port Plaintext port; overridden by [TlsConfig.httpsPort] when [tls] is set.
+ * @param bearerToken Fixed primary token; a random one is generated when null and [requireAuth] is true.
+ * @param requireAuth Require a `Bearer` token on every request. When false the server is open.
+ * @param readOnly Serve only read-only tools.
+ * @param context Android context for mDNS registration; mDNS is skipped when null.
+ * @param serverVersion Version reported in `initialize` and the mDNS TXT record.
+ * @param auditSink Optional per-call audit hook.
+ * @param tls TLS material; when set the server binds HTTPS and exposes [tlsFingerprint].
+ */
 class HttpTransport(
     private val registry: ToolRegistry,
     private val port: Int = 8080,
@@ -54,6 +72,7 @@ class HttpTransport(
     /** Port the server actually binds — the HTTPS port when TLS is on. */
     private val activePort: Int get() = tls?.httpsPort ?: port
 
+    /** mDNS service name advertised on the network, derived from the device model (sanitised, ≤63 chars). */
     val mdnsServiceName: String = run {
         val sanitized = Build.MODEL.replace(Regex("[^A-Za-z0-9-]"), "-")
         "droid-mcp-$sanitized".take(MAX_NSD_NAME_LENGTH)
@@ -70,6 +89,7 @@ class HttpTransport(
         }
     )
 
+    /** Start the embedded server and register mDNS. No-op if already running; rethrows bind failures. */
     fun start() {
         if (server != null) return
         val tlsConfig = tls
@@ -169,12 +189,14 @@ class HttpTransport(
         }
     }
 
+    /** Stop the server and unregister mDNS. No-op if not running. */
     fun stop() {
         unregisterNsd()
         server?.stop(1000, 2000)
         server = null
     }
 
+    /** Whether the embedded server is currently running. */
     fun isRunning(): Boolean = server != null
 
     /**

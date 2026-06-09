@@ -22,25 +22,35 @@ import android.view.accessibility.AccessibilityEvent
  */
 abstract class DroidMcpAccessibilityService : AccessibilityService() {
 
+    /** Registers this instance into [AccessibilityServiceHolder] so tools can
+     *  reach the running service. Subclasses that override MUST call super. */
     override fun onServiceConnected() {
         super.onServiceConnected()
         AccessibilityServiceHolder.set(this)
     }
 
+    /** Clears this instance from the holder on unbind. Subclasses that override
+     *  MUST call super.
+     *  @return the super result (whether `onRebind` should be honored). */
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         AccessibilityServiceHolder.clear(this)
         return super.onUnbind(intent)
     }
 
+    /** Clears this instance from the holder on destroy. Subclasses that
+     *  override MUST call super. */
     override fun onDestroy() {
         AccessibilityServiceHolder.clear(this)
         super.onDestroy()
     }
 
+    /** No-op by default; tools poll the tree on demand rather than reacting to
+     *  events. Subclasses may override to observe [event]s. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // No-op by default. Subclasses may override.
     }
 
+    /** No-op by default. Subclasses may override. */
     override fun onInterrupt() {
         // No-op by default.
     }

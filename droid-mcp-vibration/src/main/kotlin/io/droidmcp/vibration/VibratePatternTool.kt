@@ -11,6 +11,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Plays a waveform vibration from `timings` (alternating ON/OFF durations in ms; must be a non-empty
+ * even-length array). Optional `repeat` index (-1 = no repeat, clamped to bounds). Requires `VIBRATE`.
+ *
+ * Output key on success: `success` (true). Errors on invalid timings or a device with no vibrator.
+ */
 class VibratePatternTool(private val context: Context) : McpTool {
 
     override val name = "vibrate_pattern"

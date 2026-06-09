@@ -10,6 +10,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Fires an Android activity intent restricted to an allowlist of safe actions (VIEW, DIAL,
+ * SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT, PICK, GET_CONTENT, CREATE_DOCUMENT,
+ * OPEN_DOCUMENT) — non-allowlisted actions are rejected. Supports `data` URI, `type`,
+ * `package_name`, and `extras` (coerced to string extras), always with
+ * `FLAG_ACTIVITY_NEW_TASK`. No permissions.
+ * Output: `success`, `action`, `data`, `package`.
+ */
 class SendIntentTool(private val context: Context) : McpTool {
 
     override val name = "send_intent"

@@ -11,13 +11,25 @@ import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.delay
 
 /**
- * Two-modal: text presence OR window/activity change. Both modes poll the
- * accessibility tree at `poll_ms` intervals (default 200ms) until either the
- * condition matches or `timeout_ms` elapses.
+ * `wait_for_text` — block (with timeout) until a condition holds on screen.
+ * Two modes selected by the `condition` param:
+ *  - `text` (default): waits for `text` to appear (case-insensitive substring
+ *    against text + content-description).
+ *  - `window_change`: waits for the foreground package, root class, or window
+ *    id to differ from the snapshot taken on the first poll.
  *
- * **Result shape:** `{ status: "matched" | "timeout", elapsed_ms: Long, ... }`
- * — callers branch on `status`, NOT on the error envelope. Timeout is a
- * normal outcome.
+ * Both modes poll the accessibility tree at `poll_ms` intervals (clamped
+ * 50–2000ms, default 200) until either the condition matches or `timeout_ms`
+ * (clamped 100–60000ms, default 5000) elapses.
+ *
+ * **Result shape — timeout is NOT an error.** A successful call returns
+ * `status` = `"matched"` or `"timeout"` plus `elapsed_ms` (Long) and
+ * `condition`. On a `text` match it also returns `text`; on a `window_change`
+ * match it adds `package_name` and `root_class`. Callers branch on `status`,
+ * not on the error envelope.
+ *
+ * Error codes: `invalid_selector` (unknown `condition`, or `text` missing when
+ * `condition='text'`) and `accessibility_not_enabled` (service not bound).
  */
 class WaitForTextTool(private val context: Context) : McpTool {
 

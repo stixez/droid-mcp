@@ -10,6 +10,15 @@ import okhttp3.Request
 import org.jsoup.Jsoup
 import java.util.concurrent.TimeUnit
 
+/**
+ * Fetches a URL with OkHttp (15s connect/read timeouts) and extracts readable body text via Jsoup,
+ * stripping script/style/noscript/nav/footer/header before extraction. Reaches the network
+ * (`openWorldHint`); requires `INTERNET` (always-granted). A malformed URL returns an "Invalid URL"
+ * error; non-2xx status, empty body, or any other failure returns a [ToolResult.error].
+ *
+ * Output map: `title` (String), `url` (echoed), `content` (text truncated to `max_length`),
+ * `content_length` (Int — full untruncated length).
+ */
 class FetchWebpageTool : McpTool {
 
     override val name = "fetch_webpage"

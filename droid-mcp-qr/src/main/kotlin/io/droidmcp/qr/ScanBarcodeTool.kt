@@ -16,6 +16,14 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
+/**
+ * Decodes a 1D/product barcode from a still image file (referenced by `image_uri`) using ML Kit,
+ * restricted to EAN-13, UPC-A, CODE-128, CODE-39, EAN-8, and UPC-E. Reads an existing image — does NOT
+ * open the camera, so no camera permission is needed despite the module declaring `CAMERA`. Returns the
+ * first barcode found, or `found = false` when none is present.
+ *
+ * Result keys: `raw_value`, `format` (one of the supported format names, or `"UNKNOWN"`), `found`.
+ */
 class ScanBarcodeTool(private val context: Context) : McpTool {
 
     override val name = "scan_barcode"

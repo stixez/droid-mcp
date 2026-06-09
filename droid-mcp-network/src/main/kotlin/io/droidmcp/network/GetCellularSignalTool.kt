@@ -13,6 +13,14 @@ import io.droidmcp.core.ToolAnnotations
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Returns current cellular signal strength. Requires `ACCESS_NETWORK_STATE` (checked up
+ * front). On API 28+ reads the first cellular entry from `SignalStrength.cellSignalStrengths`;
+ * below that falls back to a reflection-based GSM read with a synthesized dBm estimate. Output:
+ * `signal_asu`, `signal_dbm`, `level` (`excellent`/`good`/`moderate`/`poor`/`none`),
+ * `level_numeric` (0-4). Returns [ToolResult.error] when permission is missing, no
+ * SignalStrength/cellular entry is available, or on failure.
+ */
 class GetCellularSignalTool(private val context: Context) : McpTool {
     override val name = "get_cellular_signal"
     override val description = "Get current cellular signal strength information including ASU, dBm, and signal level (excellent/good/moderate/poor/none)."

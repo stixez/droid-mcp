@@ -7,6 +7,14 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Fetches full MediaStore metadata for one item by `media_id` (the `media_type` param
+ * picks `image` (default) or `video`).
+ * Requires `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` on API 33+, else `READ_EXTERNAL_STORAGE`.
+ * Output: `id`, `name`, `path`, `date_taken`, `date_modified`, `size_bytes`, `mime_type`,
+ * `width`, `height`, `media_type`; videos add `duration_seconds`/`resolution`, images add
+ * `latitude`/`longitude`/`description` (when present).
+ */
 class GetMediaMetadataTool(private val context: Context) : McpTool {
 
     override val name = "get_media_metadata"

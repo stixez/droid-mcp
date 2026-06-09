@@ -11,6 +11,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Toggles WiFi on/off. Requires `CHANGE_WIFI_STATE`. On API 29+ apps cannot toggle WiFi directly,
+ * so this opens the system WiFi settings panel instead of changing state.
+ *
+ * Output keys on success: `success` (true), `opened_settings`. On API 29+ also `message`; below 29
+ * also `enabled` (the applied state).
+ */
 class ToggleWifiTool(private val context: Context) : McpTool {
 
     override val name = "toggle_wifi"

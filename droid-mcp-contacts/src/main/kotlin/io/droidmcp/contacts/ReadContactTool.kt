@@ -4,6 +4,14 @@ import android.content.Context
 import android.provider.ContactsContract
 import io.droidmcp.core.*
 
+/**
+ * Reads full details for one contact identified by `contact_id` (accepts a number or numeric
+ * string) via `ContactsContract`, aggregating name, phones, emails, and postal addresses.
+ * Requires `READ_CONTACTS`; returns an error if the id is missing/non-numeric or no contact
+ * matches. Output: `id`, `name`, `phones` (list of {number, type}), `emails` (list of
+ * {address, type}), and `addresses` (list of formatted-address strings). Phone/email `type`
+ * is mapped to home/mobile/work/other.
+ */
 class ReadContactTool(private val context: Context) : McpTool {
 
     override val name = "read_contact"
@@ -48,6 +56,7 @@ class ReadContactTool(private val context: Context) : McpTool {
         ))
     }
 
+    /** Returns the contact's phone numbers as {number, type} maps (type: home/mobile/work/other). */
     private fun getPhoneNumbers(contactId: Long): List<Map<String, String>> {
         val phones = mutableListOf<Map<String, String>>()
         context.contentResolver.query(
@@ -74,6 +83,7 @@ class ReadContactTool(private val context: Context) : McpTool {
         return phones
     }
 
+    /** Returns the contact's email addresses as {address, type} maps (type: home/work/other). */
     private fun getEmails(contactId: Long): List<Map<String, String>> {
         val emails = mutableListOf<Map<String, String>>()
         context.contentResolver.query(
@@ -99,6 +109,7 @@ class ReadContactTool(private val context: Context) : McpTool {
         return emails
     }
 
+    /** Returns the contact's postal addresses as formatted-address strings. */
     private fun getAddresses(contactId: Long): List<String> {
         val addresses = mutableListOf<String>()
         context.contentResolver.query(

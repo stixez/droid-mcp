@@ -4,12 +4,18 @@ import android.content.Context
 import android.provider.ContactsContract
 import io.droidmcp.core.*
 
+/**
+ * Searches contacts whose `DISPLAY_NAME_PRIMARY` matches `query` (SQL `LIKE` substring),
+ * then attaches each match's phone numbers and email addresses via sub-queries. Requires
+ * `READ_CONTACTS`. Output: `contacts` (list of {id, name, phones (list of strings), emails
+ * (list of strings)}), `count`, and the echoed `query`, capped at `limit` (1–100, default 10).
+ */
 class SearchContactsTool(private val context: Context) : McpTool {
 
     override val name = "search_contacts"
-    override val description = "Search contacts by name, phone number, or email address"
+    override val description = "Search contacts by display name (substring match)"
     override val parameters = listOf(
-        ToolParameter("query", "Search query (name, phone, or email)", ParameterType.STRING, required = true),
+        ToolParameter("query", "Search query matched against the contact's display name", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
@@ -58,6 +64,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
         ))
     }
 
+    /** Returns the contact's phone numbers as plain strings. */
     private fun getPhoneNumbers(contactId: Long): List<String> {
         val phones = mutableListOf<String>()
         context.contentResolver.query(
@@ -74,6 +81,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
         return phones
     }
 
+    /** Returns the contact's email addresses as plain strings. */
     private fun getEmails(contactId: Long): List<String> {
         val emails = mutableListOf<String>()
         context.contentResolver.query(

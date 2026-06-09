@@ -80,6 +80,14 @@ internal object NodeQuery {
         }
     }
 
+    /**
+     * Test whether [node] satisfies every non-null selector. `text` is a
+     * case-insensitive substring against the node's text + content-description;
+     * the rest are exact matches. A null selector is ignored, so passing all
+     * nulls matches every node.
+     *
+     * @return true when the node matches all supplied selectors.
+     */
     fun matches(
         node: AccessibilityNodeInfo,
         text: String?,
@@ -97,6 +105,19 @@ internal object NodeQuery {
         return true
     }
 
+    /**
+     * Project [node] into the flat result map shared by all node-returning
+     * tools: `view_id`, `class`, `package`, `text`, `content_description`,
+     * `is_password`, `bounds` (left/top/right/bottom), the action/state flags
+     * (`clickable`, `long_clickable`, `scrollable`, `editable`, `focused`,
+     * `selected`, `enabled`, `checked`), and `depth`.
+     *
+     * When the node is a password field, `text` and `content_description` are
+     * masked to null while `is_password` stays true.
+     *
+     * @param depth BFS depth recorded in the projection (0 = root).
+     * @return The projection map.
+     */
     fun toMap(node: AccessibilityNodeInfo, depth: Int = 0): Map<String, Any?> {
         val bounds = Rect().also { node.getBoundsInScreen(it) }
         val isPassword = node.isPassword

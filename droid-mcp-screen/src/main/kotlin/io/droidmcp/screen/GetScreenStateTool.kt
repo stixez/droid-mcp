@@ -11,6 +11,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports current screen state: interactivity, rotation, brightness, and keyguard lock. No
+ * permissions required. `brightness` is the raw `Settings.System.SCREEN_BRIGHTNESS` value (0–255),
+ * or -1 if it could not be read (e.g. adaptive brightness).
+ *
+ * Output map: `is_screen_on` (Boolean), `rotation` (Int degrees: 0/90/180/270), `brightness` (Int),
+ * `is_locked` (Boolean).
+ */
 class GetScreenStateTool(private val context: Context) : McpTool {
 
     override val name = "get_screen_state"

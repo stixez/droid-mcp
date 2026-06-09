@@ -8,14 +8,23 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 /**
- * `screencap -p` — captures the screen as a PNG and writes it to stdout. With
- * a privileged shell backend this works without MediaProjection consent (no
- * yellow status-bar indicator, no prompt). Distinct from
+ * `screencap -p [-d <display>]` — captures the screen as a PNG and writes it to
+ * stdout. With a privileged shell backend this works without MediaProjection
+ * consent (no yellow status-bar indicator, no prompt). Distinct from
  * `screenshot.capture_screen` (MediaProjection) and
  * `accessibility.take_screenshot_via_a11y` (Accessibility-API consent).
  *
- * Returns a base64-encoded PNG. JPEG re-encode happens on the Kotlin side
- * because `screencap` only emits PNG.
+ * Routed through [ShellBackend.execBinary] (via [gatedExecBinary]) so the raw
+ * PNG bytes survive text-only backends. The result is validated against the
+ * 8-byte PNG signature, then base64-encoded; the captured image is always
+ * returned as PNG (no re-encoding).
+ *
+ * Privilege: requires a working [ShellBackend]. Read-only.
+ *
+ * Params: `display` (optional, default 0 → primary; non-zero adds `-d`).
+ *
+ * On success the result map carries `format` (`"png"`), `size_bytes`, and
+ * `image_base64`.
  */
 class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
 

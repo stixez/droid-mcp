@@ -7,8 +7,31 @@ import android.provider.Settings
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
 
+/**
+ * Provider object for the accessibility module — the entry point host apps and
+ * dispatchers use to register the tools and inspect their special-access state.
+ *
+ * Every tool here operates on [android.view.accessibility.AccessibilityNodeInfo]
+ * trees obtained from the host's bound [DroidMcpAccessibilityService] (tracked
+ * by [AccessibilityServiceHolder]). Because accessibility is a *special access*
+ * permission granted from system Settings — not a runtime permission —
+ * [requiredPermissions] is empty and [hasPermissions] is a no-op `true`; use
+ * [isAccessibilityEnabled] / [permissionStatus] to learn whether tools will
+ * actually succeed.
+ *
+ * Tools surface a mix of error shapes: the 0.7.0 coord/find tools and the
+ * polling tools emit short-form codes (`accessibility_not_enabled`,
+ * `node_not_found`, `node_not_editable`, `invalid_selector`, `invalid_coords`,
+ * `gesture_failed`, `scroll_exhausted`); the older tools emit the long-form
+ * [notConnectedError] sentence (see each tool's KDoc).
+ */
 object AccessibilityTools {
 
+    /**
+     * All accessibility tools, constructed against [context]. Includes
+     * `take_screenshot_via_a11y` regardless of API level — call
+     * [supportedTools] to get the device-filtered set instead.
+     */
     fun all(context: Context): List<McpTool> = listOf(
         QueryScreenTool(context),
         FindNodeTool(context),

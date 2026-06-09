@@ -7,9 +7,20 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 /**
- * `am set-standby-bucket <pkg> <bucket>` — set the app's standby bucket which
+ * `am set-standby-bucket <pkg> <bucket>` — set the app's standby bucket, which
  * controls how aggressively the system throttles its background work.
- * Buckets: `active` / `working_set` / `frequent` / `rare` / `restricted`.
+ * Idempotent. The `bucket` value is lowercased and validated against
+ * [VALID_BUCKETS] (`active` / `working_set` / `frequent` / `rare` /
+ * `restricted`) before issuing the command; an unknown bucket fails with
+ * `invalid_args`. Treated as a command failure on non-zero exit or non-empty
+ * stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required), `bucket` (required).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `bucket`.
  */
 class SetAppStandbyBucketTool(private val shell: ShellBackend) : McpTool {
 
@@ -42,8 +53,16 @@ class SetAppStandbyBucketTool(private val shell: ShellBackend) : McpTool {
 
 /**
  * `am set-inactive <pkg> true` — flag an app as idle so the system applies
- * aggressive doze restrictions immediately rather than waiting for natural
- * idle accumulation.
+ * aggressive Doze restrictions immediately rather than waiting for natural
+ * idle accumulation (useful for testing Doze behaviour). Idempotent. Treated
+ * as a command failure on non-zero exit or non-empty stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `inactive` (true).
  */
 class MakeAppInactiveTool(private val shell: ShellBackend) : McpTool {
 

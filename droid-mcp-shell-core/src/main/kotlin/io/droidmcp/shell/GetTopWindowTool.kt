@@ -10,7 +10,13 @@ import io.droidmcp.core.ToolResult
  * `dumpsys window mFocusedApp`. This is the standard way to get the
  * foreground package on devices where Accessibility isn't enabled — it's
  * what the LLM-agent should call when it just needs "what app is on top
- * right now" without driving the UI.
+ * right now" without driving the UI. Read-only; takes no parameters.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * On success the result map carries `package_name`, `activity`,
+ * `window_class`, and `display_id` (any may be null if not present in the
+ * dumpsys output).
  */
 class GetTopWindowTool(private val shell: ShellBackend) : McpTool {
 

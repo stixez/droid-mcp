@@ -6,6 +6,17 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `get_active_window_info` — return the foreground package plus the active
+ * window's root-node class (typically the foreground activity's view-root
+ * class). Cheap and read-only; safe to poll.
+ *
+ * No params.
+ *
+ * On success returns `package_name` (String?), `root_class` (String?), and
+ * `window_id` (Int). Returns the long-form [notConnectedError] message when the
+ * service is not bound.
+ */
 class GetActiveWindowInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_active_window_info"

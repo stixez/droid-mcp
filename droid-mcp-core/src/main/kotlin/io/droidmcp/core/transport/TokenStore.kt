@@ -26,6 +26,12 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class TokenStore(seedPrimary: String? = null) {
 
+    /**
+     * A minted per-client credential.
+     * @property label Opaque host-supplied identifier; the unit of revocation.
+     * @property token The bearer token issued to this client.
+     * @property createdAt Epoch millis when the token was minted.
+     */
     data class PairedClient(val label: String, val token: String, val createdAt: Long)
 
     @Volatile
@@ -34,6 +40,7 @@ class TokenStore(seedPrimary: String? = null) {
     /** label -> client */
     private val clients = ConcurrentHashMap<String, PairedClient>()
 
+    /** The current primary token. */
     val primaryToken: String get() = primary
 
     /**

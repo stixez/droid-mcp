@@ -6,7 +6,19 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
-/** `pm grant <pkg> <perm>` — grant a runtime permission without prompting. Idempotent. */
+/**
+ * `pm grant <pkg> <perm>` — grant a runtime permission to an app without the
+ * user prompt. Idempotent. The permission must be one the app declared in its
+ * manifest. Treated as failure if the command exits non-zero or writes to
+ * stderr (not declared / not a runtime permission / etc.).
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required), `permission` (required, fully-qualified).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `permission`.
+ */
 class GrantPermissionTool(private val shell: ShellBackend) : McpTool {
     override val name = "grant_permission"
     override val description = "Grant a runtime permission to an app via `pm grant`, bypassing the user prompt. Idempotent. Permission must be one the app declared in its manifest."
@@ -32,7 +44,18 @@ class GrantPermissionTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `pm revoke <pkg> <perm>` — revoke a runtime permission. Idempotent. */
+/**
+ * `pm revoke <pkg> <perm>` — revoke a runtime permission from an app.
+ * Idempotent. Treated as failure if the command exits non-zero or writes to
+ * stderr.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required), `permission` (required, fully-qualified).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `permission`.
+ */
 class RevokePermissionTool(private val shell: ShellBackend) : McpTool {
     override val name = "revoke_permission"
     override val description = "Revoke a runtime permission via `pm revoke`. Idempotent. The app sees the permission as denied next time it queries."
@@ -57,10 +80,22 @@ class RevokePermissionTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `dumpsys package <pkg>` parsed for granted permissions. */
+/**
+ * `dumpsys package <pkg>` parsed for the app's permissions. Read-only. Scans
+ * the `requested permissions:`, `install permissions:`, and `runtime
+ * permissions:` sections of the dumpsys output (see [parseDumpsysPermissions])
+ * and merges them by name; it does NOT classify by protection level.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `package_name`, `count`, and
+ * `permissions` — a list of `{ name, granted, flags }` maps.
+ */
 class ListAppPermissionsTool(private val shell: ShellBackend) : McpTool {
     override val name = "list_app_permissions"
-    override val description = "List all runtime, normal, and dangerous permissions held (or requested-but-not-granted) by an app. Parsed from `dumpsys package <pkg>`."
+    override val description = "List the permissions an app requests or holds, with their granted state. Parsed from the requested/install/runtime permission sections of `dumpsys package <pkg>`."
     override val parameters = listOf(
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )

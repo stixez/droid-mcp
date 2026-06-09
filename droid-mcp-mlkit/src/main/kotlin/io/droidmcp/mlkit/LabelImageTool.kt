@@ -12,6 +12,15 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
 
+/**
+ * Classifies the contents of a local image with on-device ML Kit image labeling, returning labels
+ * above `min_confidence` (clamped 0.0–1.0, default 0.5).
+ *
+ * No permissions required; `image_path` is sandboxed to the external-storage root via
+ * [PathValidator] and must point at an existing file. Read-only.
+ *
+ * Output keys: `label_count`, `labels` (each with `text`, `confidence`, `index`).
+ */
 class LabelImageTool(private val context: Context) : McpTool {
 
     override val name = "label_image"

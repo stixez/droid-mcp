@@ -7,6 +7,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports Bluetooth adapter status. Reading `adapter_name`/`adapter_address` needs the
+ * Bluetooth permission (see [BluetoothTools]); they return `null` if it is missing.
+ *
+ * Output keys: `is_enabled`, `adapter_name`, `adapter_address`, `bluetooth_supported`
+ * (`false` when the device has no adapter).
+ */
 class GetBluetoothStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_bluetooth_status"

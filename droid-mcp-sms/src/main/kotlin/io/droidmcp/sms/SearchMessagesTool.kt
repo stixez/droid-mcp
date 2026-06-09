@@ -6,6 +6,12 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Searches all SMS (across boxes) whose `BODY` matches `query` (SQL `LIKE` substring) via
+ * `ContentResolver` on `Telephony.Sms`, newest first. Requires `READ_SMS`. Output: `messages`
+ * (list of {id, address, body, date formatted `yyyy-MM-dd HH:mm`}), `count`, and the echoed
+ * `query`, capped at `limit` (1–100, default 10).
+ */
 class SearchMessagesTool(private val context: Context) : McpTool {
 
     override val name = "search_messages"

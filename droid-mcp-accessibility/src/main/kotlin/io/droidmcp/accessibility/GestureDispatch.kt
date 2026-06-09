@@ -8,9 +8,14 @@ import kotlin.coroutines.resume
 
 /**
  * Shared `dispatchGesture` helper used by the coord-based gesture tools
- * (`tap`, `long_press`, `gesture`, `scroll_to_find`). Awaits the system
- * callback so the tool returns when the gesture actually finishes (or is
- * cancelled).
+ * ([TapTool], [LongPressTool], [ScrollToFindTool]; [GestureTool] inlines its
+ * own equivalent). Awaits the system callback so the tool returns when the
+ * gesture actually finishes (or is cancelled).
+ *
+ * @param service The bound accessibility service to dispatch through.
+ * @param gesture The gesture description to dispatch.
+ * @return true if the gesture completed; false if it was cancelled or
+ *   `dispatchGesture` refused to enqueue it.
  */
 internal suspend fun dispatchAwait(
     service: AccessibilityService,

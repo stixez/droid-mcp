@@ -12,6 +12,16 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
 
+/**
+ * Extracts text from a local image with on-device ML Kit text recognition (Latin script). Returns
+ * the full recognized text plus per-line text and bounding boxes.
+ *
+ * No permissions required; `image_path` is sandboxed to the external-storage root via
+ * [PathValidator] and must point at an existing file. Read-only.
+ *
+ * Output keys: `text`, `line_count`, `lines` (each with `text` and nullable `bounding_box`
+ * {`left`, `top`, `right`, `bottom`}).
+ */
 class RecognizeTextTool(private val context: Context) : McpTool {
 
     override val name = "recognize_text"

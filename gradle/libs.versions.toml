@@ -25,6 +25,7 @@ libsu = "5.2.2"
 room = "2.6.1"
 ksp = "2.1.20-1.0.32"
 bouncycastle = "1.78.1"
+dokka = "2.1.0"
 
 [libraries]
 # AndroidX Core
@@ -80,6 +81,9 @@ camerax-video = { module = "androidx.camera:camera-video", version.ref = "camera
 # ZXing
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
+# Dokka (API docs — Android documentation plugin enriches Android symbols)
+dokka-android-plugin = { module = "org.jetbrains.dokka:android-documentation-plugin", version.ref = "dokka" }
+
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }
 junit5-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
@@ -96,3 +100,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

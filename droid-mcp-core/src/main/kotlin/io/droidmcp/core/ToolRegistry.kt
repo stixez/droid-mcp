@@ -2,6 +2,15 @@ package io.droidmcp.core
 
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Thread-safe collection of registered [McpTool]s, keyed by [McpTool.name]. Backed by a
+ * [ConcurrentHashMap] so tools can be registered and invoked concurrently. Also tracks a
+ * host-controlled runtime gate (see [setDisabledTools]) that hides/blocks tools without
+ * unregistering them.
+ *
+ * This is the single source of truth the transports and [McpProtocol][io.droidmcp.core.protocol.McpProtocol]
+ * read from for `tools/list` and `tools/call`.
+ */
 class ToolRegistry {
 
     private val tools = ConcurrentHashMap<String, McpTool>()
@@ -20,21 +29,26 @@ class ToolRegistry {
     @Volatile
     private var disabled: Set<String> = emptySet()
 
+    /** Register [tool], replacing any existing tool with the same [McpTool.name]. */
     fun register(tool: McpTool) {
         tools[tool.name] = tool
     }
 
+    /** Register every tool in [toolList] (e.g. the output of a module provider's `all(context)`). */
     fun registerAll(toolList: List<McpTool>) {
         toolList.forEach { register(it) }
     }
 
+    /** The registered tool with this [name], or null if none is registered. */
     fun getTool(name: String): McpTool? = tools[name]
 
+    /** All registered tools, regardless of gate state. See [listEnabledTools] for the client-visible set. */
     fun listTools(): List<McpTool> = tools.values.toList()
 
     /** Tools currently visible to clients — registered and not gated off. */
     fun listEnabledTools(): List<McpTool> = tools.values.filter { it.name !in disabled }
 
+    /** Whether the named tool is currently enabled (registered tools are enabled by default). */
     fun isEnabled(name: String): Boolean = name !in disabled
 
     /** Names currently gated off. */
@@ -59,6 +73,11 @@ class ToolRegistry {
         disabled = names.toSet()
     }
 
+    /**
+     * Execute the named tool with [params]. Returns a `tool_disabled` error if the tool is
+     * gated off, an `Unknown tool` error if it isn't registered, and converts any exception
+     * thrown by [McpTool.execute] into a failed [ToolResult] — this method never throws.
+     */
     suspend fun executeTool(name: String, params: Map<String, Any>): ToolResult {
         if (name in disabled) {
             return ToolResult.error("tool_disabled", "Tool '$name' is disabled by the host")

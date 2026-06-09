@@ -32,6 +32,17 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Records an H.264/MP4 video (video only — no audio track) for `duration_sec` seconds (clamped 1–60,
+ * default 10) via Camera2 + [MediaRecorder], preferring the back-facing camera at its maximum size,
+ * then copies the file into `MediaStore` under `Movies/droid-mcp`.
+ *
+ * Requires [Manifest.permission.CAMERA] and camera hardware; uses
+ * [android.hardware.camera2.params.SessionConfiguration] (API 28+, met by the SDK's min API). No audio
+ * is captured, so no `RECORD_AUDIO` permission is needed.
+ *
+ * Result keys: `file_path` (MediaStore content URI), `duration_ms`.
+ */
 class CaptureVideoTool(private val context: Context) : McpTool {
 
     override val name = "capture_video"

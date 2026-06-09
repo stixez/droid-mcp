@@ -9,12 +9,34 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
+/**
+ * A single sensor sample captured by [readSensor].
+ *
+ * @property values defensively-cloned raw sensor values (e.g. x/y/z, or lux/distance in
+ *   `values[0]`); meaning depends on the sensor type.
+ * @property accuracy the [android.hardware.SensorManager] accuracy code at sample time.
+ * @property timestamp the event timestamp in nanoseconds since boot (`SensorEvent.timestamp`),
+ *   not wall-clock time.
+ */
 data class SensorReading(
     val values: FloatArray,
     val accuracy: Int,
     val timestamp: Long,
 )
 
+/**
+ * Registers a one-shot listener on the default sensor of [sensorType] and collects readings.
+ *
+ * When [durationMs] is null, returns after the first sample (single-reading mode); otherwise
+ * collects until roughly [durationMs] (clamped 1-5000) has elapsed. The whole operation is
+ * bounded by an overall timeout of [durationMs] + 500 ms; on timeout, whatever was collected
+ * is lost and `null` is returned (indistinguishable from the no-sensor case at this layer).
+ *
+ * @param context used to resolve [android.hardware.SensorManager].
+ * @param sensorType a `Sensor.TYPE_*` constant.
+ * @param durationMs sampling window in ms, or null for a single reading.
+ * @return the collected [SensorReading]s, or `null` if the sensor is absent or it times out.
+ */
 suspend fun readSensor(
     context: Context,
     sensorType: Int,

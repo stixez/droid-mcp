@@ -15,6 +15,23 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
 
+/**
+ * `take_screenshot_via_a11y` — capture the screen via
+ * `AccessibilityService.takeScreenshot`, awaiting the system callback. Unlike
+ * the screenshot module's MediaProjection path, this needs no consent prompt,
+ * but it requires API 30+ (the tool is filtered out of
+ * [AccessibilityTools.supportedTools] below that).
+ *
+ * Params: `format` (`png` default lossless, or `jpeg`/`jpg`); `quality` (JPEG
+ * only, clamped 1–100, default 80; ignored for PNG).
+ *
+ * On success returns `format`, `width`, `height`, and `image_base64`
+ * (NO_WRAP base64 of the encoded image). Errors are long-form messages, one
+ * per failure mode: API-too-old, [notConnectedError] (service not bound),
+ * invalid `format`, and the framework `ERROR_TAKE_SCREENSHOT_*` codes —
+ * notably FLAG_SECURE windows ([errorMessageFor]) and the rate-limit
+ * (`ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT`).
+ */
 class TakeScreenshotViaA11yTool(private val context: Context) : McpTool {
 
     override val name = "take_screenshot_via_a11y"
@@ -86,6 +103,8 @@ class TakeScreenshotViaA11yTool(private val context: Context) : McpTool {
         ))
     }
 
+    /** Map a framework `ERROR_TAKE_SCREENSHOT_*` code (or the sentinel `-1`
+     *  meaning "bitmap decode produced no image") to a human-readable message. */
     private fun errorMessageFor(code: Int): String = when (code) {
         AccessibilityService.ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR ->
             "Screenshot failed: internal error (ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR)."

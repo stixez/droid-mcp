@@ -7,6 +7,24 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `find_node` — search the active window's UI tree for nodes matching any
+ * combination of `text`, `view_id`, `class_name`, or `package_name` and return
+ * the matches as projections shaped like [query_screen][QueryScreenTool]
+ * entries (see [NodeQuery.toMap]).
+ *
+ * `text` is a case-insensitive substring match against text +
+ * content-description; the other selectors are exact matches (see
+ * [NodeQuery.matches]). Matching is read-only and does not act on the tree.
+ *
+ * Params: at least one of `text`, `view_id`, `class_name`, `package_name`
+ * (all optional individually, but one is required); `limit` (optional, clamped
+ * 1–200, default 20).
+ *
+ * On success returns `count` (Int) and `nodes` (List of node projection maps).
+ * Returns a validation error when no selector is supplied, and the long-form
+ * [notConnectedError] message when the service is not bound.
+ */
 class FindNodeTool(private val context: Context) : McpTool {
 
     override val name = "find_node"

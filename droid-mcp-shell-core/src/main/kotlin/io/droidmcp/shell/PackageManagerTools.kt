@@ -7,9 +7,17 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 /**
- * `pm install <path>` — silent install from a local file path. The host is
- * trusted to vet the path; we don't sandbox here (the shell backend already
- * provides the privilege boundary).
+ * `pm install [-r] <path>` — silently install an APK from a local file path,
+ * with no user prompt. The host is trusted to vet the path; we don't sandbox
+ * here (the [ShellBackend] already provides the privilege boundary). Success
+ * is detected by `"Success"` in stdout.
+ *
+ * Privilege: requires a working [ShellBackend] (Shizuku shell-UID or root).
+ *
+ * Params: `path` (required, absolute apk path), `replace` (optional, default
+ * `true` → adds `-r`).
+ *
+ * On success the result map carries `success` (true) and `path`.
  */
 class InstallApkTool(private val shell: ShellBackend) : McpTool {
     override val name = "install_apk"
@@ -39,7 +47,17 @@ class InstallApkTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `pm uninstall <pkg>` — silent uninstall, no user prompt. */
+/**
+ * `pm uninstall [-k] <pkg>` — silently uninstall an app by package name, no
+ * user prompt. Success is detected by `"Success"` in stdout.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required), `keep_data` (optional, default `false` →
+ * adds `-k` to retain the app's data/cache directories).
+ *
+ * On success the result map carries `success` (true) and `package_name`.
+ */
 class UninstallAppTool(private val shell: ShellBackend) : McpTool {
     override val name = "uninstall_app"
     override val description = "Silently uninstall an app by package name via `pm uninstall`. Requires the shell backend."
@@ -68,7 +86,17 @@ class UninstallAppTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `pm clear <pkg>` — wipe app data + cache. */
+/**
+ * `pm clear <pkg>` — wipe an app's data and cache directories (equivalent to
+ * Settings > Apps > Storage > Clear data). Success is detected by `"Success"`
+ * in stdout.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `success` (true) and `package_name`.
+ */
 class ClearAppDataTool(private val shell: ShellBackend) : McpTool {
     override val name = "clear_app_data"
     override val description = "Wipe an app's data and cache via `pm clear`. Equivalent to Settings > Apps > Storage > Clear data."
@@ -90,7 +118,17 @@ class ClearAppDataTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `am force-stop <pkg>` — terminate an app's processes. */
+/**
+ * `am force-stop <pkg>` — terminate all of an app's processes (equivalent to
+ * Settings > Apps > Force stop). The command is silent on success, so this
+ * tool trusts the exit code rather than scanning stdout.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `success` (true) and `package_name`.
+ */
 class ForceStopAppTool(private val shell: ShellBackend) : McpTool {
     override val name = "force_stop_app"
     override val description = "Force-stop an app via `am force-stop`. Terminates all of its processes. Equivalent to Settings > Apps > Force stop."
@@ -113,7 +151,19 @@ class ForceStopAppTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `pm disable-user --user 0 <pkg>` — disable a system / user app without uninstalling. */
+/**
+ * `pm disable-user --user 0 <pkg>` — disable a system or user app for the
+ * primary user without uninstalling it (hides it from the launcher, stops
+ * background activity). Reversible via [EnableAppTool]. Idempotent. Success is
+ * detected by `"disabled-user"` in stdout.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `state` (`"disabled"`).
+ */
 class DisableAppTool(private val shell: ShellBackend) : McpTool {
     override val name = "disable_app"
     override val description = "Disable an app for the primary user via `pm disable-user --user 0`. Hides it from the launcher and prevents background activity without uninstalling. Reversible via `enable_app`. Idempotent — disabling an already-disabled app returns success with the same final state."
@@ -135,7 +185,17 @@ class DisableAppTool(private val shell: ShellBackend) : McpTool {
     }
 }
 
-/** `pm enable <pkg>` — re-enable a previously disabled app. Idempotent. */
+/**
+ * `pm enable <pkg>` — re-enable a previously disabled app (the inverse of
+ * [DisableAppTool]). Idempotent. Success is detected by `"enabled"` in stdout.
+ *
+ * Privilege: requires a working [ShellBackend].
+ *
+ * Params: `package_name` (required).
+ *
+ * On success the result map carries `success` (true), `package_name`, and
+ * `state` (`"enabled"`).
+ */
 class EnableAppTool(private val shell: ShellBackend) : McpTool {
     override val name = "enable_app"
     override val description = "Re-enable a previously disabled app via `pm enable`. Idempotent — enabling an already-enabled app is a no-op."

@@ -5,10 +5,18 @@ import android.net.Uri
 import android.provider.MediaStore
 import io.droidmcp.core.*
 
+/**
+ * Lists MediaStore buckets (album folders) for images and/or videos, aggregating item
+ * counts and using the newest item as the cover. The `media_type` param selects `images`
+ * (default), `videos`, or `all`; results sort by descending item count.
+ * Requires `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` on API 33+, else `READ_EXTERNAL_STORAGE`.
+ * Output: `albums` (each `{bucket_id, album_name, cover_media_id, count}`) capped at the
+ * `limit` param, plus `count` and `media_type`.
+ */
 class ListAlbumsTool(private val context: Context) : McpTool {
 
     override val name = "list_albums"
-    override val description = "List photo albums (MediaStore bucket/folders) on the device. Returns album name, item count, and cover image ID."
+    override val description = "List media albums (MediaStore bucket/folders) on the device for the selected media_type. Returns album name, item count, and cover media ID."
     override val parameters = listOf(
         ToolParameter("limit", "Max number of albums to return. Default 10.", ParameterType.INTEGER),
         ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING),

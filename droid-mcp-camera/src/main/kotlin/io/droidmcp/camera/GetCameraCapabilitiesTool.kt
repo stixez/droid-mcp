@@ -11,6 +11,14 @@ import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Enumerates the device's cameras via Camera2 [CameraManager], reporting each camera's id, lens
+ * facing, flash availability, and maximum JPEG output resolution. Querying characteristics needs no
+ * runtime permission; requires camera hardware (the manifest marks the camera feature non-required).
+ *
+ * Result keys: `cameras` (list of maps with `id`, `facing` (`front`/`back`/`external`/`unknown`),
+ * `flash_available`, `max_resolution` like `"4032x3024"`), `count`.
+ */
 class GetCameraCapabilitiesTool(private val context: Context) : McpTool {
 
     override val name = "get_camera_capabilities"

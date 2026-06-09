@@ -4,6 +4,13 @@ import android.content.Context
 import io.droidmcp.core.*
 import java.io.File
 
+/**
+ * Reads a text file's content, sandboxed to external storage via [PathValidator].
+ * Files with an unrecognized extension are scanned for null bytes in the first 8 KB and
+ * rejected as binary if any are found. Output is truncated to the `max_lines` param.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Output: `path`, `content` (newline-joined lines), `lines_returned`, `truncated`.
+ */
 class ReadFileTool(private val context: Context) : McpTool {
 
     override val name = "read_file"

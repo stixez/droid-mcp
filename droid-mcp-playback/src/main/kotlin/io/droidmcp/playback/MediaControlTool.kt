@@ -8,6 +8,18 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sends a transport command (play, pause, stop, next, previous) to an active
+ * media session.
+ *
+ * Resolves sessions via [android.media.session.MediaSessionManager.getActiveSessions],
+ * which requires Notification Listener access; the host app must register its
+ * `NotificationListenerService` ComponentName via [NotificationListenerHolder].
+ * Without a `package_name`, targets the first active session. Destructive —
+ * changes playback state.
+ *
+ * Output keys: `success`, `command`, `target_package`.
+ */
 class MediaControlTool(private val context: Context) : McpTool {
 
     override val name = "media_control"

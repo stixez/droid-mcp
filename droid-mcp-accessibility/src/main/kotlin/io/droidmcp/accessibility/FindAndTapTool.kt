@@ -10,6 +10,24 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `find_and_tap` — find the first node matching `match` (per `match_kind`) and
+ * perform `ACTION_CLICK` on it in one call: a composition of `find_node` +
+ * `click_node`.
+ *
+ * `match_kind` selects the matcher: `text` (default — substring against text +
+ * content-description), `desc` (content-description substring), `id` (exact
+ * view-id resource name), `class` (exact node class). `case_insensitive`
+ * (default true) applies to the substring kinds.
+ *
+ * Params: required `match`; optional `match_kind`, `case_insensitive`.
+ *
+ * On success returns `success = true`, `view_id`, `class`, and the echoed
+ * `match_kind`. Error codes: `accessibility_not_enabled` (service not bound),
+ * `invalid_selector` (missing `match` or unknown `match_kind`), `node_not_found`
+ * (no match), `gesture_failed` (ACTION_CLICK returned false on the matched
+ * node).
+ */
 class FindAndTapTool(private val context: Context) : McpTool {
 
     override val name = "find_and_tap"

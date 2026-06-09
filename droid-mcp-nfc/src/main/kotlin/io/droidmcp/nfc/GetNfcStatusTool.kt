@@ -7,6 +7,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports whether NFC hardware is present and currently enabled.
+ *
+ * Reads the default [NfcAdapter]; requires no runtime permission (the manifest
+ * declares `android.permission.NFC`, which is install-time). Read-only.
+ *
+ * Output keys: `available` (adapter present), `enabled` (NFC turned on).
+ */
 class GetNfcStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_nfc_status"

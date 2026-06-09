@@ -11,6 +11,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Writes a single NDEF record (text or URI) to the most recently scanned tag.
+ *
+ * Operates on the tag cached in [NfcTagCache], so a tag must have been scanned
+ * first (see [ReadNfcTagTool]). Requires NFC available and enabled, and the tag
+ * to support NDEF and be writable with enough capacity. Destructive — overwrites
+ * tag contents.
+ *
+ * Output keys: `success`, `type`, `content`, `bytes_written`.
+ */
 class WriteNfcTagTool(private val context: Context) : McpTool {
 
     override val name = "write_nfc_tag"

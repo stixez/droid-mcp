@@ -6,6 +6,13 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Reads SMS from the inbox or sent box via `ContentResolver` on `Telephony.Sms`, optionally
+ * filtered by `address` (LIKE substring) and `since` (`yyyy-MM-dd`, kept only if it parses),
+ * newest first. Requires `READ_SMS`. Output: `messages` (list of {id, address, body, date
+ * formatted `yyyy-MM-dd HH:mm`, read}), `count`, and the resolved `box`. `box` is 'inbox'
+ * (default) or 'sent'; `limit` clamps to 1–100 (default 10).
+ */
 class ReadMessagesTool(private val context: Context) : McpTool {
 
     override val name = "read_messages"

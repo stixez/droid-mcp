@@ -9,6 +9,13 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.ParameterType
 
+/**
+ * Turns the device torch (camera flash LED) on or off via [CameraManager.setTorchMode].
+ *
+ * Requires the `CAMERA` permission and a camera with `FLASH_INFO_AVAILABLE`.
+ *
+ * Output map: `status` ("on"/"off") and `enabled` (the boolean applied).
+ */
 class ToggleFlashlightTool(private val context: Context) : McpTool {
     override val name = "toggle_flashlight"
     override val description = "Toggle the flashlight on or off"

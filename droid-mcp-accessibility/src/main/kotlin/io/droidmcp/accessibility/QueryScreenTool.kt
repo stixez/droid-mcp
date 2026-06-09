@@ -10,6 +10,29 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * `query_screen` — dump the active window's [AccessibilityNodeInfo] tree as a
+ * flat, ranked list of node projections.
+ *
+ * The full tree is walked breadth-first, then **ranked by usefulness** before
+ * truncation: clickable (+4) > has-text/content-description (+2) > scrollable
+ * (+1) > rest, with BFS order preserved as the tie-break within each rank.
+ * This ordering is a documented contract — when the result is truncated to
+ * `max_nodes`, the highest-ranked nodes are the ones kept, so token-bound
+ * callers can trust the prefix. Password-flagged nodes are emitted with
+ * `is_password = true` and their `text` / `content_description` masked to null
+ * (see [NodeQuery.toMap]).
+ *
+ * Params: `max_nodes` (optional, clamped 1–2000, default 500).
+ *
+ * On success returns `count` (Int, nodes returned after truncation),
+ * `truncated` (Boolean, true when the full tree exceeded `max_nodes`),
+ * `package_name` (String?, foreground package), and `nodes` (List of node
+ * projection maps, each shaped like [NodeQuery.toMap]).
+ *
+ * Returns the short-form error `accessibility_not_enabled` when the host's
+ * [DroidMcpAccessibilityService] is not bound.
+ */
 class QueryScreenTool(private val context: Context) : McpTool {
 
     override val name = "query_screen"
@@ -56,5 +79,16 @@ class QueryScreenTool(private val context: Context) : McpTool {
     }
 }
 
+/**
+ * Long-form "service not bound" message used by the pre-0.7.0 tools
+ * ([FindNodeTool], the [NodeActionTools] family, [GestureTool],
+ * [GlobalActionTool], [GetActiveWindowInfoTool], [TakeScreenshotViaA11yTool]).
+ *
+ * Note the deliberate split in the module's wire contract: these tools surface
+ * this human-readable sentence, whereas the 0.7.0 coord/find tools ([TapTool],
+ * [LongPressTool], [FindAndTapTool], [ScrollToFindTool]) and the polling tools
+ * ([QueryScreenTool], [WaitForTextTool]) emit the short-form code
+ * `accessibility_not_enabled` instead. Both indicate the same condition.
+ */
 internal fun notConnectedError(): String =
     "Accessibility service not bound. Enable the host app's accessibility service in Settings > Accessibility > Installed apps."

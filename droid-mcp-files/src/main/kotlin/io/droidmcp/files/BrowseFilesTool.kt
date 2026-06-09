@@ -6,6 +6,13 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Lists the immediate contents of a directory, sandboxed to external storage via
+ * [PathValidator] (defaults to `/sdcard`). Directories sort first, then by name.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Output: `path`, `entries` (each `{name, path, size_bytes, last_modified, is_directory}`,
+ * `size_bytes` is null for directories) capped at the `limit` param, and `count`.
+ */
 class BrowseFilesTool(private val context: Context) : McpTool {
 
     override val name = "browse_files"

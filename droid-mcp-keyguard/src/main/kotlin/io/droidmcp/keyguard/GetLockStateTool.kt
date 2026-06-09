@@ -8,6 +8,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports whether the device is currently locked ([KeyguardManager]) and whether the screen
+ * is interactive ([PowerManager.isInteractive]).
+ *
+ * No permissions required. Read-only.
+ *
+ * Output keys: `is_device_locked`, `is_keyguard_locked`, `is_screen_on`.
+ */
 class GetLockStateTool(private val context: Context) : McpTool {
 
     override val name = "get_lock_state"

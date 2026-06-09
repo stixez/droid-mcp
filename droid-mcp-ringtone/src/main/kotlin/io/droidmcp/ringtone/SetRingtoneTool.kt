@@ -10,6 +10,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sets the default sound for a given type (ringtone / notification / alarm) via
+ * [RingtoneManager.setActualDefaultRingtoneUri]. Pass `uri = "silent"` to clear it.
+ *
+ * Requires the special `WRITE_SETTINGS` access ([Settings.System.canWrite]); without it the tool
+ * returns an error pointing the user to system settings. Non-silent URIs must use the `content://`
+ * scheme — `file://` and other schemes are rejected.
+ *
+ * Output keys: `success`, `type`, `uri`, `is_silent`.
+ */
 class SetRingtoneTool(private val context: Context) : McpTool {
 
     override val name = "set_ringtone"

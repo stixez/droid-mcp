@@ -7,6 +7,15 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists currently connected USB devices from [UsbManager.getDeviceList].
+ *
+ * No permissions required. Returns an error if USB host mode is unsupported on the device.
+ * Read-only.
+ *
+ * Output keys: `count`, `devices` (each with `name`, `vendor_id`, `product_id`, `device_class`,
+ * `device_subclass`, `manufacturer`, `product`, `interface_count`, `has_permission`).
+ */
 class ListUsbDevicesTool(private val context: Context) : McpTool {
 
     override val name = "list_usb_devices"

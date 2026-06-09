@@ -11,6 +11,17 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
 
+/**
+ * Sets the wallpaper from a local image file via [WallpaperManager.setBitmap], targeting the home
+ * screen, lock screen, or both.
+ *
+ * Requires the `SET_WALLPAPER` permission (normal, granted at install). The `path` is sandboxed to
+ * the external-storage root (canonical-path check); paths outside it are rejected. Also rejected if
+ * device policy disallows setting wallpaper ([WallpaperManager.isSetWallpaperAllowed]) or the image
+ * cannot be decoded.
+ *
+ * Output keys: `success`, `path`, `target`, `width`, `height`.
+ */
 class SetWallpaperTool(private val context: Context) : McpTool {
 
     override val name = "set_wallpaper"

@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sets the volume of an audio stream (`media`, `ring`, `alarm`, or `notification`; default `media`),
+ * clamping the level to the stream's max. The underlying [android.media.AudioManager] call needs no
+ * permission, but [SettingsTools] only registers this tool when `WRITE_SETTINGS` is granted.
+ *
+ * Output keys on success: `success` (true), `stream`, `level` (clamped), `max_level`.
+ */
 class SetVolumeTool(private val context: Context) : McpTool {
 
     override val name = "set_volume"

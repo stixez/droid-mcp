@@ -7,6 +7,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Returns the device call state from [android.telephony.TelephonyManager]. The deprecated
+ * `callState` getter requires `READ_PHONE_STATE` on API 31+ (Android 12+) — without it the
+ * platform reports `CALL_STATE_IDLE`, so this tool may falsely report `"idle"`. Output:
+ * `state` (`"idle"` | `"ringing"` | `"active"` | `"unknown"`).
+ */
 class GetCallStateTool(private val context: Context) : McpTool {
 
     override val name = "get_call_state"

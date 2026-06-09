@@ -9,6 +9,22 @@ import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
 import kotlinx.serialization.json.*
 
+/**
+ * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
+ * Services `initialize`, `tools/list`, `tools/call`, `ping`, and `notifications/initialized`.
+ * Malformed input yields a `-32700` parse error and an unknown method a `-32601`; the handler
+ * never throws back to the transport.
+ *
+ * Honours [readOnly] mode (filters `tools/list` to read-only tools and rejects mutating
+ * `tools/call`s with an `isError` content payload) and emits a [ToolCallAudit] to [auditSink]
+ * after every call — a failing sink is swallowed so it can never break a tool call.
+ *
+ * @property registry Source of registered tools and the executor for `tools/call`.
+ * @property serverName Server name reported in the `initialize` handshake.
+ * @property serverVersion Server version reported in `initialize`; defaults to [DROID_MCP_VERSION].
+ * @property readOnly When true, only [ToolAnnotations.readOnlyHint] tools are visible/callable.
+ * @property auditSink Optional hook invoked once per `tools/call` with timing and outcome; null disables auditing.
+ */
 class McpProtocolImpl(
     private val registry: ToolRegistry,
     private val serverName: String = "droid-mcp",

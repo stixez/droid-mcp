@@ -6,6 +6,12 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Searches `CallLog.Calls` where `NUMBER` or `CACHED_NAME` matches `query` (SQL `LIKE`
+ * substring), via `ContentResolver`, newest first. Requires `READ_CALL_LOG`. Output: the
+ * echoed `query`, `calls` (list of {id, number, name, type via [callTypeName], date formatted
+ * `yyyy-MM-dd HH:mm`, duration_seconds}), and `count`, capped at `limit` (1–100, default 10).
+ */
 class SearchCallLogTool(private val context: Context) : McpTool {
 
     override val name = "search_call_log"

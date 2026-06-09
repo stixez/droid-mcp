@@ -8,6 +8,11 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Shares text via the system share sheet (ACTION_SEND wrapped in a chooser), with optional
+ * `subject` and `type` (default `text/plain`). No permissions.
+ * Output: `success`, `text_length`, `type`.
+ */
 class ShareContentTool(private val context: Context) : McpTool {
 
     override val name = "share_content"

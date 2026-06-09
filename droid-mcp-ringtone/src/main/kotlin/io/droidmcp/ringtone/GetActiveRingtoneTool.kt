@@ -8,6 +8,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports the current default sound for a given type (ringtone / notification / alarm) via
+ * [RingtoneManager.getActualDefaultRingtoneUri]. A null URI is reported as silent.
+ *
+ * No permissions required. Read-only.
+ *
+ * Output keys: `type`, `uri`, `title`, `is_silent`.
+ */
 class GetActiveRingtoneTool(private val context: Context) : McpTool {
 
     override val name = "get_active_ringtone"

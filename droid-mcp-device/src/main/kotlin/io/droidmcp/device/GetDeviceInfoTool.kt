@@ -7,6 +7,10 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports static device identity and display metrics: `manufacturer`, `model`, `brand`,
+ * `os_version`, `sdk_version`, and `screen_width`/`screen_height`/`screen_density`. No permissions.
+ */
 class GetDeviceInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_device_info"

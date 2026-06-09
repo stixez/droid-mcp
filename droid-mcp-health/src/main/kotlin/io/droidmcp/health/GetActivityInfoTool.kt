@@ -5,6 +5,14 @@ import android.hardware.Sensor
 import android.hardware.SensorManager
 import io.droidmcp.core.*
 
+/**
+ * Reports which motion/fitness sensors the device exposes (step counter, step detector,
+ * accelerometer, gyroscope, heart rate, significant motion) and their specs. No permissions
+ * required (this only enumerates hardware; it does not read sensor values). Output:
+ * `has_step_counter`, `has_heart_rate_sensor`, `note`, and `sensors` — a list of per-sensor
+ * maps (`key`, `available`, plus `name`/`vendor`/`version`/`max_range`/`resolution`/`power_ma`
+ * when present).
+ */
 class GetActivityInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_activity_info"

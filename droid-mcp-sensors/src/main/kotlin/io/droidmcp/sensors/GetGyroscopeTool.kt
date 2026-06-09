@@ -10,6 +10,12 @@ import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Reads the `TYPE_GYROSCOPE` sensor (x/y/z angular rate in rad/s). No permissions. With
+ * `duration_ms` (1-5000) it collects a series of samples; otherwise a single reading. See
+ * [readSensor]. Output: latest `x`, `y`, `z`, `accuracy`, `timestamp`, plus a `readings` list
+ * of `{x,y,z,timestamp}`. Returns [ToolResult.error] when the device has no gyroscope.
+ */
 class GetGyroscopeTool(private val context: Context) : McpTool {
 
     override val name = "get_gyroscope"

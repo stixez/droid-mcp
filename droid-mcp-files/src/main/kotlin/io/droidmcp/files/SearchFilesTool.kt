@@ -6,10 +6,18 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Recursively searches for files and directories whose name contains a case-insensitive
+ * substring, sandboxed to external storage via [PathValidator] (defaults to `/sdcard`).
+ * Recursion is capped at depth 5; unreadable directories are skipped silently.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Output: `query`, `search_path`, `results` (each `{name, path, size_bytes, last_modified,
+ * is_directory}`) capped at the `limit` param, and `count`.
+ */
 class SearchFilesTool(private val context: Context) : McpTool {
 
     override val name = "search_files"
-    override val description = "Search for files by name pattern (case-insensitive substring match) under a given directory. Returns matching file paths with metadata."
+    override val description = "Search for files and directories by name pattern (case-insensitive substring match) recursively under a given directory. Returns matching paths with metadata."
     override val parameters = listOf(
         ToolParameter("query", "Filename pattern to search for (case-insensitive substring)", ParameterType.STRING, required = true),
         ToolParameter("path", "Root directory to search in. Default: /sdcard", ParameterType.STRING),
