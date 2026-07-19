@@ -11,6 +11,16 @@ import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
 import io.droidmcp.notification.RepliableNotification
 
+/**
+ * Lists active notifications that expose a free-form `RemoteInput` reply action (WhatsApp,
+ * Signal, Messenger, Slack, SMS, Gmail, etc.), read from
+ * [NotificationStore.repliableSnapshot][io.droidmcp.notification.NotificationStore.repliableSnapshot].
+ * Requires the listener service bound and notification listener access granted, else an error
+ * naming which precondition failed. Results are sorted most-recent-first and capped by `limit`
+ * (default 20, clamped 1-100). Each entry includes the app's display label (resolved via
+ * `PackageManager`, cached per call) alongside the notification's key, title, text, post time,
+ * and reply-action label/hint — everything [ReplyToNotificationTool] needs.
+ */
 class ListRepliableNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "list_repliable_notifications"

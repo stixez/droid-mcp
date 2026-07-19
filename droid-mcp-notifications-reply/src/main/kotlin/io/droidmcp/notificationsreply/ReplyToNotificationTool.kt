@@ -13,6 +13,15 @@ import io.droidmcp.core.ToolResult
 import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
 
+/**
+ * Sends `text` through a notification's `RemoteInput` reply action, looked up by key in
+ * [NotificationStore.findRepliable][io.droidmcp.notification.NotificationStore.findRepliable]
+ * (populate via [ListRepliableNotificationsTool]). Requires the listener service bound and
+ * notification listener access granted. The reply is delivered by firing the action's
+ * `PendingIntent` with the text packed via `RemoteInput.addResultsToIntent` — success means the
+ * `PendingIntent` fired without throwing, not that the receiving app confirmed delivery.
+ * Output on success: `success` (true), `package_name`, and the resolved `action_label`.
+ */
 class ReplyToNotificationTool(private val context: Context) : McpTool {
 
     override val name = "reply_to_notification"

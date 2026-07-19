@@ -11,7 +11,7 @@ import io.droidmcp.core.ToolResult
  * Reads the system primary clip via `ClipboardManager`, coercing the first item to text. No
  * permissions required (though on API 29+ the OS only allows access to the foreground app or
  * default IME). Output always includes `has_content` (whether a primary clip exists), `is_text`
- * (clip MIME matches `text/*`), and `text` (coerced string, or null when empty/unavailable).
+ * (clip MIME type starts with `text/`), and `text` (coerced string, or null when empty/unavailable).
  */
 class ReadClipboardTool(private val context: Context) : McpTool {
 

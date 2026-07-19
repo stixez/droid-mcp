@@ -8,6 +8,18 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.notification.NotificationListenerHolder
 
+/**
+ * Registers a filter against the live notification stream in [WatchRegistry], returning a
+ * `watch_id` for later [ListNotificationWatchesTool] / [UnwatchNotificationsTool] calls.
+ * Requires the listener service bound and notification listener access granted, else
+ * `notification_listener_not_enabled`. At least one of `package_name` (exact match),
+ * `sender_pattern` (substring on title), or `keyword` (substring on text/bigText/subText/
+ * ticker) is required — supplying none is `invalid_filter`; supplying several AND-combines.
+ * All string matching is case-insensitive. `ttl_seconds` (clamped 60-86400, default 3600)
+ * auto-expires the watch; `fire_on_update` (default `false`) controls whether subsequent
+ * updates to an already-matched notification key fire again. Output: `watch_id`, `expires_at`,
+ * the effective `ttl_seconds`, and `fire_on_update`.
+ */
 class WatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "watch_notifications"

@@ -7,6 +7,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Inserts text at the cursor via `InputConnection.commitText`. Requires the droid-mcp IME to
+ * be active with an editor focused, else [imeNotActiveError]. Output on success: `success`
+ * (true) and the inserted `length`; a `false` return from `commitText` (e.g. the connection
+ * was invalidated mid-call) surfaces as an error.
+ */
 class TypeTextTool(private val context: Context) : McpTool {
 
     override val name = "type_text"

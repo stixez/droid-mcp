@@ -7,6 +7,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Moves the cursor or selects a range via `InputConnection.setSelection`. Requires the
+ * droid-mcp IME to be active with an editor focused, else [imeNotActiveError]. Both offsets
+ * are absolute character positions; `start` must be `>= 0` and `end` must be `>= start` (pass
+ * equal values to position the cursor without selecting). Output on success: `success` (true)
+ * and the echoed `start`/`end`.
+ */
 class SetSelectionTool(private val context: Context) : McpTool {
 
     override val name = "set_selection"

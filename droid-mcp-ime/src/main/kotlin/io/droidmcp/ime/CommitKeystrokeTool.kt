@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sends one named key event (down+up) to the currently bound `InputConnection` via
+ * [InputMethodServiceHolder]. Requires the droid-mcp IME to be active with an editor
+ * focused, else [imeNotActiveError]. `key` is looked up case-insensitively in [KEY_MAP];
+ * unknown keys return an error listing the valid set. Output on success: `success` (true)
+ * and the echoed `key`.
+ */
 class CommitKeystrokeTool(private val context: Context) : McpTool {
 
     override val name = "commit_keystroke"

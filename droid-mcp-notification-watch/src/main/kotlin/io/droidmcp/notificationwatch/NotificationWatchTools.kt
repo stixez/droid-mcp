@@ -8,6 +8,17 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
 import io.droidmcp.notification.NotificationListenerHolder
 
+/**
+ * Provider for the notification-watch module. Wires up [WatchNotificationsTool],
+ * [UnwatchNotificationsTool], and [ListNotificationWatchesTool], all backed by [WatchRegistry].
+ * Watches match against the live stream via
+ * [NotificationListenerBus.events][io.droidmcp.notification.NotificationListenerBus] rather
+ * than polling — the host's listener service must be bound and notification listener access
+ * granted for events to flow. As with the sibling `NotificationsReplyTools` module, this is a
+ * special-access permission granted via Settings, so [requiredPermissions] is empty and
+ * [hasPermissions] always returns `true`; use [isNotificationListenerEnabled] or
+ * [permissionStatus] to check actual readiness.
+ */
 object NotificationWatchTools {
 
     fun all(context: Context): List<McpTool> = listOf(

@@ -10,6 +10,16 @@ import io.droidmcp.core.ToolResult
 import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
 
+/**
+ * Fires a notification's non-reply `Notification.Action` `PendingIntent` (e.g. Mark as read,
+ * Snooze, Archive) so the LLM doesn't need per-app intent shims. Requires the listener service
+ * bound and notification listener access granted. Exactly one of `action_label` (case-
+ * insensitive substring match on the action title) or `action_index` must be supplied —
+ * supplying both or neither is `conflicting_args`. Looks the notification up by key in
+ * [NotificationStore]; a notification with no actions, or no match for the given
+ * label/index, returns `action_not_found`. Output on success: `success` (true), the echoed
+ * `key`, the resolved `action_label`, and `package_name`.
+ */
 class InvokeNotificationActionTool(private val context: Context) : McpTool {
 
     override val name = "invoke_notification_action"

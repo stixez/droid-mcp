@@ -6,6 +6,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists currently-active watches from [WatchRegistry.list], with each entry's TTL countdown
+ * (`expires_in_seconds`, floored at 0) and how many times it has fired so far. Expired watches
+ * are swept from the registry before the list is built, so this never returns a watch whose
+ * TTL has already elapsed. No preconditions — always succeeds, even with an empty registry.
+ */
 class ListNotificationWatchesTool(private val context: Context) : McpTool {
 
     override val name = "list_notification_watches"

@@ -7,6 +7,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Removes a watch by id via [WatchRegistry.unregister]. Idempotent — removing an id that
+ * doesn't exist (already expired, already removed, or never valid) returns success with
+ * `removed=false` rather than an error, so callers don't need to check existence first. Output:
+ * the echoed `watch_id` and `removed`.
+ */
 class UnwatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "unwatch_notifications"

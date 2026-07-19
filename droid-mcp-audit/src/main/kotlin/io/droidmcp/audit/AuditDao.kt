@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
+/** Room DAO for [ToolCallAuditEntity], backing [RoomAuditSink]'s read/write/prune paths. */
 @Dao
 interface AuditDao {
 

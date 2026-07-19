@@ -19,9 +19,10 @@ Both are opt-in. mDNS only activates when the Builder is given an Android `Conte
 
 | Key       | Value                              | Meaning                                     |
 |-----------|------------------------------------|---------------------------------------------|
-| `version` | e.g. `0.9.0`                       | droid-mcp version running on the device     |
+| `version` | e.g. `0.10.0`                      | droid-mcp version running on the device     |
 | `auth`    | `bearer` \| `none`                 | Whether the `/mcp` endpoint requires a token |
 | `readonly`| `true` \| `false`                  | Whether destructive tools are gated         |
+| `tls`     | `true` \| `false`                  | Whether the endpoint is HTTPS (self-signed — pin the QR's `tls_fingerprint`) |
 
 A client that reads the TXT record can decide whether to prompt for a token before connecting, and whether to filter its tool list for read-only mode.
 
@@ -41,16 +42,18 @@ The sample app displays a QR code when the server is running. The QR encodes a s
   "v": 1,
   "url": "http://192.168.1.42:8080/mcp",
   "token": "8t3wQ...base64url...",
+  "tls_fingerprint": "AB:CD:EF:...",
   "name": "Pixel 8"
 }
 ```
 
-| Field   | Required | Description                                  |
-|---------|----------|----------------------------------------------|
-| `v`     | yes      | Schema version (currently `1`)               |
-| `url`   | yes      | Full URL of the MCP endpoint                 |
-| `token` | no       | Bearer token. Omitted if `requireAuth=false` |
-| `name`  | yes      | Human-readable device name                   |
+| Field             | Required | Description                                              |
+|-------------------|----------|------------------------------------------------------------|
+| `v`               | yes      | Schema version (currently `1`)                            |
+| `url`             | yes      | Full URL of the MCP endpoint                              |
+| `token`           | no       | Bearer token. Omitted if `requireAuth=false`               |
+| `tls_fingerprint` | no       | SHA-256 cert fingerprint (`DroidMcp.tlsFingerprint`). Present only when TLS is enabled — pin this instead of trusting the self-signed CA chain. |
+| `name`            | yes      | Human-readable device name                                 |
 
 ### Client behavior
 

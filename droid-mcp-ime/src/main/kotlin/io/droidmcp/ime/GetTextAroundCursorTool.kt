@@ -7,6 +7,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reads the text surrounding the cursor via `InputConnection.getTextBeforeCursor` /
+ * `getTextAfterCursor`. Requires the droid-mcp IME to be active with an editor focused, else
+ * [imeNotActiveError]. Password fields (`TYPE_TEXT_VARIATION_PASSWORD`) and `FLAG_SECURE`
+ * windows are not delivered plaintext by the platform, so those return empty/masked content.
+ * Output: `before` and `after` strings (empty if the editor has no more text in that
+ * direction).
+ */
 class GetTextAroundCursorTool(private val context: Context) : McpTool {
 
     override val name = "get_text_around_cursor"

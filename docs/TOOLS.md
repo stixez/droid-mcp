@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 145 tools. They live in 50 of droid-mcp's 53 modules — 48 user-callable plus 2 support (`notification-listener`, `shell-core`); the 3 opt-in hardening modules (`audit`, `tls`, `server-service`) expose no tools.
+Complete reference for all 145 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
 
 ---
 
@@ -113,7 +113,7 @@ Step data is sensor-based (not Health Connect). Values reset on device reboot.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `get_settings` | Read brightness, volume, WiFi, Bluetooth status | -- |
+| `get_settings` | Read brightness, volume, WiFi, Bluetooth, airplane mode, auto-rotate status | -- |
 | `set_brightness` | Set screen brightness | `level` (required, 0-255) |
 | `set_volume` | Set volume level | `stream` (media/ring/alarm/notification), `level` (required) |
 | `toggle_wifi` | Toggle WiFi on/off | `enabled` (required) |

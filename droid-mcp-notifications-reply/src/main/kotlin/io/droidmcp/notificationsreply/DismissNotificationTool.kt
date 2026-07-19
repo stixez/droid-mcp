@@ -10,6 +10,15 @@ import io.droidmcp.notification.McpNotificationListenerServiceBase
 import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
 
+/**
+ * Cancels a notification by key via [McpNotificationListenerServiceBase.cancelByKey]. Requires
+ * the listener service bound (via [NotificationListenerHolder]) and notification listener
+ * access granted, else an error naming which precondition failed. The key must reference a
+ * currently-active notification in [NotificationStore], else `not found`. The source app may
+ * immediately repost an identical notification (e.g. persistent media/foreground-service
+ * notifications), so a successful dismiss is not a guarantee it stays gone. Output on success:
+ * `success` (true) and the echoed `key`.
+ */
 class DismissNotificationTool(private val context: Context) : McpTool {
 
     override val name = "dismiss_notification"

@@ -81,7 +81,7 @@ class QueryScreenTool(private val context: Context) : McpTool {
 
 /**
  * Long-form "service not bound" message used by the pre-0.7.0 tools
- * ([FindNodeTool], the [NodeActionTools] family, [GestureTool],
+ * ([FindNodeTool], the `NodeActionTools` family, [GestureTool],
  * [GlobalActionTool], [GetActiveWindowInfoTool], [TakeScreenshotViaA11yTool]).
  *
  * Note the deliberate split in the module's wire contract: these tools surface

@@ -7,6 +7,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Deletes text around the cursor via `InputConnection.deleteSurroundingText(before, after)`.
+ * Requires the droid-mcp IME to be active with an editor focused, else [imeNotActiveError].
+ * At least one of `before`/`after` must be non-zero. Output on success: `success` (true) and
+ * the echoed `before`/`after` counts.
+ */
 class DeleteTextTool(private val context: Context) : McpTool {
 
     override val name = "delete_text"

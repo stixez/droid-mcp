@@ -167,7 +167,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 25 tests covering ToolRegistry, ToolParameter, ToolResult, McpProtocol, InProcessTransport, DroidMcp builder
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 51 tests covering ToolRegistry, ToolParameter, ToolResult, McpProtocol, InProcessTransport, TokenStore, DroidMcp builder
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp`
