@@ -130,14 +130,11 @@ class McpProtocolImpl(
             }
         }
         val argumentsJson = params["arguments"]?.jsonObject?.toString()
+        // A JSON null value is dropped rather than kept as a null entry — tools read params via
+        // `params["x"] as? Type`, which already treats a missing key the same as an explicit
+        // null, and McpTool.execute's Map<String, Any> signature doesn't accept null values.
         val arguments = params["arguments"]?.jsonObject?.let { args ->
-            args.entries.associate { (k, v) ->
-                k to when {
-                    v is JsonPrimitive && v.isString -> v.content
-                    v is JsonPrimitive -> v.content
-                    else -> v.toString()
-                }
-            }
+            args.entries.mapNotNull { (k, v) -> v.toNativeValue()?.let { k to it } }.toMap()
         } ?: emptyMap()
 
         val startedAt = System.nanoTime()
@@ -251,4 +248,28 @@ class McpProtocolImpl(
                 put("message", message)
             }
         })
+
+    /**
+     * Converts a [JsonElement] into the plain Kotlin type tool `execute()` implementations
+     * actually check for (`as? Number`, `as? Boolean`, `as? List<*>`, `as? Map<*, *>`, `toString()`).
+     *
+     * Every non-string JSON primitive — numbers, booleans — used to fall through to
+     * [JsonPrimitive.content] regardless of type, which is *always* the raw string form (`"5"`,
+     * `"true"`) even for a bare JSON number or boolean literal. Arrays and objects used to become
+     * their `toString()` JSON text. The net effect: any tool parameter that wasn't already a JSON
+     * string silently became a `String` here, so `params["x"] as? Number`/`as? Boolean`/`as? List<*>`
+     * in every tool's `execute()` always failed and fell back to that parameter's default — meaning
+     * non-string arguments sent over the HTTP transport were never honored.
+     */
+    private fun JsonElement.toNativeValue(): Any? = when (this) {
+        is JsonNull -> null
+        is JsonPrimitive -> when {
+            this.isString -> this.content
+            this.content == "true" -> true
+            this.content == "false" -> false
+            else -> this.content.toLongOrNull() ?: this.content.toDoubleOrNull() ?: this.content
+        }
+        is JsonArray -> this.map { it.toNativeValue() }
+        is JsonObject -> this.entries.associate { (k, v) -> k to v.toNativeValue() }
+    }
 }

@@ -33,10 +33,20 @@ class McpProtocolTest {
         }
     }
 
+    /** Reports the runtime Kotlin type each argument actually arrives as in execute(). */
+    private val typesTool = object : McpTool {
+        override val name = "types"
+        override val description = "Reports the runtime type of each received argument"
+        override val parameters = emptyList<ToolParameter>()
+        override suspend fun execute(params: Map<String, Any>): ToolResult =
+            ToolResult.success(mapOf("types" to params.mapValues { (_, v) -> v::class.simpleName }))
+    }
+
     @BeforeEach
     fun setup() {
         registry = ToolRegistry()
         registry.register(echoTool)
+        registry.register(typesTool)
         protocol = McpProtocolImpl(registry)
     }
 
@@ -69,6 +79,36 @@ class McpProtocolTest {
         val result = json["result"]?.jsonObject
         assertThat(result).isNotNull()
         assertThat(result.toString()).contains("hello")
+    }
+
+    @Test
+    fun `handleToolsCall preserves non-string argument types across the JSON boundary`() = runTest {
+        // Regression test: the arguments-conversion path used to route every non-string JSON
+        // primitive (and every array/object) through JsonPrimitive.content — the RAW STRING
+        // form of the value regardless of its actual JSON type — so a tool's own
+        // `params["x"] as? Number`/`as? Boolean`/`as? List<*>`/`as? Map<*, *>` checks always
+        // failed for arguments sent over the HTTP transport, silently falling back to defaults.
+        val request = """{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"types","arguments":{
+            "int_arg":5,"double_arg":2.5,"true_arg":true,"false_arg":false,
+            "string_arg":"hello","array_arg":[1,2,3],"object_arg":{"nested":1},"null_arg":null
+        }}}"""
+        val response = protocol.handleMessage(request)
+        val json = Json.parseToJsonElement(response).jsonObject
+        val text = json["result"]?.jsonObject
+            ?.get("content")?.jsonArray?.get(0)?.jsonObject
+            ?.get("text")?.jsonPrimitive?.content
+        assertThat(text).isNotNull()
+        val types = Json.parseToJsonElement(text!!).jsonObject["types"]?.jsonObject
+        assertThat(types).isNotNull()
+        assertThat(types!!["int_arg"]?.jsonPrimitive?.content).isEqualTo("Long")
+        assertThat(types["double_arg"]?.jsonPrimitive?.content).isEqualTo("Double")
+        assertThat(types["true_arg"]?.jsonPrimitive?.content).isEqualTo("Boolean")
+        assertThat(types["false_arg"]?.jsonPrimitive?.content).isEqualTo("Boolean")
+        assertThat(types["string_arg"]?.jsonPrimitive?.content).isEqualTo("String")
+        assertThat(types["array_arg"]?.jsonPrimitive?.content).isEqualTo("ArrayList")
+        assertThat(types["object_arg"]?.jsonPrimitive?.content).isEqualTo("LinkedHashMap")
+        // A JSON null argument is dropped rather than surfacing as a null-valued map entry.
+        assertThat(types.containsKey("null_arg")).isFalse()
     }
 
     @Test
