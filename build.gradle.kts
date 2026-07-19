@@ -34,7 +34,7 @@ subprojects {
                         from(components["release"])
                         groupId = "io.droidmcp"
                         artifactId = project.name
-                        version = "0.10.0"
+                        version = "0.10.1"
                     }
                 }
             }

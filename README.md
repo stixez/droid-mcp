@@ -2,13 +2,14 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and 135+ more tools.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 145 tools across 53 modules.
   </p>
 </p>
 
 <p align="center">
   <a href="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml"><img src="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://jitpack.io/#stixez/droid-mcp"><img src="https://jitpack.io/v/stixez/droid-mcp.svg" alt="JitPack" /></a>
+  <a href="https://stixez.github.io/droid-mcp/"><img src="https://img.shields.io/badge/docs-API%20reference-blue" alt="API docs" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
@@ -68,25 +69,25 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.10.1")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.10.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.10.1")
     // ... see full list below
 
     // Or include everything (except Tier 4/5 power-user modules)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.10.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.10.1")
 
     // Power-user tiers — opt in only if you want them (they pull third-party deps)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.10.0")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.10.0")       // Tier 5: root-UID admin (pulls libsu)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.10.1")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.10.1")       // Tier 5: root-UID admin (pulls libsu)
 }
 ```
 
@@ -183,7 +184,7 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | Module | Tools | Permissions |
 |--------|-------|-------------|
 | **core** | MCP protocol, transports | `INTERNET` |
-| **device** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | None |
+| **device** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | `ACCESS_NETWORK_STATE` |
 | **calendar** | `read_calendar` `create_event` `search_events` | `READ_CALENDAR` `WRITE_CALENDAR` |
 | **contacts** | `search_contacts` `read_contact` `list_contacts` | `READ_CONTACTS` |
 | **sms** | `read_messages` `send_message` `search_messages` | `READ_SMS` `SEND_SMS` |
@@ -195,17 +196,17 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | **health** | `get_step_count` `get_activity_info` | `ACTIVITY_RECOGNITION` |
 | **clipboard** | `read_clipboard` `write_clipboard` | None |
 | **apps** | `list_installed_apps` `get_app_info` `launch_app` | None |
-| **alarms** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` |
-| **settings** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` (write) |
-| **bluetooth** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH_CONNECT` |
-| **wifi** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` |
-| **downloads** | `list_downloads` `search_downloads` | None (API 33+) |
+| **alarms** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` `READ_CALENDAR` `WRITE_CALENDAR` |
+| **settings** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` (write) `CHANGE_WIFI_STATE` |
+| **bluetooth** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH_CONNECT` `BLUETOOTH` |
+| **wifi** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` `ACCESS_NETWORK_STATE` `ACCESS_FINE_LOCATION` |
+| **downloads** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` (< API 33) |
 | **screen** | `get_screen_state` `get_display_info` | None |
 | **tts** | `speak_text` `get_tts_info` | None |
 | **web** | `web_search` `fetch_webpage` | `INTERNET` |
-| **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` |
-| **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` |
-| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` |
+| **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
+| **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` + `PACKAGE_USAGE_STATS` (special, for `get_data_usage`) |
+| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_SMS` |
 | **vibration** | `vibrate` `vibrate_pattern` | `VIBRATE` |
 | **biometric** | `check_biometric_availability` `get_biometric_enrollments` | None |
 | **sensors** | `get_accelerometer` `get_gyroscope` `get_light_level` `get_proximity` | None |
@@ -231,7 +232,7 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | **print** | `list_printers` `print_content` | None |
 | **mlkit** | `recognize_text` `label_image` `detect_faces` | None (operates on local image files) |
 
-Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
+Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md). Generated API docs (KDoc): [stixez.github.io/droid-mcp](https://stixez.github.io/droid-mcp/).
 
 ### Hardening modules (0.10.0)
 
@@ -274,6 +275,7 @@ Some modules require permissions that can't be requested at runtime. The tools w
 | **screenshot** | MediaProjection | Host app calls `MediaProjectionManager.createScreenCaptureIntent()` and passes result to `MediaProjectionHolder.set()` |
 | **dnd** | DND Access (for `set_dnd_mode`) | Settings > Apps > Special access > Do Not Disturb access |
 | **ringtone** | WRITE_SETTINGS (for `set_ringtone`) | Settings > Apps > Special access > Modify system settings |
+| **network** | PACKAGE_USAGE_STATS (for `get_data_usage`) | Settings > Apps > Special access > Usage access |
 
 ---
 
