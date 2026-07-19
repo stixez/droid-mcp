@@ -1,12 +1,14 @@
 package io.droidmcp.sample
 
-import android.service.notification.NotificationListenerService
+import io.droidmcp.notification.McpNotificationListenerServiceBase
 
 /**
- * Required for media session access (getActiveSessions).
+ * Required for media session access (getActiveSessions) and notification-reply tools.
  * The app must be granted notification listener access in
  * Settings > Apps > Special access > Notification access.
- * This service doesn't need to do anything — its existence
- * in the manifest is what grants the permission.
+ *
+ * Extending the SDK base class wires the active-notification cache used by
+ * notifications-reply; declaring the subclass in the manifest grants the
+ * permission needed by playback.
  */
-class McpNotificationListenerService : NotificationListenerService()
+class McpNotificationListenerService : McpNotificationListenerServiceBase()

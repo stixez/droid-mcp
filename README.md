@@ -2,17 +2,18 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, and 90+ more tools.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 145 tools across 53 modules.
   </p>
 </p>
 
 <p align="center">
   <a href="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml"><img src="https://github.com/stixez/droid-mcp/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://jitpack.io/#stixez/droid-mcp"><img src="https://jitpack.io/v/stixez/droid-mcp.svg" alt="JitPack" /></a>
+  <a href="https://stixez.github.io/droid-mcp/"><img src="https://img.shields.io/badge/docs-API%20reference-blue" alt="API docs" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-99-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-145-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
   <a href="https://buymeacoffee.com/stixe"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 </p>
@@ -48,7 +49,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 99 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 145 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -69,19 +70,25 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.10.1")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.4.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.4.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.10.1")
     // ... see full list below
 
-    // Or include everything
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.4.0")
+    // Or include everything (except Tier 4/5 power-user modules)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.10.1")
+
+    // Power-user tiers — opt in only if you want them (they pull third-party deps)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.10.1")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.10.1")       // Tier 5: root-UID admin (pulls libsu)
 }
 ```
 
@@ -171,12 +178,14 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-41 modules, 99 tools. Each module is independent — only the permissions for included modules are added to your manifest.
+53 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
+
+The table below lists 48 of them (`core` plus the tool modules; `overlay` is listed too, though it exposes a programmatic API rather than LLM tools). The remaining five are infrastructure: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
 
 | Module | Tools | Permissions |
 |--------|-------|-------------|
 | **core** | MCP protocol, transports | `INTERNET` |
-| **device** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | None |
+| **device** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | `ACCESS_NETWORK_STATE` |
 | **calendar** | `read_calendar` `create_event` `search_events` | `READ_CALENDAR` `WRITE_CALENDAR` |
 | **contacts** | `search_contacts` `read_contact` `list_contacts` | `READ_CONTACTS` |
 | **sms** | `read_messages` `send_message` `search_messages` | `READ_SMS` `SEND_SMS` |
@@ -188,17 +197,17 @@ if (CalendarTools.hasPermissions(context)) {
 | **health** | `get_step_count` `get_activity_info` | `ACTIVITY_RECOGNITION` |
 | **clipboard** | `read_clipboard` `write_clipboard` | None |
 | **apps** | `list_installed_apps` `get_app_info` `launch_app` | None |
-| **alarms** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` |
-| **settings** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` (write) |
-| **bluetooth** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH_CONNECT` |
-| **wifi** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` |
-| **downloads** | `list_downloads` `search_downloads` | None (API 33+) |
+| **alarms** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM` `READ_CALENDAR` `WRITE_CALENDAR` |
+| **settings** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `WRITE_SETTINGS` (write) `CHANGE_WIFI_STATE` |
+| **bluetooth** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH_CONNECT` `BLUETOOTH` |
+| **wifi** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` `ACCESS_NETWORK_STATE` `ACCESS_FINE_LOCATION` |
+| **downloads** | `list_downloads` `search_downloads` | `READ_EXTERNAL_STORAGE` (< API 33) |
 | **screen** | `get_screen_state` `get_display_info` | None |
 | **tts** | `speak_text` `get_tts_info` | None |
 | **web** | `web_search` `fetch_webpage` | `INTERNET` |
-| **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` |
-| **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` |
-| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` |
+| **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
+| **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` + `PACKAGE_USAGE_STATS` (special, for `get_data_usage`) |
+| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_SMS` |
 | **vibration** | `vibrate` `vibrate_pattern` | `VIBRATE` |
 | **biometric** | `check_biometric_availability` `get_biometric_enrollments` | None |
 | **sensors** | `get_accelerometer` `get_gyroscope` `get_light_level` `get_proximity` | None |
@@ -208,6 +217,13 @@ if (CalendarTools.hasPermissions(context)) {
 | **nfc** | `get_nfc_status` `read_nfc_tag` `write_nfc_tag` | `NFC` |
 | **intent** | `send_intent` `share_content` `open_deep_link` | None |
 | **playback** | `get_now_playing` `media_control` | Notification Listener (special) |
+| **notifications-reply** | `list_repliable_notifications` `reply_to_notification` `dismiss_notification` `invoke_notification_action` | Notification Listener (special) |
+| **notification-watch** | `watch_notifications` `unwatch_notifications` `list_notification_watches` (+ `NotificationListenerBus` SharedFlow API) | Notification Listener (special) |
+| **accessibility** | `query_screen` `find_node` `wait_for_text` `click_node` `long_click_node` `set_node_text` `scroll_node` `gesture` `global_action` `get_active_window_info` `take_screenshot_via_a11y` `tap` `long_press` `find_and_tap` `scroll_to_find` | Accessibility Service (special) |
+| **ime** | `is_ime_active` `type_text` `commit_keystroke` `delete_text` `set_selection` `get_text_around_cursor` `switch_to_previous_ime` | Input Method enabled + selected (special) |
+| **overlay** | (programmatic `OverlayController` only — no LLM tools) | `SYSTEM_ALERT_WINDOW` (special) |
+| **shizuku** | `install_apk` `uninstall_app` `clear_app_data` `force_stop_app` `disable_app` `enable_app` `grant_permission` `revoke_permission` `list_app_permissions` `put_secure_setting` `put_global_setting` `put_system_setting` `get_top_window` `set_app_standby_bucket` `make_app_inactive` `capture_screen_quiet` `run_shell` | Shizuku service running + permission granted (special). Backed by `ShellBackend` interface shared with `:droid-mcp-root`. |
+| **root** | (same 17 tools as `shizuku`, routed via `su` instead of Shizuku binder) | Device rooted + host granted root via superuser manager (Magisk / KernelSU / SuperSU). Strictly more powerful: `/system` writes, `pm hide`, `/data/data/<pkg>` access. |
 | **screenshot** | `capture_screen` | MediaProjection (special) |
 | **dnd** | `get_dnd_status` `set_dnd_mode` | `ACCESS_NOTIFICATION_POLICY` + DND Access (special) |
 | **keyguard** | `get_lock_state` `get_keyguard_info` | None |
@@ -217,7 +233,31 @@ if (CalendarTools.hasPermissions(context)) {
 | **print** | `list_printers` `print_content` | None |
 | **mlkit** | `recognize_text` `label_image` `detect_faces` | None (operates on local image files) |
 
-Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md)
+Full parameter reference: [docs/TOOLS.md](docs/TOOLS.md). Generated API docs (KDoc): [stixez.github.io/droid-mcp](https://stixez.github.io/droid-mcp/).
+
+### Hardening modules (0.10.0)
+
+Three opt-in infrastructure modules harden the HTTP transport and operations. They expose no LLM tools — they're programmatic APIs the host wires in. Each pulls a third-party dependency, so all three stay outside `:droid-mcp-all`.
+
+| Module | API | Dependency |
+|--------|-----|-----------|
+| **audit** | `RoomAuditSink` — persists every HTTP `tools/call` to a private Room DB (retention, `observe()`, `exportJson()`, `clear()`). Wire via `DroidMcp.Builder.withAuditSink(...)`. The dependency-free `AuditSink` hook itself lives in core. | Room + KSP |
+| **tls** | `SelfSignedCert.loadOrCreate(file)` → a `TlsConfig` for `DroidMcp.Builder.enableTls(...)`. Self-signed cert; clients pin `DroidMcp.tlsFingerprint`. | BouncyCastle |
+| **server-service** | `DroidMcpServerService` — abstract foreground service keeping the HTTP server alive across screen-off / task-killers. | androidx.core |
+
+Per-tool gating (`DroidMcp.setToolEnabled` / `setDisabledTools`) and token rotation / per-client pairing (`rotateToken` / `pairClient` / `revokeClient`) are built into **core** — no extra module. See [docs/SECURITY.md](docs/SECURITY.md) for the threat model.
+
+### Capability tiers
+
+Modules are grouped into five tiers by the kind of permission they need. **Tiers 1–3 are the core surface; Tiers 4–5 are opt-in power tools** for hosts that need shell-UID or root-UID admin — they pull third-party native dependencies and stay outside `:droid-mcp-all` to keep the default APK lean.
+
+| Tier | What | Modules |
+|---|---|---|
+| **1. Runtime / install-time perms** | Standard `<uses-permission>` grants | `device` `calendar` `contacts` `sms` `files` `media` `location` `calllog` `health` `apps` `alarms` `settings` `bluetooth` `wifi` `downloads` `screen` `tts` `web` `flashlight` `network` `telephony` `vibration` `biometric` `sensors` `qr` `camera` `audio` `nfc` `intent` `clipboard` `notifications` `keyguard` `wallpaper` `usb` `print` `mlkit` |
+| **2. Notification Listener** | Settings > Apps > Special access > Notification access | `playback` `notifications-reply` `notification-watch` |
+| **3. Accessibility / IME / Overlay / DND / Ringtone / Screenshot** | Per-feature Settings toggles | `accessibility` `ime` `overlay` `dnd` `ringtone` `screenshot` |
+| **4. Shell-UID (opt-in)** | Shizuku activated + permission granted to host app | `shizuku` (pulls `dev.rikka.shizuku`; see [docs/SHIZUKU.md](docs/SHIZUKU.md)) |
+| **5. Root-UID (opt-in)** | Device rooted + superuser-manager grant | `root` (pulls `com.github.topjohnwu.libsu`; see [docs/ROOT.md](docs/ROOT.md)) |
 
 ### Special permissions
 
@@ -226,9 +266,17 @@ Some modules require permissions that can't be requested at runtime. The tools w
 | Module | Permission | How to grant |
 |--------|-----------|-------------|
 | **playback** | Notification Listener | Settings > Apps > Special access > Notification access |
+| **notifications-reply** | Notification Listener (service must extend `McpNotificationListenerServiceBase`) | Settings > Apps > Special access > Notification access |
+| **notification-watch** | Notification Listener (shares listener service with `notifications-reply`) | Settings > Apps > Special access > Notification access |
+| **accessibility** | Accessibility Service (service must extend `DroidMcpAccessibilityService`) | Settings > Accessibility > Installed apps |
+| **ime** | Input Method enabled + selected (service must extend `DroidMcpInputMethodService`) | Settings > System > Languages & input > On-screen keyboard, plus the IME picker |
+| **overlay** | Draw over other apps | Settings > Apps > Special access > Display over other apps |
+| **shizuku** | Shizuku service running + permission granted to host app | Install Shizuku, activate via wireless debugging (Android 11+) or ADB, grant the runtime permission. See [docs/SHIZUKU.md](docs/SHIZUKU.md). |
+| **root** | Device rooted + superuser manager grants root to host app | Root via Magisk / KernelSU / SuperSU; on first `Shell.cmd(...)` call the manager surfaces a permission prompt. See [docs/ROOT.md](docs/ROOT.md). |
 | **screenshot** | MediaProjection | Host app calls `MediaProjectionManager.createScreenCaptureIntent()` and passes result to `MediaProjectionHolder.set()` |
 | **dnd** | DND Access (for `set_dnd_mode`) | Settings > Apps > Special access > Do Not Disturb access |
 | **ringtone** | WRITE_SETTINGS (for `set_ringtone`) | Settings > Apps > Special access > Modify system settings |
+| **network** | PACKAGE_USAGE_STATS (for `get_data_usage`) | Settings > Apps > Special access > Usage access |
 
 ---
 
@@ -283,7 +331,15 @@ Some modules require permissions that can't be requested at runtime. The tools w
 
 ## Sample App
 
-The `sample-app` module includes a Compose UI that registers all 99 tools with quick-test buttons for each one. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
+The `sample-app` module includes a Compose UI that exercises the full tool surface — every module is registered (subject to permission availability) with quick-test buttons for representative tools in each category. Categories that require special permissions show a "Grant Access" button that opens the relevant system settings page. Start the HTTP server from the app to connect desktop MCP clients — pair via the QR code or copy the bearer token shown on the home screen. See [docs/PAIRING.md](docs/PAIRING.md).
+
+It also demonstrates the 0.10.0 hardening features end-to-end:
+
+- **Tools** tab — quick-test buttons per category.
+- **Gating** tab — a per-tool switch grid (with filter + bulk enable/disable) that toggles tools off the live `tools/list` / `tools/call` surface without restarting the server.
+- **Audit** tab — browse the persisted `RoomAuditSink` log of HTTP calls (tool, client, outcome, duration, arguments), clear it, or export to JSON.
+- **TLS** toggle — serve over HTTPS with a self-signed cert; the SHA-256 fingerprint is shown (copyable) and folded into the pairing QR for the client to pin.
+- The server runs inside a **foreground service** (`DroidMcpServerService`) so it survives screen-off / backgrounding.
 
 ---
 

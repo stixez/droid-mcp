@@ -50,4 +50,49 @@ class ToolRegistryTest {
         assertThat(result.isSuccess).isFalse()
         assertThat(result.errorMessage).contains("missing")
     }
+
+    @Test
+    fun `disabled tool is hidden from listEnabledTools but stays registered`() {
+        val registry = ToolRegistry()
+        registry.register(fakeTool("tool_a"))
+        registry.register(fakeTool("tool_b"))
+        registry.setToolEnabled("tool_a", false)
+        assertThat(registry.listEnabledTools().map { it.name }).containsExactly("tool_b")
+        assertThat(registry.listTools().map { it.name }).containsExactly("tool_a", "tool_b")
+        assertThat(registry.getTool("tool_a")).isNotNull()
+        assertThat(registry.isEnabled("tool_a")).isFalse()
+    }
+
+    @Test
+    fun `executeTool rejects disabled tool with tool_disabled code`() = runTest {
+        val registry = ToolRegistry()
+        registry.register(fakeTool("gated"))
+        registry.setToolEnabled("gated", false)
+        val result = registry.executeTool("gated", emptyMap())
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).startsWith("tool_disabled")
+    }
+
+    @Test
+    fun `re-enabling a tool restores it`() = runTest {
+        val registry = ToolRegistry()
+        registry.register(fakeTool("gated"))
+        registry.setToolEnabled("gated", false)
+        registry.setToolEnabled("gated", true)
+        assertThat(registry.isEnabled("gated")).isTrue()
+        assertThat(registry.executeTool("gated", emptyMap()).isSuccess).isTrue()
+    }
+
+    @Test
+    fun `setDisabledTools replaces the full gate set`() {
+        val registry = ToolRegistry()
+        registry.register(fakeTool("a"))
+        registry.register(fakeTool("b"))
+        registry.register(fakeTool("c"))
+        registry.setDisabledTools(setOf("a", "b"))
+        assertThat(registry.disabledTools()).containsExactly("a", "b")
+        registry.setDisabledTools(setOf("c"))
+        assertThat(registry.disabledTools()).containsExactly("c")
+        assertThat(registry.isEnabled("a")).isTrue()
+    }
 }

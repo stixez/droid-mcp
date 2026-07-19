@@ -6,6 +6,13 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Searches calendar events whose `TITLE` or `DESCRIPTION` matches `query` (SQL `LIKE`
+ * substring), via `ContentResolver` on `CalendarContract.Events`, newest first. Requires
+ * `READ_CALENDAR`. Output: `events` (list of {id, title, start, end, location, description}
+ * with times formatted `yyyy-MM-dd HH:mm`), `count`, and the echoed `query`, capped at
+ * `limit` (1–100, default 10).
+ */
 class SearchEventsTool(private val context: Context) : McpTool {
 
     override val name = "search_events"
@@ -30,7 +37,8 @@ class SearchEventsTool(private val context: Context) : McpTool {
             CalendarContract.Events.DESCRIPTION,
         )
 
-        val selection = "${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?"
+        val selection = "(${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?) " +
+            "AND ${CalendarContract.Events.DELETED} != 1"
         val selectionArgs = arrayOf("%$query%", "%$query%")
         val sortOrder = "${CalendarContract.Events.DTSTART} DESC"
 
@@ -48,7 +56,8 @@ class SearchEventsTool(private val context: Context) : McpTool {
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events._ID)),
                     "title" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.TITLE)),
                     "start" to timeFormat.format(Date(dtStart)),
-                    "end" to timeFormat.format(Date(dtEnd)),
+                    // Recurring events store DURATION instead of DTEND, which reads back as 0.
+                    "end" to (if (dtEnd > 0) timeFormat.format(Date(dtEnd)) else null),
                     "location" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)),
                     "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
                 ))

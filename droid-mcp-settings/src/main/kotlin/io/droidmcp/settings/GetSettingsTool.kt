@@ -12,6 +12,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reads a snapshot of common device settings. No permissions required.
+ *
+ * Output keys: `screen_brightness` (0-255, `-1` if unreadable), `volume_ring`, `volume_media`,
+ * `volume_alarm`, `wifi_enabled`, `bluetooth_enabled`, `airplane_mode`, `auto_rotate`.
+ */
 class GetSettingsTool(private val context: Context) : McpTool {
 
     override val name = "get_settings"

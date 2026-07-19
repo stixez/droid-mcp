@@ -12,6 +12,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.coroutines.resume
 
+/**
+ * Reads the `TYPE_STEP_COUNTER` sensor and returns the cumulative step total since the last
+ * reboot (not a per-day count). Registers a one-shot listener with a 3 s timeout. Requires
+ * `ACTIVITY_RECOGNITION` on Android 10+ (API 29+) — note `execute()` does NOT itself verify
+ * the permission, so a missing grant surfaces as a sensor timeout rather than a permission
+ * error. Output: `steps_since_reboot`, `timestamp`, `note`. Returns [ToolResult.error] when
+ * no step-counter sensor exists or the sensor does not report within 3 s.
+ */
 class GetStepCountTool(private val context: Context) : McpTool {
 
     override val name = "get_step_count"

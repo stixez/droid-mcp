@@ -1,25 +1,48 @@
 package io.droidmcp.core.protocol
 
+import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DROID_MCP_VERSION
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
+import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolRegistry
+import io.droidmcp.core.ToolResult
 import kotlinx.serialization.json.*
 
+/**
+ * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
+ * Services `initialize`, `tools/list`, `tools/call`, `ping`, and `notifications/initialized`.
+ * Malformed input yields a `-32700` parse error and an unknown method a `-32601`; the handler
+ * never throws back to the transport.
+ *
+ * Honours [readOnly] mode (filters `tools/list` to read-only tools and rejects mutating
+ * `tools/call`s with an `isError` content payload) and emits a [ToolCallAudit] to [auditSink]
+ * after every call — a failing sink is swallowed so it can never break a tool call.
+ *
+ * @property registry Source of registered tools and the executor for `tools/call`.
+ * @property serverName Server name reported in the `initialize` handshake.
+ * @property serverVersion Server version reported in `initialize`; defaults to [DROID_MCP_VERSION].
+ * @property readOnly When true, only [ToolAnnotations.readOnlyHint] tools are visible/callable.
+ * @property auditSink Optional hook invoked once per `tools/call` with timing and outcome; null disables auditing.
+ */
 class McpProtocolImpl(
     private val registry: ToolRegistry,
     private val serverName: String = "droid-mcp",
     private val serverVersion: String = DROID_MCP_VERSION,
     private val readOnly: Boolean = false,
+    private val auditSink: AuditSink? = null,
 ) : McpProtocol {
 
     private fun visibleTools(): List<McpTool> =
-        if (readOnly) registry.listTools().filter { it.annotations.readOnlyHint }
-        else registry.listTools()
+        if (readOnly) registry.listEnabledTools().filter { it.annotations.readOnlyHint }
+        else registry.listEnabledTools()
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun handleMessage(jsonRequest: String): String {
+    override suspend fun handleMessage(jsonRequest: String): String =
+        handleMessage(jsonRequest, clientLabel = null)
+
+    override suspend fun handleMessage(jsonRequest: String, clientLabel: String?): String {
         return try {
             val request = json.parseToJsonElement(jsonRequest).jsonObject
             val id = request["id"]
@@ -29,7 +52,7 @@ class McpProtocolImpl(
             when (method) {
                 "initialize" -> handleInitialize(id, params)
                 "tools/list" -> handleToolsList(id)
-                "tools/call" -> handleToolsCall(id, params)
+                "tools/call" -> handleToolsCall(id, params, clientLabel)
                 "notifications/initialized" -> ""
                 "ping" -> jsonRpcResponse(id, buildJsonObject { put("status", "ok") })
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
@@ -84,7 +107,11 @@ class McpProtocolImpl(
         return jsonRpcResponse(id, result)
     }
 
-    private suspend fun handleToolsCall(id: JsonElement?, params: JsonObject): String {
+    private suspend fun handleToolsCall(
+        id: JsonElement?,
+        params: JsonObject,
+        clientLabel: String?,
+    ): String {
         val toolName = params["name"]?.jsonPrimitive?.content
             ?: return jsonRpcError(id, -32602, "Missing tool name")
         if (readOnly) {
@@ -102,17 +129,18 @@ class McpProtocolImpl(
                 })
             }
         }
+        val argumentsJson = params["arguments"]?.jsonObject?.toString()
+        // A JSON null value is dropped rather than kept as a null entry — tools read params via
+        // `params["x"] as? Type`, which already treats a missing key the same as an explicit
+        // null, and McpTool.execute's Map<String, Any> signature doesn't accept null values.
         val arguments = params["arguments"]?.jsonObject?.let { args ->
-            args.entries.associate { (k, v) ->
-                k to when {
-                    v is JsonPrimitive && v.isString -> v.content
-                    v is JsonPrimitive -> v.content
-                    else -> v.toString()
-                }
-            }
+            args.entries.mapNotNull { (k, v) -> v.toNativeValue()?.let { k to it } }.toMap()
         } ?: emptyMap()
 
+        val startedAt = System.nanoTime()
         val toolResult = registry.executeTool(toolName, arguments)
+        val durationMs = (System.nanoTime() - startedAt) / 1_000_000
+        recordAudit(toolName, clientLabel, argumentsJson, toolResult, durationMs)
 
         return if (toolResult.isSuccess) {
             val content = buildJsonArray {
@@ -144,6 +172,31 @@ class McpProtocolImpl(
                 put("isError", true)
             }
             jsonRpcResponse(id, result)
+        }
+    }
+
+    private fun recordAudit(
+        toolName: String,
+        clientLabel: String?,
+        argumentsJson: String?,
+        result: ToolResult,
+        durationMs: Long,
+    ) {
+        val sink = auditSink ?: return
+        try {
+            sink.record(
+                ToolCallAudit(
+                    timestamp = System.currentTimeMillis(),
+                    toolName = toolName,
+                    clientLabel = clientLabel,
+                    argumentsJson = argumentsJson,
+                    success = result.isSuccess,
+                    errorMessage = result.errorMessage,
+                    durationMs = durationMs,
+                )
+            )
+        } catch (_: Exception) {
+            // A broken audit backend must never fail a tool call.
         }
     }
 
@@ -195,4 +248,28 @@ class McpProtocolImpl(
                 put("message", message)
             }
         })
+
+    /**
+     * Converts a [JsonElement] into the plain Kotlin type tool `execute()` implementations
+     * actually check for (`as? Number`, `as? Boolean`, `as? List<*>`, `as? Map<*, *>`, `toString()`).
+     *
+     * Every non-string JSON primitive — numbers, booleans — used to fall through to
+     * [JsonPrimitive.content] regardless of type, which is *always* the raw string form (`"5"`,
+     * `"true"`) even for a bare JSON number or boolean literal. Arrays and objects used to become
+     * their `toString()` JSON text. The net effect: any tool parameter that wasn't already a JSON
+     * string silently became a `String` here, so `params["x"] as? Number`/`as? Boolean`/`as? List<*>`
+     * in every tool's `execute()` always failed and fell back to that parameter's default — meaning
+     * non-string arguments sent over the HTTP transport were never honored.
+     */
+    private fun JsonElement.toNativeValue(): Any? = when (this) {
+        is JsonNull -> null
+        is JsonPrimitive -> when {
+            this.isString -> this.content
+            this.content == "true" -> true
+            this.content == "false" -> false
+            else -> this.content.toLongOrNull() ?: this.content.toDoubleOrNull() ?: this.content
+        }
+        is JsonArray -> this.map { it.toNativeValue() }
+        is JsonObject -> this.entries.associate { (k, v) -> k to v.toNativeValue() }
+    }
 }

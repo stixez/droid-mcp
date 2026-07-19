@@ -15,6 +15,14 @@ import io.droidmcp.core.ToolAnnotations
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Reports whether the active network is carried over a VPN. Requires `ACCESS_NETWORK_STATE`
+ * (checked up front). On API 23+ inspects `NetworkCapabilities.TRANSPORT_VPN` and attempts to
+ * resolve the owning app's package name via reflection on the hidden `ownerUid` field (often
+ * `"unknown"`); below API 23 uses the deprecated `TYPE_VPN` network info (package always null).
+ * Output: `is_active`, `vpn_package_name` (nullable / `"unknown"`). Returns [ToolResult.error]
+ * when permission is missing or on failure.
+ */
 class IsVpnActiveTool(private val context: Context) : McpTool {
     override val name = "is_vpn_active"
     override val description = "Check if a VPN connection is currently active and return the VPN package name if available."
@@ -46,23 +54,15 @@ class IsVpnActiveTool(private val context: Context) : McpTool {
                 val hasVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
 
                 if (hasVpn) {
-                    // Try to get VPN package name via reflection (not officially available in public API)
-                    val vpnPackage = try {
-                        val underlyingNetworksField = capabilities.javaClass.getDeclaredField("underlyingNetworks")
-                        underlyingNetworksField.isAccessible = true
-                        @Suppress("UNCHECKED_CAST")
-                        val networks = underlyingNetworksField.get(capabilities) as? Array<Network>
-                        networks?.firstOrNull()?.toString()
-                    } catch (e: Exception) {
-                        null
-                    }
-
-                    // Alternative: try to get from NetworkCapabilities via reflection
+                    // ownerUid is a hidden NetworkCapabilities field, accessed via reflection
+                    // (not officially available in the public API). Note: on API 30+ the
+                    // platform strips ownerUid to INVALID_UID for any caller other than the
+                    // VPN app itself, so this only ever resolves a real package pre-30.
                     val packageName = try {
                         val ownerUidField = capabilities.javaClass.getDeclaredField("ownerUid")
                         ownerUidField.isAccessible = true
                         val uid = ownerUidField.get(capabilities) as? Int
-                        if (uid != null && uid > 10000) {
+                        if (uid != null && uid >= android.os.Process.FIRST_APPLICATION_UID) {
                             val packageManager = context.packageManager
                             val packages = packageManager.getPackagesForUid(uid)
                             packages?.firstOrNull()

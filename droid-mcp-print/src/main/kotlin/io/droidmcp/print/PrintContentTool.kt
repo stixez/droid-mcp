@@ -13,6 +13,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Renders text or HTML content in an off-screen [WebView] and hands it to [PrintManager.print],
+ * which opens the system print UI. Plain text is HTML-escaped and wrapped in a monospace `<pre>`
+ * block; pass `is_html = true` to print raw HTML as-is.
+ *
+ * No permissions required. The print job is dispatched on the main thread once the WebView finishes
+ * loading; `success` indicates the dialog was launched, not that anything was printed.
+ *
+ * Output keys: `success`, `job_name`, `content_length`, `message`.
+ */
 class PrintContentTool(private val context: Context) : McpTool {
 
     override val name = "print_content"
@@ -40,22 +50,35 @@ class PrintContentTool(private val context: Context) : McpTool {
 
         return try {
             Handler(Looper.getMainLooper()).post {
-                val webView = WebView(context)
-                webView.webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String) {
-                        val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-                        val printAdapter = view.createPrintDocumentAdapter(jobName)
-                        printManager.print(
-                            jobName,
-                            printAdapter,
-                            PrintAttributes.Builder().build(),
-                        )
+                // Runs asynchronously, after execute() has already returned — any exception here
+                // can't be reported back through the ToolResult. Must not escape uncaught: this
+                // runs on the main thread and an escaped exception would crash the whole host app
+                // (e.g. PrintManager.print() throws IllegalStateException if context isn't tied
+                // to an Activity).
+                try {
+                    val webView = WebView(context)
+                    webView.webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String) {
+                            try {
+                                val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
+                                val printAdapter = view.createPrintDocumentAdapter(jobName)
+                                printManager.print(
+                                    jobName,
+                                    printAdapter,
+                                    PrintAttributes.Builder().build(),
+                                )
+                            } catch (e: Exception) {
+                                // Nothing left to report to — the tool call already succeeded.
+                            }
+                        }
                     }
-                }
 
-                webView.loadDataWithBaseURL(
-                    null, htmlContent, "text/html", "UTF-8", null,
-                )
+                    webView.loadDataWithBaseURL(
+                        null, htmlContent, "text/html", "UTF-8", null,
+                    )
+                } catch (e: Exception) {
+                    // Same rationale as above.
+                }
             }
 
             ToolResult.success(mapOf(

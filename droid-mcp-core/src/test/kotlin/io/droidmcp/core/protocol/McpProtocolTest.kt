@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
+import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
@@ -32,10 +33,20 @@ class McpProtocolTest {
         }
     }
 
+    /** Reports the runtime Kotlin type each argument actually arrives as in execute(). */
+    private val typesTool = object : McpTool {
+        override val name = "types"
+        override val description = "Reports the runtime type of each received argument"
+        override val parameters = emptyList<ToolParameter>()
+        override suspend fun execute(params: Map<String, Any>): ToolResult =
+            ToolResult.success(mapOf("types" to params.mapValues { (_, v) -> v::class.simpleName }))
+    }
+
     @BeforeEach
     fun setup() {
         registry = ToolRegistry()
         registry.register(echoTool)
+        registry.register(typesTool)
         protocol = McpProtocolImpl(registry)
     }
 
@@ -68,6 +79,36 @@ class McpProtocolTest {
         val result = json["result"]?.jsonObject
         assertThat(result).isNotNull()
         assertThat(result.toString()).contains("hello")
+    }
+
+    @Test
+    fun `handleToolsCall preserves non-string argument types across the JSON boundary`() = runTest {
+        // Regression test: the arguments-conversion path used to route every non-string JSON
+        // primitive (and every array/object) through JsonPrimitive.content — the RAW STRING
+        // form of the value regardless of its actual JSON type — so a tool's own
+        // `params["x"] as? Number`/`as? Boolean`/`as? List<*>`/`as? Map<*, *>` checks always
+        // failed for arguments sent over the HTTP transport, silently falling back to defaults.
+        val request = """{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"types","arguments":{
+            "int_arg":5,"double_arg":2.5,"true_arg":true,"false_arg":false,
+            "string_arg":"hello","array_arg":[1,2,3],"object_arg":{"nested":1},"null_arg":null
+        }}}"""
+        val response = protocol.handleMessage(request)
+        val json = Json.parseToJsonElement(response).jsonObject
+        val text = json["result"]?.jsonObject
+            ?.get("content")?.jsonArray?.get(0)?.jsonObject
+            ?.get("text")?.jsonPrimitive?.content
+        assertThat(text).isNotNull()
+        val types = Json.parseToJsonElement(text!!).jsonObject["types"]?.jsonObject
+        assertThat(types).isNotNull()
+        assertThat(types!!["int_arg"]?.jsonPrimitive?.content).isEqualTo("Long")
+        assertThat(types["double_arg"]?.jsonPrimitive?.content).isEqualTo("Double")
+        assertThat(types["true_arg"]?.jsonPrimitive?.content).isEqualTo("Boolean")
+        assertThat(types["false_arg"]?.jsonPrimitive?.content).isEqualTo("Boolean")
+        assertThat(types["string_arg"]?.jsonPrimitive?.content).isEqualTo("String")
+        assertThat(types["array_arg"]?.jsonPrimitive?.content).isEqualTo("ArrayList")
+        assertThat(types["object_arg"]?.jsonPrimitive?.content).isEqualTo("LinkedHashMap")
+        // A JSON null argument is dropped rather than surfacing as a null-valued map entry.
+        assertThat(types.containsKey("null_arg")).isFalse()
     }
 
     @Test
@@ -228,5 +269,84 @@ class McpProtocolTest {
         val response = protocol.handleMessage(request)
         val json = Json.parseToJsonElement(response).jsonObject
         assertThat(json["error"]).isNotNull()
+    }
+
+    @Test
+    fun `tools-call records an audit entry with client label and arguments`() = runTest {
+        val recorded = mutableListOf<ToolCallAudit>()
+        val auditedProtocol = McpProtocolImpl(registry, auditSink = { recorded.add(it) })
+
+        val request = """{"jsonrpc":"2.0","id":40,"method":"tools/call","params":{"name":"echo","arguments":{"message":"hi"}}}"""
+        auditedProtocol.handleMessage(request, clientLabel = "laptop")
+
+        assertThat(recorded).hasSize(1)
+        val entry = recorded.single()
+        assertThat(entry.toolName).isEqualTo("echo")
+        assertThat(entry.clientLabel).isEqualTo("laptop")
+        assertThat(entry.success).isTrue()
+        assertThat(entry.argumentsJson).contains("hi")
+        assertThat(entry.durationMs).isAtLeast(0L)
+    }
+
+    @Test
+    fun `audit records failures with the error envelope`() = runTest {
+        val recorded = mutableListOf<ToolCallAudit>()
+        val auditedProtocol = McpProtocolImpl(registry, auditSink = { recorded.add(it) })
+
+        val request = """{"jsonrpc":"2.0","id":41,"method":"tools/call","params":{"name":"missing_tool","arguments":{}}}"""
+        auditedProtocol.handleMessage(request, clientLabel = "primary")
+
+        val entry = recorded.single()
+        assertThat(entry.toolName).isEqualTo("missing_tool")
+        assertThat(entry.success).isFalse()
+        assertThat(entry.errorMessage).contains("Unknown tool")
+    }
+
+    @Test
+    fun `a throwing audit sink never fails the call`() = runTest {
+        val auditedProtocol = McpProtocolImpl(registry, auditSink = { error("audit backend down") })
+        val request = """{"jsonrpc":"2.0","id":42,"method":"tools/call","params":{"name":"echo","arguments":{"message":"ok"}}}"""
+        val response = auditedProtocol.handleMessage(request, clientLabel = "primary")
+        val result = Json.parseToJsonElement(response).jsonObject["result"]?.jsonObject
+        assertThat(result!!["isError"].toString()).isEqualTo("false")
+    }
+
+    @Test
+    fun `tools-list and tools-call are not recorded twice`() = runTest {
+        val recorded = mutableListOf<ToolCallAudit>()
+        val auditedProtocol = McpProtocolImpl(registry, auditSink = { recorded.add(it) })
+        auditedProtocol.handleMessage("""{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}""", null)
+        assertThat(recorded).isEmpty()
+    }
+
+    @Test
+    fun `tools-list hides a disabled tool at the protocol layer`() = runTest {
+        registry.setToolEnabled("echo", false)
+        val response = protocol.handleMessage("""{"jsonrpc":"2.0","id":50,"method":"tools/list","params":{}}""")
+        val names = Json.parseToJsonElement(response).jsonObject["result"]?.jsonObject
+            ?.get("tools")?.jsonArray?.map { it.jsonObject["name"]?.jsonPrimitive?.content } ?: emptyList()
+        assertThat(names).doesNotContain("echo")
+    }
+
+    @Test
+    fun `tools-call rejects a disabled tool at the protocol layer`() = runTest {
+        registry.setToolEnabled("echo", false)
+        val request = """{"jsonrpc":"2.0","id":51,"method":"tools/call","params":{"name":"echo","arguments":{"message":"hi"}}}"""
+        val result = Json.parseToJsonElement(protocol.handleMessage(request)).jsonObject["result"]?.jsonObject
+        assertThat(result!!["isError"].toString()).isEqualTo("true")
+        assertThat(result.toString()).contains("tool_disabled")
+    }
+
+    @Test
+    fun `disabled readonly tool is rejected in read-only mode`() = runTest {
+        val mixedRegistry = ToolRegistry()
+        mixedRegistry.register(readTool("read_thing"))
+        mixedRegistry.setToolEnabled("read_thing", false)
+        val readOnlyProtocol = McpProtocolImpl(mixedRegistry, readOnly = true)
+
+        val request = """{"jsonrpc":"2.0","id":52,"method":"tools/call","params":{"name":"read_thing","arguments":{}}}"""
+        val result = Json.parseToJsonElement(readOnlyProtocol.handleMessage(request)).jsonObject["result"]?.jsonObject
+        assertThat(result!!["isError"].toString()).isEqualTo("true")
+        assertThat(result.toString()).contains("tool_disabled")
     }
 }

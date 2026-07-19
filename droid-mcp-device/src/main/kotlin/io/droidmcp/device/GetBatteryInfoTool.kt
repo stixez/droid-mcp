@@ -9,10 +9,15 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports battery state from the sticky `ACTION_BATTERY_CHANGED` broadcast: `level_percent`
+ * (0–100, or -1 if unknown), `is_charging`, and `charging_source` (`usb`/`ac`/`wireless`/`none`).
+ * No permissions.
+ */
 class GetBatteryInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_battery_info"
-    override val description = "Get battery level, charging status, and health"
+    override val description = "Get battery level, charging status, and charging source"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

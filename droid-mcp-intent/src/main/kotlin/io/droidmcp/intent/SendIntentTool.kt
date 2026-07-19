@@ -10,6 +10,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Fires an Android activity intent restricted to an allowlist of safe actions (VIEW, DIAL,
+ * SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT, PICK, GET_CONTENT, CREATE_DOCUMENT,
+ * OPEN_DOCUMENT) — non-allowlisted actions are rejected. Supports `data` URI, `type`,
+ * `package_name`, and `extras` (coerced to string extras), always with
+ * `FLAG_ACTIVITY_NEW_TASK`. No permissions.
+ * Output: `success`, `action`, `data`, `package`.
+ */
 class SendIntentTool(private val context: Context) : McpTool {
 
     override val name = "send_intent"
@@ -49,8 +57,16 @@ class SendIntentTool(private val context: Context) : McpTool {
         val intent = Intent(action).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-            params["data"]?.toString()?.let { data = Uri.parse(it) }
-            params["type"]?.toString()?.let { type = it }
+            // setData() clears any previously-set type and setType() clears any
+            // previously-set data — setting both separately silently drops whichever
+            // was set first. setDataAndType() sets both atomically.
+            val dataUri = params["data"]?.toString()?.let { Uri.parse(it) }
+            val mimeType = params["type"]?.toString()
+            when {
+                dataUri != null && mimeType != null -> setDataAndType(dataUri, mimeType)
+                dataUri != null -> data = dataUri
+                mimeType != null -> type = mimeType
+            }
             params["package_name"]?.toString()?.let { setPackage(it) }
 
             @Suppress("UNCHECKED_CAST")

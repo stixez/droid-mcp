@@ -7,6 +7,13 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Inserts a new event into `CalendarContract.Events` via `ContentResolver`. Requires
+ * `WRITE_CALENDAR`. `start`/`end` are parsed as `yyyy-MM-dd HH:mm` (device timezone); when
+ * `calendar_id` is omitted it falls back to the primary calendar (or first available, see
+ * [getPrimaryCalendarId]). Output: `event_id` (the inserted row id, may be null if the URI
+ * lacks a numeric segment), plus echoed `title`, `start`, and `end`.
+ */
 class CreateEventTool(private val context: Context) : McpTool {
 
     override val name = "create_event"
@@ -67,15 +74,23 @@ class CreateEventTool(private val context: Context) : McpTool {
         ))
     }
 
+    /** Returns the primary calendar id, falling back to the first available calendar, or null if none exist. */
     private fun getPrimaryCalendarId(): Long? {
         val projection = arrayOf(CalendarContract.Calendars._ID)
         val selection = "${CalendarContract.Calendars.IS_PRIMARY} = 1"
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
-        )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                return cursor.getLong(0)
+        // IS_PRIMARY is a computed alias on some providers, not a real column — several OEM
+        // calendar providers throw SQLiteException ("no such column") for it. Uncaught, that
+        // would abort create_event entirely despite the perfectly good fallback query below.
+        try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return cursor.getLong(0)
+                }
             }
+        } catch (e: Exception) {
+            // Fall through to the unfiltered query below.
         }
         // Fallback: get first available calendar
         context.contentResolver.query(

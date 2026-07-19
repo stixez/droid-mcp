@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports the active network's transports via [ConnectivityManager]: `is_connected`, `has_wifi`,
+ * `has_cellular`, `has_bluetooth`. All false when there is no active network.
+ *
+ * Reading network capabilities requires the normal (install-time) `ACCESS_NETWORK_STATE`
+ * permission, declared by this module's manifest and reported via [DeviceTools.requiredPermissions].
+ */
 class GetConnectivityTool(private val context: Context) : McpTool {
 
     override val name = "get_connectivity"

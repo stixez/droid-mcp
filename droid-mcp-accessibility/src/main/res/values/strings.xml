@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="droid_mcp_accessibility_summary">Lets an MCP client read the active screen and dispatch clicks / scrolls / gestures.</string>
+    <string name="droid_mcp_accessibility_description">droid-mcp exposes the on-screen UI tree via the Model Context Protocol so an LLM running locally or on a paired desktop can drive any app. Enable only if you trust the host app.</string>
+</resources>

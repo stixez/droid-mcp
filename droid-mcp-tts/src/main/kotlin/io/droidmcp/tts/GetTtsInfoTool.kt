@@ -10,10 +10,18 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Locale
 import kotlin.coroutines.resume
 
+/**
+ * Reports the default [TextToSpeech] engine and its supported languages. No permissions required.
+ * Initializes a one-shot engine, reads its default engine and available languages (as BCP-47 tags),
+ * then shuts it down.
+ *
+ * Output map: `default_engine` (String package, "unknown" if unavailable), `available_languages`
+ * (sorted `List<String>`), `language_count` (Int).
+ */
 class GetTtsInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_tts_info"
-    override val description = "Get information about the available TTS engines and supported languages"
+    override val description = "Get the default TTS engine and its supported languages"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

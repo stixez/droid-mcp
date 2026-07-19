@@ -9,6 +9,19 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports the currently playing media across all active media sessions.
+ *
+ * Enumerates sessions via [android.media.session.MediaSessionManager.getActiveSessions],
+ * which requires Notification Listener access. The host app must register its
+ * `NotificationListenerService` ComponentName via [NotificationListenerHolder];
+ * if unset, or if the listener is not enabled in Settings, the tool returns an
+ * error. Read-only.
+ *
+ * Output keys: `playing` (any session in the playing state) and `sessions` — a
+ * list, each with `package`, `state`, `position_ms`, `title`, `artist`, `album`,
+ * `duration_ms`. When there are no sessions: `playing` false plus a `message`.
+ */
 class GetNowPlayingTool(private val context: Context) : McpTool {
 
     override val name = "get_now_playing"

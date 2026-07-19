@@ -16,6 +16,14 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
+/**
+ * Decodes a QR code from a still image file (referenced by `image_uri`) using ML Kit barcode scanning
+ * restricted to [Barcode.FORMAT_QR_CODE]. This reads an existing image — it does NOT open the camera,
+ * so despite the module declaring `CAMERA`, no camera permission is needed for this tool. Returns the
+ * first QR code found, or `found = false` when none is present.
+ *
+ * Result keys: `raw_value`, `format` (always `"QR_CODE"` when found), `found`.
+ */
 class ScanQrCodeTool(private val context: Context) : McpTool {
 
     override val name = "scan_qr_code"

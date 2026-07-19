@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- droid-mcp-audit persists tools/call records to an on-device Room DB.
+         No permissions required: the database lives in the host app's private
+         storage. -->
+</manifest>

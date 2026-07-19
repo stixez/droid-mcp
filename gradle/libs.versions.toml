@@ -20,6 +20,12 @@ junit = "4.13.2"
 junit5 = "5.11.4"
 mockk = "1.13.16"
 truth = "1.4.4"
+shizuku = "13.1.5"
+libsu = "5.2.2"
+room = "2.6.1"
+ksp = "2.1.20-1.0.32"
+bouncycastle = "1.78.1"
+dokka = "2.1.0"
 
 [libraries]
 # AndroidX Core
@@ -28,6 +34,23 @@ androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "a
 
 # MCP SDK
 mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-kotlin-sdk" }
+
+# Shizuku (Tier 4 shell backend)
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
+
+# libsu (Tier 5 shell backend — root via su)
+libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
+libsu-io = { module = "com.github.topjohnwu.libsu:io", version.ref = "libsu" }
+
+# Room (audit log persistence — opt-in droid-mcp-audit module)
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+# BouncyCastle (self-signed cert generation — opt-in droid-mcp-tls module)
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 # Ktor Server
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
@@ -58,6 +81,9 @@ camerax-video = { module = "androidx.camera:camera-video", version.ref = "camera
 # ZXing
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
+# Dokka (API docs — Android documentation plugin enriches Android symbols)
+dokka-android-plugin = { module = "org.jetbrains.dokka:android-documentation-plugin", version.ref = "dokka" }
+
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }
 junit5-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
@@ -73,3 +99,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 99 tools across 41 modules.
+Complete reference for all 145 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
 
 ---
 
@@ -113,9 +113,9 @@ Step data is sensor-based (not Health Connect). Values reset on device reboot.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `get_settings` | Read brightness, volume, WiFi, Bluetooth status | -- |
+| `get_settings` | Read brightness, volume, WiFi, Bluetooth, airplane mode, auto-rotate status | -- |
 | `set_brightness` | Set screen brightness | `level` (required, 0-255) |
-| `set_volume` | Set volume level | `stream` (media/ring/alarm), `level` (required) |
+| `set_volume` | Set volume level | `stream` (media/ring/alarm/notification), `level` (required) |
 | `toggle_wifi` | Toggle WiFi on/off | `enabled` (required) |
 
 On API 29+, `toggle_wifi` opens the system WiFi settings panel instead of toggling directly.
@@ -281,6 +281,149 @@ NFC tools use a tag cache — the host app must forward discovered tags via `Nfc
 | `media_control` | Send playback commands | `command` (required: play/pause/stop/next/previous), `package_name` |
 
 Requires notification listener access (Settings > Special access > Notification access). The host app must register a `NotificationListenerService` and call `NotificationListenerHolder.set(componentName)` before using these tools.
+
+## Notifications (Reply)
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_repliable_notifications` | Active notifications that expose a RemoteInput action (WhatsApp, Signal, Messenger, Slack, SMS, Gmail, etc.) | `limit` |
+| `reply_to_notification` | Send a reply via the notification's RemoteInput PendingIntent | `key` (required), `text` (required) |
+| `dismiss_notification` | Cancel a notification by key | `key` (required) |
+| `invoke_notification_action` | Trigger a non-reply action (Mark as read, Snooze, Archive, etc.) on an active notification | `key` (required), exactly one of `action_label` or `action_index` |
+
+Requires notification listener access (same as Playback). To enable the active-notification cache, `dismiss_notification`, and `invoke_notification_action`, the host app's listener service must extend `McpNotificationListenerServiceBase` from the `droid-mcp-notification-listener` module. `reply_to_notification` returns success when the underlying `PendingIntent.send` fires — it does NOT confirm the receiving app delivered the message.
+
+## Notification Watch
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `watch_notifications` | Register a filter against the live notification stream; returns `watch_id`. Filter semantics: case-insensitive substring on sender / keyword, AND-combine, fire-once-per-key with optional `fire_on_update`, no replay. | `package_name?`, `sender_pattern?`, `keyword?`, `ttl_seconds`, `fire_on_update` |
+| `unwatch_notifications` | Remove a watch by id. Idempotent — unknown id returns success with `removed = false`. | `watch_id` (required) |
+| `list_notification_watches` | List currently-active watches with TTL countdown. Expired watches are swept before the list is returned. | -- |
+
+Push subscription complement to Notifications (Reply)'s pull/snapshot tools. Shares the same listener service. Hosts can subscribe directly to `NotificationListenerBus.events: SharedFlow<NotificationEvent>` from the `droid-mcp-notification-listener` module to react to notifications without using the LLM-tool surface at all.
+
+`NotificationEvent` fields: `key`, `packageName`, `title`, `text`, `bigText`, `subText`, `tickerText`, `category` (e.g. `CATEGORY_MESSAGE`), `channelId`, `groupKey`, `isOngoing`, `isClearable`, `legacyPriority` (pre-O), `channelImportance` (post-O, dominant; `-1` if unresolvable), `postedAt` (system receive time), `when` (app-set timestamp), `hasReplyAction`, `actionLabels`.
+
+## Accessibility
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `query_screen` | Dump the active window's UI tree as a flat list of nodes. **Nodes are ranked** clickable > has-text > scrollable > rest; when truncated, the highest-ranked nodes are kept. | `max_nodes` (1-2000, default 500) |
+| `find_node` | Search the UI tree by any combination of text, view-id, class, package | `text`, `view_id`, `class_name`, `package_name`, `limit` |
+| `wait_for_text` | Block (with timeout) until a condition is met. Result shape: `{ status: "matched" \| "timeout", elapsed_ms, ... }` — timeout is NOT an error. | `condition` (`text` default, or `window_change`), `text` (required when condition=text), `timeout_ms`, `poll_ms` |
+| `click_node` | Perform ACTION_CLICK on a node matching the selector | selector params, `index` |
+| `long_click_node` | Perform ACTION_LONG_CLICK on a node | selector params, `index` |
+| `set_node_text` | Replace an editable node's text via ACTION_SET_TEXT. Returns `node_not_editable` if target is read-only. | selector params, `text` (required) |
+| `scroll_node` | Scroll a scrollable node forward or backward | selector params, `direction` |
+| `gesture` | Dispatch a touch gesture path via dispatchGesture | `points` (required, array of [x, y]), `duration_ms` |
+| `global_action` | System-wide action: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot. `AccessibilityTools.idempotentGlobalActions` exposes the safe-to-retry subset. | `action` (required) |
+| `get_active_window_info` | Foreground package + root class + window id | -- |
+| `take_screenshot_via_a11y` | Capture the screen via AccessibilityService.takeScreenshot — no MediaProjection prompt | `format` (png/jpeg), `quality` |
+| `tap` | Single-tap at screen coords via `dispatchGesture`. | `x` (required), `y` (required) |
+| `long_press` | Long-press at screen coords for `duration_ms` (default 800). | `x` (required), `y` (required), `duration_ms` |
+| `find_and_tap` | One-call `find_node` + `click_node`. | `match` (required), `match_kind` (`text` default, `desc`, `id`, `class`), `case_insensitive` |
+| `scroll_to_find` | Swipe in `direction` until `match` appears or `max_scrolls` exhausts. **Reading-direction semantics:** `down` reveals content below (internally swipes up). | `match` (required), `direction` (`down` default, `up`, `left`, `right`), `max_scrolls` |
+
+Requires an enabled AccessibilityService (Settings > Accessibility > Installed apps). The host app's service must extend `DroidMcpAccessibilityService` from the `droid-mcp-accessibility` module. `take_screenshot_via_a11y` requires Android 11 (API 30) or newer; call `AccessibilityTools.supportedTools(context)` to filter API-gated tools at runtime.
+
+## IME
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `is_ime_active` | Check whether the droid-mcp keyboard is the active IME and an editor is bound | -- |
+| `type_text` | Commit text at the cursor via InputConnection.commitText | `text` (required) |
+| `commit_keystroke` | Send a named key event: enter, backspace, del, tab, escape, up, down, left, right, home, end, page_up, page_down | `key` (required) |
+| `delete_text` | Delete `before` and `after` characters around the cursor | `before`, `after` |
+| `set_selection` | Move the cursor or select a range | `start` (required), `end` (required) |
+| `get_text_around_cursor` | Read text before and after the cursor | `before`, `after` |
+| `switch_to_previous_ime` | Switch back to the user's previous keyboard | -- |
+
+Requires the droid-mcp keyboard enabled in Settings > System > Languages & input AND selected via the IME picker. The host app's service must extend `DroidMcpInputMethodService` from the `droid-mcp-ime` module. Pair with `accessibility.global_action` (action = `notifications` or via a vendor-specific keypath) to flip to the keyboard programmatically.
+
+## Overlay
+
+No LLM tools — programmatic API only. The `droid-mcp-overlay` module exposes `OverlayController` for floating-window primitives:
+
+```kotlin
+val overlay = OverlayController(context)
+if (!overlay.isPermissionGranted()) {
+    startActivity(overlay.permissionIntent())  // → ACTION_MANAGE_OVERLAY_PERMISSION
+}
+overlay.show(OverlayConfig(
+    label = "Ask",
+    onClick = { /* open chat */ },
+    onLongPress = { /* quick voice */ },
+    onDragEnd = { x, y -> /* persist position */ },
+))
+overlay.hide()
+```
+
+Requires `SYSTEM_ALERT_WINDOW` (Settings > Apps > Special access > Display over other apps). Uses `TYPE_APPLICATION_OVERLAY` on API 26+, falls back to `TYPE_PHONE` on older versions.
+
+## Shizuku (Tier 4 — shell-UID admin)
+
+`droid-mcp-shell-core` defines the tools below; `droid-mcp-shizuku` wires them against Shizuku's binder. The same surface is reused by `:droid-mcp-root` with a root-UID backend (see [Root](#root-tier-5--same-surface-broader-privilege) below) — host apps register one or the other, not both.
+
+### Package manager
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `install_apk` | Silent `pm install` from a local file path. | `path` (required), `replace` (default true → `-r`) |
+| `uninstall_app` | Silent `pm uninstall <pkg>`. | `package_name` (required), `keep_data` (default false → `-k`) |
+| `clear_app_data` | Wipe app data + cache via `pm clear`. | `package_name` (required) |
+| `force_stop_app` | Terminate app processes via `am force-stop`. | `package_name` (required) |
+| `disable_app` | Hide an app via `pm disable-user --user 0`. Reversible. | `package_name` (required) |
+| `enable_app` | Re-enable a disabled app via `pm enable`. Idempotent. | `package_name` (required) |
+
+### Permissions
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `grant_permission` | `pm grant <pkg> <perm>` — bypass the runtime-permission dialog. Idempotent. | `package_name` (required), `permission` (required) |
+| `revoke_permission` | `pm revoke <pkg> <perm>`. Idempotent. | `package_name` (required), `permission` (required) |
+| `list_app_permissions` | Parse `dumpsys package <pkg>` for granted / requested permissions. | `package_name` (required) |
+
+### Settings
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `put_secure_setting` | `settings put secure <key> <value>`. Idempotent. | `key` (required), `value` (required) |
+| `put_global_setting` | `settings put global <key> <value>`. Idempotent. | `key` (required), `value` (required) |
+| `put_system_setting` | `settings put system <key> <value>`. Idempotent. | `key` (required), `value` (required) |
+
+### Dumpsys / state
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_top_window` | Parse `dumpsys window` for foreground package + activity. Cheaper than `accessibility.get_active_window_info` when the accessibility service isn't enabled. | -- |
+
+### Standby
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `set_app_standby_bucket` | `am set-standby-bucket` — `active` / `working_set` / `frequent` / `rare` / `restricted`. Idempotent. | `package_name` (required), `bucket` (required) |
+| `make_app_inactive` | `am set-inactive <pkg> true` for Doze testing. Idempotent. | `package_name` (required) |
+
+### Screencap
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `capture_screen_quiet` | `screencap -p` via the shell backend — no MediaProjection consent prompt, no status-bar indicator. Returns base64 PNG. | `display` (default 0) |
+
+### Escape hatch
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `run_shell` | Run an arbitrary command via the backend. **Default-deny**: the host must register allowed prefixes via `ShellAllowlist.set(...)` before this tool succeeds. Prefer the argv form (`args` array) for anything with whitespace/quotes; the string form whitespace-splits naively. Stdout truncated at `max_stdout_bytes` (1024-65536, default 8192). | `command` (required), `args` (array, optional), `max_stdout_bytes` |
+
+Requires Shizuku activated + the host app granted permission. See [docs/SHIZUKU.md](../docs/SHIZUKU.md). Deep `dumpsys` tools (`batterystats`, `procstats`, full notification dumpsys) are deferred to a future release because their raw output overwhelms an LLM's token budget without bespoke parsing.
+
+## Root (Tier 5 — same surface, broader privilege)
+
+`droid-mcp-root` exposes the **same 17 tools** as `shizuku` with identical names, parameters, and output shapes. Difference: backed by libsu's `su` shell instead of Shizuku's binder proxy. Strictly more powerful — capable of `/system` writes, freezing apps via `pm hide`, reading `/data/data/<pkg>`, etc.
+
+Host apps register either `ShizukuTools.all(context)` OR `RootTools.all(context)` — not both (the second `addTools` call overwrites the first since the tool names collide). Hosts that want "root preferred, Shizuku fallback" can detect availability and pick the backend at startup; see [docs/ROOT.md](../docs/ROOT.md) for the dispatch pattern.
 
 ## Screenshot
 

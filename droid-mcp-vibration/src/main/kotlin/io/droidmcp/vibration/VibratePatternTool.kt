@@ -11,12 +11,21 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Plays a waveform vibration from `timings` — alternating OFF/ON durations in ms, starting with
+ * OFF (`timings[0]` is a delay before the first vibration; matches
+ * [VibrationEffect.createWaveform]/legacy `Vibrator.vibrate(long[], int)` semantics exactly).
+ * Any non-empty length is valid — there is no even/odd requirement. Optional `repeat` index
+ * (-1 = no repeat, clamped to bounds). Requires `VIBRATE`.
+ *
+ * Output key on success: `success` (true). Errors on invalid timings or a device with no vibrator.
+ */
 class VibratePatternTool(private val context: Context) : McpTool {
 
     override val name = "vibrate_pattern"
-    override val description = "Vibrate the device with a custom pattern of ON/OFF durations"
+    override val description = "Vibrate the device with a custom pattern of alternating OFF/ON durations"
     override val parameters = listOf(
-        ToolParameter("timings", "List of ON/OFF durations in milliseconds (e.g., [100, 50, 100])", ParameterType.ARRAY, required = true),
+        ToolParameter("timings", "Alternating OFF/ON durations in milliseconds, starting with OFF — timings[0] is a delay before the first vibration (e.g. [0, 100, 50, 100] vibrates immediately for 100ms, pauses 50ms, then vibrates 100ms)", ParameterType.ARRAY, required = true),
         ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart)", ParameterType.INTEGER, required = false),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
@@ -29,8 +38,11 @@ class VibratePatternTool(private val context: Context) : McpTool {
         val longTimings = timings.mapNotNull { (it as? Number)?.toLong() }
             .toLongArray()
 
-        if (longTimings.isEmpty() || longTimings.size % 2 != 0) {
-            return ToolResult.error("timings must contain pairs of ON/OFF durations")
+        if (longTimings.isEmpty()) {
+            return ToolResult.error("timings must be a non-empty array of alternating OFF/ON durations")
+        }
+        if (longTimings.any { it < 0 }) {
+            return ToolResult.error("timings must not contain negative durations")
         }
 
         val repeat = (params["repeat"] as? Number)?.toInt()?.coerceIn(-1, longTimings.size - 1) ?: -1

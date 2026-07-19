@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Default input-method config for host apps that subclass
+    DroidMcpInputMethodService. Host can supply its own XML if it needs custom
+    subtypes or flags; just point the manifest <meta-data> at it instead.
+-->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="" >
+    <subtype
+        android:label="@string/droid_mcp_ime_subtype_label"
+        android:imeSubtypeMode="keyboard"
+        android:imeSubtypeLocale="en_US" />
+</input-method>

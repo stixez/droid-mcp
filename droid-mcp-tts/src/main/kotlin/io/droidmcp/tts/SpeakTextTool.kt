@@ -9,9 +9,21 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import kotlin.coroutines.resume
 
+/**
+ * Speaks text aloud through the device [TextToSpeech] engine, suspending until playback completes.
+ * No permissions required.
+ *
+ * Initializes a one-shot engine, applies pitch/speed (each clamped to 0.5–2.0) and language (falls
+ * back to English if the requested BCP-47 tag is unsupported or missing data), speaks with
+ * `QUEUE_FLUSH`, then shuts the engine down. Cancelling the coroutine shuts down the engine.
+ *
+ * Output map (on completion): `success` (true), `text_length` (Int), `language` (the requested tag,
+ * not necessarily the one actually used after fallback).
+ */
 class SpeakTextTool(private val context: Context) : McpTool {
 
     override val name = "speak_text"
@@ -31,11 +43,17 @@ class SpeakTextTool(private val context: Context) : McpTool {
         val pitch = (params["pitch"] as? Number)?.toFloat()?.coerceIn(0.5f, 2.0f) ?: 1.0f
         val speed = (params["speed"] as? Number)?.toFloat()?.coerceIn(0.5f, 2.0f) ?: 1.0f
 
-        return suspendCancellableCoroutine { continuation ->
+        // Bounded so a flaky engine that never calls onDone/onError (or never finishes
+        // initializing) can't suspend this call — and therefore leak a live TTS engine —
+        // forever. Timing out cancels the coroutine below, whose invokeOnCancellation
+        // already shuts the engine down.
+        return withTimeoutOrNull(SPEAK_TIMEOUT_MS) {
+        suspendCancellableCoroutine { continuation ->
             var tts: TextToSpeech? = null
 
             tts = TextToSpeech(context) { status ->
                 if (status == TextToSpeech.ERROR) {
+                    tts?.shutdown()
                     continuation.resume(ToolResult.error("Failed to initialize TTS engine"))
                     return@TextToSpeech
                 }
@@ -97,5 +115,10 @@ class SpeakTextTool(private val context: Context) : McpTool {
                 tts?.shutdown()
             }
         }
+        } ?: ToolResult.error("TTS playback timed out after ${SPEAK_TIMEOUT_MS / 1000}s")
+    }
+
+    companion object {
+        private const val SPEAK_TIMEOUT_MS = 30_000L
     }
 }

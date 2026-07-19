@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Keeps the MCP HTTP server alive across screen-off / task-killers. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- API 34+ requires a typed foreground service; a local network server is
+         a "special use" case. The host's concrete <service> declares
+         android:foregroundServiceType="specialUse" + the SUBTYPE property. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- API 33+: the ongoing notification needs runtime POST_NOTIFICATIONS to
+         be visible. The host requests it; the service runs regardless. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+</manifest>

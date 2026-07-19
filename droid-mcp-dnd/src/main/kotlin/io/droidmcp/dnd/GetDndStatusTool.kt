@@ -7,6 +7,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports the current Do Not Disturb / interruption-filter state.
+ *
+ * Reads [android.app.NotificationManager.getCurrentInterruptionFilter]; no
+ * special access is needed to read it (reading is unrestricted). Read-only.
+ *
+ * Output keys: `enabled` (filter is not "all"), `filter` (one of `all`,
+ * `priority`, `none`, `alarms`, `unknown`), `has_policy_access` (whether the
+ * app holds DND policy access, required to *change* the mode).
+ */
 class GetDndStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_dnd_status"

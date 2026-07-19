@@ -9,6 +9,15 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Creates a countdown timer by firing an [AlarmClock.ACTION_SET_TIMER] intent at the system clock app
+ * (with `EXTRA_SKIP_UI`, so no UI is shown). Takes a positive `seconds` duration and an optional
+ * `message` label.
+ *
+ * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest).
+ *
+ * Result keys: `success`, `seconds`, `message`.
+ */
 class CreateTimerTool(private val context: Context) : McpTool {
 
     override val name = "create_timer"

@@ -1,6 +1,10 @@
 # Specs and plans (local only)
 docs/superpowers/
 
+# Changelog and roadmap (maintainer notes, local only)
+CHANGELOG.md
+ROADMAP.md
+
 # Gradle
 .gradle/
 build/

@@ -14,9 +14,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
+/**
+ * Returns mobile (cellular) data usage over a look-back window. Prefers
+ * [android.app.usage.NetworkStatsManager.querySummaryForDevice] which requires the
+ * `PACKAGE_USAGE_STATS` special-access grant; on `SecurityException`/failure it silently
+ * falls back to [android.net.TrafficStats] cumulative-since-boot totals (which ignore the
+ * `days` window and add a `note`). Param `days` (1-90, default 30). Output: `bytes_rx`,
+ * `bytes_tx`, `query_period_days`, and `note` only on the fallback path. Returns
+ * [ToolResult.error] only when even TrafficStats is unsupported.
+ */
 class GetDataUsageTool(private val context: Context) : McpTool {
     override val name = "get_data_usage"
-    override val description = "Get mobile data usage statistics over a specified time period"
+    override val description = "Get mobile (cellular) data usage statistics over a specified time period; falls back to cumulative since-boot totals if usage-access is not granted"
     override val parameters = listOf(
         ToolParameter(
             name = "days",

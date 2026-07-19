@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="droid_mcp_ime_subtype_label">droid-mcp keyboard</string>
+    <string name="droid_mcp_ime_label">droid-mcp keyboard</string>
+    <string name="droid_mcp_ime_switch_back">Switch back</string>
+</resources>

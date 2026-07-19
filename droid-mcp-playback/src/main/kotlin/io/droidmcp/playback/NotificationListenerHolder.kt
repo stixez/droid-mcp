@@ -1,25 +1,10 @@
 package io.droidmcp.playback
 
-import android.content.ComponentName
-
 /**
- * Holds the ComponentName of the host app's NotificationListenerService.
- * The host app must call NotificationListenerHolder.set(componentName) with
- * its own service class before using playback tools.
+ * Re-export of the shared notification-listener holder. Kept as a typealias for
+ * backward compatibility with consumers that imported
+ * `io.droidmcp.playback.NotificationListenerHolder` before 0.5.0.
  *
- * Example:
- *   NotificationListenerHolder.set(ComponentName(context, MyListenerService::class.java))
+ * New code should use [io.droidmcp.notification.NotificationListenerHolder] directly.
  */
-object NotificationListenerHolder {
-    @Volatile
-    var componentName: ComponentName? = null
-        private set
-
-    fun set(name: ComponentName) {
-        componentName = name
-    }
-
-    fun clear() {
-        componentName = null
-    }
-}
+typealias NotificationListenerHolder = io.droidmcp.notification.NotificationListenerHolder

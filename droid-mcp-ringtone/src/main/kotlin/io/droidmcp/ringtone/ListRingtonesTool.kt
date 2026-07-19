@@ -8,6 +8,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists available device sounds of a given type (ringtone / notification / alarm) via a
+ * [RingtoneManager] cursor, capped by `limit` (1–100, default 50).
+ *
+ * No permissions required. Read-only.
+ *
+ * Output keys: `type`, `count`, `ringtones` (each with `title`, `uri`).
+ */
 class ListRingtonesTool(private val context: Context) : McpTool {
 
     override val name = "list_ringtones"

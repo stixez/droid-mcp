@@ -10,8 +10,22 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
+/**
+ * Detects faces in a local image with on-device ML Kit face detection (accurate mode, full
+ * classification). Returns bounding boxes plus expression/eye-open probabilities and head Euler
+ * angles. Does NOT identify or recognize individuals.
+ *
+ * No permissions required; `image_path` is sandboxed to the external-storage root via
+ * [PathValidator] and must point at an existing file. Read-only.
+ *
+ * Output keys: `face_count`, `faces` (each with `bounding_box` {`left`, `top`, `right`, `bottom`},
+ * `smiling_probability`, `left_eye_open_probability`, `right_eye_open_probability`,
+ * `head_euler_angle_y`, `head_euler_angle_z`).
+ */
 class DetectFacesTool(private val context: Context) : McpTool {
 
     override val name = "detect_faces"
@@ -21,18 +35,18 @@ class DetectFacesTool(private val context: Context) : McpTool {
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
+    override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()
-            ?: return ToolResult.error("image_path is required")
+            ?: return@withContext ToolResult.error("image_path is required")
         if (!PathValidator.isAllowed(path)) {
-            return ToolResult.error("Access denied: image_path is outside allowed storage directories")
+            return@withContext ToolResult.error("Access denied: image_path is outside allowed storage directories")
         }
         val file = File(path)
         if (!file.exists() || !file.isFile) {
-            return ToolResult.error("Image file not found: $path")
+            return@withContext ToolResult.error("Image file not found: $path")
         }
 
-        return try {
+        try {
             val image = InputImage.fromFilePath(context, Uri.fromFile(file))
             val options = FaceDetectorOptions.Builder()
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)

@@ -10,6 +10,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Sets screen brightness (0-255, clamped). Requires `WRITE_SETTINGS`; when not granted it launches
+ * the system grant screen and returns an error instead of writing.
+ *
+ * Output keys on success: `success` (true), `brightness` (the clamped value applied).
+ */
 class SetBrightnessTool(private val context: Context) : McpTool {
 
     override val name = "set_brightness"
@@ -34,6 +40,14 @@ class SetBrightnessTool(private val context: Context) : McpTool {
         val clamped = level.coerceIn(0, 255)
 
         return try {
+            // Adaptive brightness (SCREEN_BRIGHTNESS_MODE_AUTOMATIC) continuously overrides
+            // SCREEN_BRIGHTNESS from the ambient light sensor, silently discarding this write
+            // unless manual mode is forced first.
+            Settings.System.putInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS_MODE,
+                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL,
+            )
             Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, clamped)
             ToolResult.success(mapOf(
                 "success" to true,

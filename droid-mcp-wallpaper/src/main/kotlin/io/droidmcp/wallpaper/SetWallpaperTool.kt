@@ -11,6 +11,17 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import java.io.File
 
+/**
+ * Sets the wallpaper from a local image file via [WallpaperManager.setBitmap], targeting the home
+ * screen, lock screen, or both.
+ *
+ * Requires the `SET_WALLPAPER` permission (normal, granted at install). The `path` is sandboxed to
+ * the external-storage root (canonical-path check); paths outside it are rejected. Also rejected if
+ * device policy disallows setting wallpaper ([WallpaperManager.isSetWallpaperAllowed]) or the image
+ * cannot be decoded.
+ *
+ * Output keys: `success`, `path`, `target`, `width`, `height`.
+ */
 class SetWallpaperTool(private val context: Context) : McpTool {
 
     override val name = "set_wallpaper"
@@ -48,8 +59,11 @@ class SetWallpaperTool(private val context: Context) : McpTool {
             return ToolResult.error("Setting wallpaper is not allowed by device policy")
         }
 
-        val bitmap = BitmapFactory.decodeFile(path)
-            ?: return ToolResult.error("Failed to decode image file: $path")
+        val bitmap = try {
+            BitmapFactory.decodeFile(path)
+        } catch (e: OutOfMemoryError) {
+            return ToolResult.error("Image too large to decode: $path")
+        } ?: return ToolResult.error("Failed to decode image file: $path")
 
         return try {
             val which = when (target) {

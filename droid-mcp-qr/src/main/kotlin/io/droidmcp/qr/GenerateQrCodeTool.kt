@@ -15,6 +15,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
+/**
+ * Generates a QR code image from arbitrary `text` using ZXing's [QRCodeWriter], rendered to a
+ * square PNG (`size` px, clamped 100–1000, default 300) and returned base64-encoded. No permissions
+ * required; no camera or hardware involved.
+ *
+ * Result keys: `qr_image` (base64 PNG, no line wrapping), `format` (always `"png"`), `size`.
+ */
 class GenerateQrCodeTool : McpTool {
 
     override val name = "generate_qr_code"

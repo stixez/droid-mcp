@@ -12,23 +12,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Extract changelog section
-        id: changelog
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          awk -v ver="$VERSION" '
-            $0 ~ "^## \\["ver"\\]" { found=1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' CHANGELOG.md > release-notes.md
-          echo "--- Release notes preview ---"
-          cat release-notes.md
 
       - uses: softprops/action-gh-release@v2
         with:
-          body_path: release-notes.md
+          generate_release_notes: true
           draft: false
           prerelease: false

@@ -1,22 +1,26 @@
 package io.droidmcp.qr
 
-import android.Manifest
 import android.content.Context
 import io.droidmcp.core.McpTool
-import io.droidmcp.core.PermissionHelper
 
+/**
+ * Provider for the QR/barcode module: [ScanQrCodeTool], [ScanBarcodeTool], and [GenerateQrCodeTool].
+ *
+ * All three tools operate on image files or text; none opens the camera, so no permission is
+ * required. (Live camera scanning is not implemented here.)
+ */
 object QrTools {
 
+    /** All tools in this module: [ScanQrCodeTool], [ScanBarcodeTool], [GenerateQrCodeTool]. */
     fun all(context: Context): List<McpTool> = listOf(
         ScanQrCodeTool(context),
         ScanBarcodeTool(context),
         GenerateQrCodeTool(),
     )
 
-    fun requiredPermissions(): List<String> = listOf(
-        Manifest.permission.CAMERA,
-    )
+    /** No permissions required — see object KDoc. */
+    fun requiredPermissions(): List<String> = emptyList()
 
-    fun hasPermissions(context: Context): Boolean =
-        PermissionHelper.hasPermissions(context, requiredPermissions())
+    /** Always true; see [requiredPermissions]. */
+    fun hasPermissions(context: Context): Boolean = true
 }

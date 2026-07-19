@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists all available audio devices (inputs and outputs) from [android.media.AudioManager].
+ * No permissions required.
+ *
+ * Output key `devices`: a list where each entry has `id`, `name` (human-readable label),
+ * `type` (e.g. `speaker`, `headphones`, `bluetooth_a2dp`), and `is_output` (sink vs source).
+ */
 class GetAudioDevicesTool(private val context: Context) : McpTool {
 
     override val name = "get_audio_devices"

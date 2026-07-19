@@ -10,6 +10,14 @@ import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Reads the `TYPE_PROXIMITY` sensor. No permissions. Many devices report only binary
+ * near/far rather than a true centimetre distance. With `duration_ms` (1-5000) it collects a
+ * series of samples; otherwise a single reading. See [readSensor]. Output: latest
+ * `distance_cm`, `is_near` (`distance < 5cm`), `accuracy`, `timestamp`, plus a `readings`
+ * list of `{distance_cm,is_near,timestamp}`. Returns [ToolResult.error] when the device has
+ * no proximity sensor.
+ */
 class GetProximityTool(private val context: Context) : McpTool {
 
     override val name = "get_proximity"

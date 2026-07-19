@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, etc.) via Model Context Protocol — 99 tools across 41 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 145 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **41 modules**, 99 tools, sample app with Compose UI
+- **53 modules**, 145 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
 
 ## Key Conventions
 
@@ -50,7 +50,7 @@ droid-mcp-{name}/
     {ToolName}Tool.kt         — individual tool implementations
 ```
 
-**Convenience:** `droid-mcp-all` — `api()` dependency on every module
+**Convenience:** `droid-mcp-all` — `api()` dependency on every module *except* the opt-in power/hardening modules: Tier 4/5 (`droid-mcp-shizuku`, `droid-mcp-root`) and the 0.10.0 hardening trio (`droid-mcp-audit`, `droid-mcp-tls`, `droid-mcp-server-service`). Those pull third-party deps (`dev.rikka.shizuku`, `libsu`, Room+KSP, BouncyCastle) or extra manifest permissions and stay explicit opt-ins to keep the default APK lean.
 **Sample:** `sample-app` — Compose UI, Material 3, dynamic colors, all tools registered
 
 <!-- SECTION: modules -->
@@ -100,6 +100,18 @@ droid-mcp-{name}/
 | `droid-mcp-usb` | `io.droidmcp.usb` | list_usb_devices, get_usb_device_info |
 | `droid-mcp-print` | `io.droidmcp.print` | list_printers, print_content |
 | `droid-mcp-mlkit` | `io.droidmcp.mlkit` | recognize_text, label_image, detect_faces |
+| `droid-mcp-notification-listener` | `io.droidmcp.notification` | Shared listener support (Holder, Store, base service) |
+| `droid-mcp-notifications-reply` | `io.droidmcp.notificationsreply` | list_repliable_notifications, reply_to_notification, dismiss_notification, invoke_notification_action |
+| `droid-mcp-notification-watch` | `io.droidmcp.notificationwatch` | watch_notifications, unwatch_notifications, list_notification_watches (+ NotificationListenerBus SharedFlow) |
+| `droid-mcp-accessibility` | `io.droidmcp.accessibility` | query_screen, find_node, wait_for_text, click_node, long_click_node, set_node_text, scroll_node, gesture, global_action, get_active_window_info, take_screenshot_via_a11y, tap, long_press, find_and_tap, scroll_to_find |
+| `droid-mcp-ime` | `io.droidmcp.ime` | is_ime_active, type_text, commit_keystroke, delete_text, set_selection, get_text_around_cursor, switch_to_previous_ime |
+| `droid-mcp-overlay` | `io.droidmcp.overlay` | OverlayController programmatic API only (no LLM tools) |
+| `droid-mcp-shell-core` | `io.droidmcp.shell` | Backend-agnostic shell tools (ShellBackend interface + 17 tool implementations: install_apk, uninstall_app, clear_app_data, force_stop_app, disable_app, enable_app, grant_permission, revoke_permission, list_app_permissions, put_secure_setting, put_global_setting, put_system_setting, get_top_window, set_app_standby_bucket, make_app_inactive, capture_screen_quiet, run_shell) |
+| `droid-mcp-shizuku` | `io.droidmcp.shizuku` | ShizukuShellBackend + ShizukuTools provider — wires shell-core tools against the Shizuku binder |
+| `droid-mcp-root` | `io.droidmcp.root` | RootShellBackend + RootTools provider — wires shell-core tools against libsu's `su` shell |
+| `droid-mcp-audit` | `io.droidmcp.audit` | RoomAuditSink — Room-backed `AuditSink` for the core `tools/call` audit hook (opt-in; pulls Room+KSP) |
+| `droid-mcp-tls` | `io.droidmcp.tls` | SelfSignedCert — BouncyCastle PKCS12 cert generation → `TlsConfig` for `enableTls` (opt-in) |
+| `droid-mcp-server-service` | `io.droidmcp.server` | DroidMcpServerService — abstract foreground service keeping the HTTP server alive (opt-in) |
 
 <!-- SECTION: new-tool-guide -->
 
@@ -155,7 +167,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 25 tests covering ToolRegistry, ToolParameter, ToolResult, McpProtocol, InProcessTransport, DroidMcp builder
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 51 tests covering ToolRegistry, ToolParameter, ToolResult, McpProtocol, InProcessTransport, TokenStore, DroidMcp builder
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp`
@@ -187,6 +199,13 @@ Some modules require permissions that are granted via system Settings, not runti
 | Module | Permission | Required for | How to grant |
 |--------|-----------|-------------|-------------|
 | playback | Notification Listener | All tools | Settings > Notification access |
+| notifications-reply | Notification Listener | All tools (host service must extend `McpNotificationListenerServiceBase` for cache + dismiss + invoke_action) | Settings > Notification access |
+| notification-watch | Notification Listener | All tools + `NotificationListenerBus.events` SharedFlow (shares listener service with notifications-reply) | Settings > Notification access |
+| accessibility | Accessibility Service (host service must extend `DroidMcpAccessibilityService`) | All tools | Settings > Accessibility > Installed apps |
+| ime | Input Method enabled + selected (host service must extend `DroidMcpInputMethodService`) | All tools | Settings > System > Languages & input > On-screen keyboard, plus the IME picker |
+| overlay | `SYSTEM_ALERT_WINDOW` | `OverlayController.show()` | Settings > Apps > Special access > Display over other apps |
+| shizuku | Shizuku service running + permission granted | All shell-core tools (install/uninstall, force-stop, secure-settings, permissions, screencap, run_shell with host allowlist, etc.) | Install Shizuku app, activate via wireless debugging (Android 11+) or ADB, grant runtime permission. See [docs/SHIZUKU.md](docs/SHIZUKU.md). |
+| root | Device rooted + superuser manager grants root to host app | Same shell-core tools as shizuku, routed via `su`. Strictly more powerful: writes `/system`, freezes apps via `pm hide`, reads `/data/data/<pkg>`. | Root the device via Magisk / KernelSU / SuperSU; first `Shell.cmd(...)` triggers the manager's permission prompt. See [docs/ROOT.md](docs/ROOT.md). |
 | screenshot | MediaProjection | `capture_screen` | `MediaProjectionManager.createScreenCaptureIntent()` |
 | dnd | DND Access | `set_dnd_mode` | Settings > DND access |
 | ringtone | WRITE_SETTINGS | `set_ringtone` | Settings > Modify system settings |

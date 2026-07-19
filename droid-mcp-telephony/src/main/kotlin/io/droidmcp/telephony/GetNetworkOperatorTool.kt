@@ -7,6 +7,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Returns the current registered network operator from [android.telephony.TelephonyManager].
+ * No permission required. The numeric `operator_id` (PLMN) is split into 3-digit `mcc` and
+ * remaining `mnc` when at least 5 digits are present. Output: `operator_name`, `operator_id`,
+ * `mcc`, `mnc` (any may be null/empty when not on a cellular network).
+ */
 class GetNetworkOperatorTool(private val context: Context) : McpTool {
 
     override val name = "get_network_operator"

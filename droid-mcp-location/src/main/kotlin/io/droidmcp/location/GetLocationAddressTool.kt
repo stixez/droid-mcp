@@ -9,6 +9,15 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.*
 import kotlin.coroutines.resume
 
+/**
+ * Reverse-geocodes a `latitude`/`longitude` pair to a postal address via the platform
+ * [android.location.Geocoder] (needs network access; no location permission). On API 33+
+ * uses the async callback API with a 5 s timeout; below that the deprecated blocking call.
+ * Output: `latitude`, `longitude`, `formatted_address`, `street`, `city`, `district`,
+ * `state`, `country`, `country_code`, `postal_code`. Returns [ToolResult.error] for
+ * out-of-range coordinates, when no Geocoder backend is present, on timeout, or when no
+ * address matches.
+ */
 class GetLocationAddressTool(private val context: Context) : McpTool {
 
     override val name = "get_location_address"

@@ -9,6 +9,15 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists installed applications, sorted by display label, optionally including system apps
+ * (`include_system` param, default false). No permissions; the module's manifest declares a
+ * `<queries>` element for `MAIN`/`LAUNCHER` intents so API 30+ package-visibility filtering
+ * doesn't reduce this to a handful of force-visible packages — apps with no launcher activity
+ * (background-only) are still excluded by design.
+ * Output: `apps` (each `{app_name, package_name, version, is_system_app}`) capped at the
+ * `limit` param, plus `count` and `include_system`.
+ */
 class ListInstalledAppsTool(private val context: Context) : McpTool {
 
     override val name = "list_installed_apps"

@@ -10,8 +10,20 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
+/**
+ * Extracts text from a local image with on-device ML Kit text recognition (Latin script). Returns
+ * the full recognized text plus per-line text and bounding boxes.
+ *
+ * No permissions required; `image_path` is sandboxed to the external-storage root via
+ * [PathValidator] and must point at an existing file. Read-only.
+ *
+ * Output keys: `text`, `line_count`, `lines` (each with `text` and nullable `bounding_box`
+ * {`left`, `top`, `right`, `bottom`}).
+ */
 class RecognizeTextTool(private val context: Context) : McpTool {
 
     override val name = "recognize_text"
@@ -21,18 +33,18 @@ class RecognizeTextTool(private val context: Context) : McpTool {
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
+    override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()
-            ?: return ToolResult.error("image_path is required")
+            ?: return@withContext ToolResult.error("image_path is required")
         if (!PathValidator.isAllowed(path)) {
-            return ToolResult.error("Access denied: image_path is outside allowed storage directories")
+            return@withContext ToolResult.error("Access denied: image_path is outside allowed storage directories")
         }
         val file = File(path)
         if (!file.exists() || !file.isFile) {
-            return ToolResult.error("Image file not found: $path")
+            return@withContext ToolResult.error("Image file not found: $path")
         }
 
-        return try {
+        try {
             val image = InputImage.fromFilePath(context, Uri.fromFile(file))
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).use { recognizer ->
                 val result = recognizer.process(image).awaitResult()

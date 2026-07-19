@@ -9,6 +9,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Launches an installed app via its main launch intent (`FLAG_ACTIVITY_NEW_TASK`),
+ * identified by `package_name`. Errors if the app is not found or exposes no launcher
+ * activity. No permissions; the module's manifest declares a `<queries>` element for
+ * `MAIN`/`LAUNCHER` intents so API 30+ package-visibility filtering doesn't hide launchable
+ * targets (a package with no launcher activity — background-only — is still invisible).
+ * Output: `success` (true) and `package_name`.
+ */
 class LaunchAppTool(private val context: Context) : McpTool {
 
     override val name = "launch_app"

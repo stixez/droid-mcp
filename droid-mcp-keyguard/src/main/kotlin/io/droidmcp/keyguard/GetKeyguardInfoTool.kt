@@ -7,6 +7,14 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports keyguard security details via [KeyguardManager]: whether a secure lock credential
+ * (PIN/pattern/password) is configured and the current lock state.
+ *
+ * No permissions required. Read-only.
+ *
+ * Output keys: `is_device_secure`, `is_device_locked`, `is_keyguard_locked`, `is_keyguard_secure`.
+ */
 class GetKeyguardInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_keyguard_info"

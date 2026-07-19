@@ -8,6 +8,12 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Returns the device's line-1 phone number via the deprecated `TelephonyManager.line1Number`.
+ * Requires `READ_PHONE_STATE` (or `READ_SMS`/`READ_PHONE_NUMBERS`); even so the value is
+ * frequently unavailable (carrier/SIM does not populate it) and `SecurityException` is caught
+ * and treated as null. Output: `phone_number` (nullable), `is_available`.
+ */
 class GetPhoneNumberTool(private val context: Context) : McpTool {
 
     override val name = "get_phone_number"

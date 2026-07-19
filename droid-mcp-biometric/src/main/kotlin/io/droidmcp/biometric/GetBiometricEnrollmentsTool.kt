@@ -9,10 +9,20 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports which biometric modalities are present/enrolled. No permissions declared by the module
+ * (the [FingerprintManager.hasEnrolledFingerprints] call is wrapped in try/catch and degrades to
+ * `false` if access is denied; `FEATURE_FACE` is a hardware-feature check, not enrollment state).
+ *
+ * `enrolled_count` is the number of modalities flagged true (0–2: fingerprint + face), NOT a count
+ * of individually enrolled credentials.
+ *
+ * Output map: `enrolled_count` (Int), `has_fingerprint` (Boolean), `has_face` (Boolean).
+ */
 class GetBiometricEnrollmentsTool(private val context: Context) : McpTool {
 
     override val name = "get_biometric_enrollments"
-    override val description = "Get information about enrolled biometrics on the device"
+    override val description = "Get information about present/enrolled biometric modalities (fingerprint, face)"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

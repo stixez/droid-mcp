@@ -11,6 +11,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Triggers a one-shot vibration for `duration_ms` (1-10000, clamped). Optional `amplitude` (1-255)
+ * is only honored on API 26+; on older devices the duration vibrates at the system default.
+ * Requires `VIBRATE`.
+ *
+ * Output key on success: `success` (true). Errors if the device has no vibrator.
+ */
 class VibrateTool(private val context: Context) : McpTool {
 
     override val name = "vibrate"

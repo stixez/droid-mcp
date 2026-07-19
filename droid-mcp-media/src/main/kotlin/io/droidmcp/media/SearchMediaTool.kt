@@ -7,6 +7,14 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Searches the MediaStore for images and/or videos by `DISPLAY_NAME` substring and/or
+ * `DATE_TAKEN` range, newest-first, with `limit`/`offset` paging. The `media_type` param
+ * selects `images`, `videos`, or `all` (default).
+ * Requires `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` on API 33+, else `READ_EXTERNAL_STORAGE`.
+ * Output: `results` (each `{id, name, path, date_taken, size_bytes, mime_type, width,
+ * height, media_type}`), `count`, and `media_type`.
+ */
 class SearchMediaTool(private val context: Context) : McpTool {
 
     override val name = "search_media"

@@ -2,10 +2,13 @@ package io.droidmcp.sample
 
 import android.Manifest
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -20,7 +23,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.pm.PackageManager
+import io.droidmcp.overlay.OverlayController
 import io.droidmcp.playback.NotificationListenerHolder
+import io.droidmcp.root.RootTools
+import io.droidmcp.shizuku.ShizukuTools
+import rikka.shizuku.Shizuku
 import io.droidmcp.sample.ui.MainScreen
 import io.droidmcp.sample.ui.theme.DroidMcpTheme
 import io.droidmcp.screenshot.MediaProjectionHolder
@@ -45,9 +53,22 @@ class MainActivity : ComponentActivity() {
 
     private var viewModelRef: MainViewModel? = null
 
+    /**
+     * Shizuku grant feedback. Registered in onCreate, unregistered in
+     * onDestroy. When the user grants permission for our request code, the
+     * ViewModel re-initializes so the Tools page reflects the new state
+     * without a manual restart.
+     */
+    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == SHIZUKU_REQUEST_CODE && grantResult == PackageManager.PERMISSION_GRANTED) {
+            viewModelRef?.initialize()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
 
         // Configure NotificationListenerService component for playback tools
         NotificationListenerHolder.set(
@@ -75,6 +96,11 @@ class MainActivity : ComponentActivity() {
                         onClearLogs = { vm.clearLogs() },
                         onRequestSpecialPermission = { type -> requestSpecialPermission(type) },
                         onToggleReadOnly = { value -> vm.setReadOnly(value) },
+                        onToggleTls = { value -> vm.setTls(value) },
+                        onToggleTool = { name, enabled -> vm.setToolEnabled(name, enabled) },
+                        onSetToolsEnabled = { names, enabled -> vm.setToolsEnabled(names, enabled) },
+                        onClearAuditLog = { vm.clearAuditLog() },
+                        onExportAuditLog = { vm.exportAuditLog { json -> copyAuditToClipboard(json) } },
                         contentPadding = contentPadding,
                     )
                 }
@@ -105,6 +131,8 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
             permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
             permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+            // For the foreground-service ongoing notification (server keeps running without it).
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -128,10 +156,55 @@ class MainActivity : ComponentActivity() {
                     data = android.net.Uri.parse("package:$packageName")
                 })
             }
+            "accessibility" -> {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            "ime_settings" -> {
+                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+            }
+            "overlay" -> {
+                startActivity(OverlayController(this).permissionIntent())
+            }
+            "shizuku" -> {
+                if (ShizukuTools.isShizukuReady()) {
+                    // Already granted — nothing to do.
+                } else if (Shizuku.pingBinder()) {
+                    // Installed + running, just not granted — request it.
+                    ShizukuTools.requestPermission(SHIZUKU_REQUEST_CODE)
+                } else {
+                    // Not installed or not activated — open Shizuku app / Play.
+                    startActivity(ShizukuTools.installOrOpenIntent(this))
+                }
+            }
+            "root" -> {
+                // Trigger the libsu su prompt asynchronously. On grant, re-run
+                // the ViewModel initializer so Root-backed tools appear in the
+                // registry (without an app restart). Callback runs on libsu's
+                // worker thread — bounce to main for the ViewModel mutation.
+                RootTools.requestAccess { granted ->
+                    if (granted) runOnUiThread { viewModelRef?.initialize() }
+                }
+            }
         }
+    }
+
+    companion object {
+        private const val SHIZUKU_REQUEST_CODE = 0xCAFE
     }
 
     private fun initViewModel() {
         viewModelRef?.initialize()
+    }
+
+    /** Export the audit JSON to the clipboard — the sample's "do something with it" sink. */
+    private fun copyAuditToClipboard(json: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("droid-mcp audit", json))
+        Toast.makeText(this, "Audit log copied (${json.length} chars)", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroy() {
+        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
+        super.onDestroy()
     }
 }

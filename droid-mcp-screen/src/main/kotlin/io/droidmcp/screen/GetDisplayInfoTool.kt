@@ -11,6 +11,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports physical display metrics for the default display via real (full-screen) metrics. No
+ * permissions required. HDR capability detection requires API 26+ (`O`); reported `false` below that.
+ *
+ * Output map: `width`/`height` (Int pixels), `density` (Float scale factor), `density_dpi` (Int),
+ * `refresh_rate` (Float Hz), `hdr_capable` (Boolean).
+ */
 class GetDisplayInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_display_info"

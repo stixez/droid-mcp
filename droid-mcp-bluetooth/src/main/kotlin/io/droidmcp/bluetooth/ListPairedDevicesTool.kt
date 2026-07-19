@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists bonded (paired) Bluetooth devices. Requires `BLUETOOTH_CONNECT` (API 31+) and an enabled
+ * adapter; errors otherwise.
+ *
+ * Output keys: `count` and `devices`, each entry having `device_name`, `device_address`,
+ * `device_type` (`classic`/`le`/`dual`/`unknown`), `bond_state` (`bonded`/`bonding`/`none`/`unknown`).
+ */
 class ListPairedDevicesTool(private val context: Context) : McpTool {
 
     override val name = "list_paired_devices"

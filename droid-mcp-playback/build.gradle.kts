@@ -23,4 +23,5 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-core"))
+    api(project(":droid-mcp-notification-listener"))
 }

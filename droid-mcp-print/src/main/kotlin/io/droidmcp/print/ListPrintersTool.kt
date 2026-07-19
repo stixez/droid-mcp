@@ -8,6 +8,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists installed print service plugins (resolved from the `android.printservice.PrintService`
+ * intent) and the host app's own active print jobs from [PrintManager.getPrintJobs]. Note: this
+ * does NOT enumerate individual physical printers — discovery happens inside the system print UI.
+ *
+ * No permissions required. Returns an error if [PrintManager] is unavailable. Read-only.
+ *
+ * Output keys: `print_services` (each with `package`, `name`), `service_count`,
+ * `active_jobs` (each with `id`, `label`, `state`), `active_job_count`.
+ */
 class ListPrintersTool(private val context: Context) : McpTool {
 
     override val name = "list_printers"

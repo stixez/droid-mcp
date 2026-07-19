@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -32,6 +33,17 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Records an H.264/MP4 video (video only — no audio track) for `duration_sec` seconds (clamped 1–60,
+ * default 10) via Camera2 + [MediaRecorder], preferring the back-facing camera at its maximum size,
+ * then copies the file into `MediaStore` under `Movies/droid-mcp`.
+ *
+ * Requires [android.Manifest.permission.CAMERA] and camera hardware; uses
+ * [android.hardware.camera2.params.SessionConfiguration] (API 28+, met by the SDK's min API). No audio
+ * is captured, so no `RECORD_AUDIO` permission is needed.
+ *
+ * Result keys: `file_path` (MediaStore content URI), `duration_ms`.
+ */
 class CaptureVideoTool(private val context: Context) : McpTool {
 
     override val name = "capture_video"
@@ -51,6 +63,7 @@ class CaptureVideoTool(private val context: Context) : McpTool {
         var session: CameraCaptureSession? = null
         var mediaRecorder: MediaRecorder? = null
         var tempFile: File? = null
+        var sessionExecutor: java.util.concurrent.ExecutorService? = null
 
         try {
             val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -90,34 +103,50 @@ class CaptureVideoTool(private val context: Context) : McpTool {
 
             val recorderSurface = mediaRecorder.surface
 
-            device = suspendCancellableCoroutine { cont ->
-                cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-                    override fun onOpened(camera: CameraDevice) = cont.resume(camera)
-                    override fun onDisconnected(camera: CameraDevice) {
-                        camera.close()
-                        if (cont.isActive) cont.resumeWithException(RuntimeException("Camera disconnected"))
-                    }
-                    override fun onError(camera: CameraDevice, error: Int) {
-                        camera.close()
-                        if (cont.isActive) cont.resumeWithException(RuntimeException("Camera error: $error"))
-                    }
-                }, handler)
-            }
-
-            session = suspendCancellableCoroutine { cont ->
-                val outputConfig = OutputConfiguration(recorderSurface)
-                val sessionConfig = SessionConfiguration(
-                    SessionConfiguration.SESSION_REGULAR,
-                    listOf(outputConfig),
-                    Executors.newSingleThreadExecutor(),
-                    object : CameraCaptureSession.StateCallback() {
-                        override fun onConfigured(s: CameraCaptureSession) = cont.resume(s)
-                        override fun onConfigureFailed(s: CameraCaptureSession) {
-                            if (cont.isActive) cont.resumeWithException(RuntimeException("Session configuration failed"))
+            // Bounded, unlike the recording itself (which legitimately runs up to 60s): a
+            // camera-service hang or a concurrent-camera-user OEM quirk would otherwise suspend
+            // this call indefinitely, holding the HandlerThread and MediaRecorder forever.
+            val setupOk = withTimeoutOrNull(10_000L) {
+                device = suspendCancellableCoroutine { cont ->
+                    cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
+                        // If the timeout already fired, resume is silently discarded — close
+                        // the device instead of leaking a locked-but-unreferenced camera.
+                        override fun onOpened(camera: CameraDevice) {
+                            if (cont.isActive) cont.resume(camera) else camera.close()
                         }
-                    },
-                )
-                device!!.createCaptureSession(sessionConfig)
+                        override fun onDisconnected(camera: CameraDevice) {
+                            camera.close()
+                            if (cont.isActive) cont.resumeWithException(RuntimeException("Camera disconnected"))
+                        }
+                        override fun onError(camera: CameraDevice, error: Int) {
+                            camera.close()
+                            if (cont.isActive) cont.resumeWithException(RuntimeException("Camera error: $error"))
+                        }
+                    }, handler)
+                }
+
+                session = suspendCancellableCoroutine { cont ->
+                    val outputConfig = OutputConfiguration(recorderSurface)
+                    sessionExecutor = Executors.newSingleThreadExecutor()
+                    val sessionConfig = SessionConfiguration(
+                        SessionConfiguration.SESSION_REGULAR,
+                        listOf(outputConfig),
+                        sessionExecutor,
+                        object : CameraCaptureSession.StateCallback() {
+                            override fun onConfigured(s: CameraCaptureSession) {
+                                if (cont.isActive) cont.resume(s) else s.close()
+                            }
+                            override fun onConfigureFailed(s: CameraCaptureSession) {
+                                if (cont.isActive) cont.resumeWithException(RuntimeException("Session configuration failed"))
+                            }
+                        },
+                    )
+                    device!!.createCaptureSession(sessionConfig)
+                }
+                true
+            }
+            if (setupOk == null) {
+                return@withContext ToolResult.error("Failed to set up camera for recording (timeout)")
             }
 
             val captureRequest = device!!.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
@@ -148,16 +177,15 @@ class CaptureVideoTool(private val context: Context) : McpTool {
             }
 
             val uri = context.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-            uri?.let { destUri ->
-                context.contentResolver.openOutputStream(destUri)?.use { os ->
-                    tempFile.inputStream().use { it.copyTo(os) }
-                }
-            }
+                ?: return@withContext ToolResult.error("Failed to create MediaStore entry for video")
+            context.contentResolver.openOutputStream(uri)?.use { os ->
+                tempFile.inputStream().use { it.copyTo(os) }
+            } ?: return@withContext ToolResult.error("Failed to open output stream for video")
             tempFile.delete()
             tempFile = null
 
             ToolResult.success(mapOf(
-                "file_path" to uri?.toString(),
+                "file_path" to uri.toString(),
                 "duration_ms" to (durationSec * 1000L),
             ))
         } catch (e: Exception) {
@@ -167,6 +195,7 @@ class CaptureVideoTool(private val context: Context) : McpTool {
             try { mediaRecorder?.release() } catch (_: Exception) {}
             session?.close()
             device?.close()
+            sessionExecutor?.shutdown()
             handlerThread.quitSafely()
             tempFile?.delete()
         }

@@ -14,7 +14,7 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "0.4.0"
+        versionName = "0.10.1"
     }
 
     buildFeatures {
@@ -36,6 +36,9 @@ android {
                 "META-INF/INDEX.LIST",
                 "META-INF/io.netty.versions.properties",
                 "META-INF/*.kotlin_module",
+                // BouncyCastle (droid-mcp-tls) ships this OSGi manifest in all
+                // three of its jars — it's unused on Android.
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
             )
         }
     }
@@ -43,6 +46,14 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-all"))
+    // Tier 4 — opt-in (pulls dev.rikka.shizuku). The sample app exercises Shizuku tools, so we add it here.
+    implementation(project(":droid-mcp-shizuku"))
+    // Tier 5 — opt-in (pulls libsu). Same shell tool surface as Shizuku, just routed via su.
+    implementation(project(":droid-mcp-root"))
+    // 0.10.0 hardening — opt-in modules (Room, BouncyCastle, foreground service).
+    implementation(project(":droid-mcp-audit"))
+    implementation(project(":droid-mcp-tls"))
+    implementation(project(":droid-mcp-server-service"))
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)

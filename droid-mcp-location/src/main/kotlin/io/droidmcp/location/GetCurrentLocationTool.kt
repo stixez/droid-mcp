@@ -7,6 +7,15 @@ import io.droidmcp.core.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Returns the device's last known cached location from [android.location.LocationManager]
+ * (no fresh fix is requested). Requires `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION`.
+ * Accepts an `accuracy` param (`"fine"` | `"coarse"`, default `"coarse"`) that only reorders
+ * the provider preference (GPS/network/fused). Output: `latitude`, `longitude`,
+ * `accuracy_meters`, `altitude`, `speed_mps`, `timestamp`, `provider`. Returns
+ * [ToolResult.error] when permission is missing, the accuracy value is invalid, or no
+ * cached fix exists on any enabled provider.
+ */
 class GetCurrentLocationTool(private val context: Context) : McpTool {
 
     override val name = "get_current_location"

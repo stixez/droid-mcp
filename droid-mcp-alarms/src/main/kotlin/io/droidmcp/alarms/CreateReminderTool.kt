@@ -13,6 +13,16 @@ import io.droidmcp.core.ToolResult
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Creates a reminder as a 30-minute calendar event with an alert, inserted into the device's primary
+ * calendar via [CalendarContract]. Takes a `title`, a `datetime` (`yyyy-MM-dd HH:mm`), and optional
+ * `minutes_before` (default 10) for the alert lead time.
+ *
+ * Requires both [Manifest.permission.READ_CALENDAR] and [Manifest.permission.WRITE_CALENDAR]
+ * (checked at runtime; returns an error if either is missing). Fails if no calendar exists on the device.
+ *
+ * Result keys: `success`, `event_id`, `title`, `datetime`, `minutes_before`.
+ */
 class CreateReminderTool(private val context: Context) : McpTool {
 
     override val name = "create_reminder"
@@ -35,7 +45,7 @@ class CreateReminderTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("title is required")
         val datetimeStr = params["datetime"]?.toString()
             ?: return ToolResult.error("datetime is required")
-        val minutesBefore = (params["minutes_before"] as? Number)?.toInt() ?: 10
+        val minutesBefore = (params["minutes_before"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 10
 
         val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
         val startMillis = try {
@@ -68,6 +78,7 @@ class CreateReminderTool(private val context: Context) : McpTool {
             put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
         }
         context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, reminderValues)
+            ?: return ToolResult.error("Event created (id=$eventId) but failed to attach the reminder alert")
 
         return ToolResult.success(mapOf(
             "success" to true,

@@ -8,6 +8,16 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Reports whether biometric (or device-credential) authentication can currently succeed, using
+ * AndroidX [BiometricManager]. No permissions required.
+ *
+ * `hardware_type` is inferred from which authenticator classes report success: the WEAK class is
+ * labelled "fingerprint" and the STRONG class (API 30+ / `R`) "face" — a heuristic, not a true
+ * sensor enumeration. Other values: "none", "update_required" (security update needed), "unknown".
+ *
+ * Output map: `can_authenticate` (Boolean) and `hardware_type` (String).
+ */
 class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
 
     override val name = "check_biometric_availability"
@@ -40,8 +50,8 @@ class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE,
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> false to "none"
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> true to "none"
-            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> true to "update_required"
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> false to "none"
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> false to "update_required"
             else -> false to "unknown"
         }
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Default accessibility-service config for host apps that subclass
+    DroidMcpAccessibilityService. Host can supply its own XML if it needs
+    different flags (e.g., narrower package filter); just point the
+    `android:resource` attribute on the manifest <meta-data> at it instead.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews|flagRequestTouchExplorationMode"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="100"
+    android:summary="@string/droid_mcp_accessibility_summary"
+    android:description="@string/droid_mcp_accessibility_description" />

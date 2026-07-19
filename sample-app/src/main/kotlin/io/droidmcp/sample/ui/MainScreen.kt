@@ -1,9 +1,12 @@
 package io.droidmcp.sample.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,11 +33,17 @@ fun MainScreen(
     onClearLogs: () -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
     onToggleReadOnly: (Boolean) -> Unit = {},
+    onToggleTls: (Boolean) -> Unit = {},
+    onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
+    onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
+    onClearAuditLog: () -> Unit = {},
+    onExportAuditLog: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
+    var qrExpanded by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -123,6 +132,73 @@ fun MainScreen(
                     }
                 }
 
+                // TLS toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.tlsEnabled,
+                        onCheckedChange = onToggleTls,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "TLS (HTTPS)",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.tlsEnabled) "Self-signed, served on :8443 — pin the fingerprint"
+                            else "Plaintext HTTP on :8080",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // TLS fingerprint pill (shown whenever a cert is configured)
+                state.tlsFingerprint?.let { fingerprint ->
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                        ) {
+                            Text(
+                                "SHA-256 ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                fingerprint,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = { clipboard.setText(AnnotatedString(fingerprint)) },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy TLS fingerprint",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Server URL pill
                 state.serverUrl?.let { url ->
                     Spacer(Modifier.height(10.dp))
@@ -141,7 +217,7 @@ fun MainScreen(
                     }
                 }
 
-                // Pairing QR code
+                // Pairing QR code (collapsible — the full code eats a lot of vertical space)
                 state.pairingQr?.let { bitmap ->
                     Spacer(Modifier.height(10.dp))
                     Surface(
@@ -150,21 +226,39 @@ fun MainScreen(
                         tonalElevation = 1.dp,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                        ) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Pairing QR code",
-                                modifier = Modifier.size(220.dp),
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "Scan to pair an MCP client",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { qrExpanded = !qrExpanded }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                            ) {
+                                Text(
+                                    "Scan to pair an MCP client",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                                Icon(
+                                    if (qrExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (qrExpanded) "Collapse QR code" else "Expand QR code",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (qrExpanded) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                                        .fillMaxWidth(),
+                                ) {
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = "Pairing QR code",
+                                        modifier = Modifier.size(220.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -226,9 +320,39 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Text("Gating")
+                        if (state.disabledTools.isNotEmpty()) {
+                            Badge { Text("${state.disabledTools.size}") }
+                        }
+                    }
+                },
+            )
+            Tab(
+                selected = pagerState.currentPage == 2,
+                onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                text = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text("Activity")
                         if (state.logs.isNotEmpty()) {
                             Badge { Text("${state.logs.size}") }
+                        }
+                    }
+                },
+            )
+            Tab(
+                selected = pagerState.currentPage == 3,
+                onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
+                text = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Audit")
+                        if (state.auditLog.isNotEmpty()) {
+                            Badge { Text("${state.auditLog.size}") }
                         }
                     }
                 },
@@ -243,11 +367,22 @@ fun MainScreen(
         // ── Pages ────────────────────────────────────────────────────────────
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { page ->
             when (page) {
                 0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
-                1 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
+                1 -> GatingPage(
+                    tools = state.tools,
+                    disabledTools = state.disabledTools,
+                    onToggleTool = onToggleTool,
+                    onSetMany = onSetToolsEnabled,
+                )
+                2 -> ActivityPage(logs = state.logs, onClear = onClearLogs)
+                3 -> AuditPage(
+                    entries = state.auditLog,
+                    onClear = onClearAuditLog,
+                    onExport = onExportAuditLog,
+                )
             }
         }
     }

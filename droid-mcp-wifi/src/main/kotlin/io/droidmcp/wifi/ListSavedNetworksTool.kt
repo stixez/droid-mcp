@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
+/**
+ * Lists saved WiFi network SSIDs via the legacy `WifiManager.getConfiguredNetworks()`. That API is
+ * deprecated on API 29+ and returns an empty list there (with an explanatory `note`); below 29 it
+ * needs location permission. Requires `ACCESS_WIFI_STATE`.
+ *
+ * Output keys: `networks` (list of SSID strings), `count`, and on API 29+ a `note`.
+ */
 class ListSavedNetworksTool(private val context: Context) : McpTool {
 
     override val name = "list_saved_networks"
