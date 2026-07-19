@@ -58,6 +58,14 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
 
         val argvParam = params["args"] as? List<*>
         val (binName, argv, allowlistKey) = if (argvParam != null) {
+            // Argv form: `command` must be a single bin name, not a full command
+            // line — a whitespace-containing "bin name" would let the allowlist
+            // check see one string while the backend's shell sees several tokens
+            // (e.g. shell metacharacters), letting a single allowlisted prefix
+            // authorize an arbitrary trailing command.
+            if (rawCommand.any { it.isWhitespace() }) {
+                return ToolResult.error("invalid_args", "command must be a single bin name (no whitespace) when args is supplied; put the rest in args")
+            }
             // Argv form: validate every entry is a string, no tokenisation.
             val args = argvParam.mapIndexed { i, entry ->
                 entry as? String ?: return ToolResult.error("invalid_args", "args[$i] is not a string")

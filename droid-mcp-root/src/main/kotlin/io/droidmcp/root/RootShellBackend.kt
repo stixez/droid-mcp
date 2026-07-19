@@ -14,7 +14,7 @@ import java.util.UUID
 
 /**
  * [ShellBackend] backed by libsu — runs commands as the `root` UID. Strictly
- * more powerful than [io.droidmcp.shizuku.ShizukuShellBackend]: writes to
+ * more powerful than Shizuku's `ShizukuShellBackend`: writes to
  * `/system`, freezes apps via `pm hide`, reads `/data/data/<pkg>`, etc.
  *
  * **Output model.** libsu's [Shell.Result.out] is `List<String>` (UTF-8
@@ -76,6 +76,9 @@ class RootShellBackend : ShellBackend {
         val result = try {
             Shell.cmd(commandLine).exec()
         } catch (t: Throwable) {
+            // The shell-side redirect (`> tempPath`) may have already created the file even
+            // though exec() itself threw — clean it up so it doesn't orphan in /data/local/tmp.
+            runCatching { SuFile(tempPath).delete() }
             throw ShellException.SpawnFailed(t.message ?: t::class.java.simpleName)
         }
 
@@ -115,7 +118,7 @@ class RootShellBackend : ShellBackend {
     }
 
     private fun buildCommandLine(command: String, args: List<String>): String = buildString {
-        append(command)
+        append(ShellUtils.escapedString(command))
         args.forEach { arg ->
             append(' ')
             append(ShellUtils.escapedString(arg))
