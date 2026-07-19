@@ -1,4 +1,5 @@
 jdk:
   - openjdk17
 before_install:
-  - sdk-manager --install "build-tools;35.0.0" "platforms;android-35"
+  - yes | sdkmanager --licenses > /dev/null || true
+  - sdkmanager "platforms;android-35" "build-tools;35.0.0"
