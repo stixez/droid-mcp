@@ -42,7 +42,7 @@ Typealiases kept purely for source compatibility (e.g. `playback.NotificationLis
 ## Distribution and tags
 
 - Releases are published via **JitPack**, keyed off signed git tags (`vMAJOR.MINOR.PATCH`). Maven Central is deferred to post-1.0 and is demand-driven; if it happens, it's a one-line coordinate change for consumers, not a breaking migration.
-- Each release has a `## [x.y.z]` section in [CHANGELOG.md](../CHANGELOG.md) with a `compare/` footnote. Where intermediate versions shipped together (0.5–0.9 were cut as one), the footnote spans the actual tag range.
+- Each GitHub Release's notes are auto-generated from the tag's commit history (`generate_release_notes` in `release.yml`). A maintainer-facing `CHANGELOG.md` is kept locally (gitignored, not published) for drafting those notes and tracking fix rationale across a release.
 
 ## Support window
 
