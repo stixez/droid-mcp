@@ -1,9 +1,12 @@
 package io.droidmcp.sample.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +43,7 @@ fun MainScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
+    var qrExpanded by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -213,7 +217,7 @@ fun MainScreen(
                     }
                 }
 
-                // Pairing QR code
+                // Pairing QR code (collapsible — the full code eats a lot of vertical space)
                 state.pairingQr?.let { bitmap ->
                     Spacer(Modifier.height(10.dp))
                     Surface(
@@ -222,21 +226,39 @@ fun MainScreen(
                         tonalElevation = 1.dp,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                        ) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Pairing QR code",
-                                modifier = Modifier.size(220.dp),
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "Scan to pair an MCP client",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { qrExpanded = !qrExpanded }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                            ) {
+                                Text(
+                                    "Scan to pair an MCP client",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                                Icon(
+                                    if (qrExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (qrExpanded) "Collapse QR code" else "Expand QR code",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (qrExpanded) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                                        .fillMaxWidth(),
+                                ) {
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = "Pairing QR code",
+                                        modifier = Modifier.size(220.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -345,7 +367,7 @@ fun MainScreen(
         // ── Pages ────────────────────────────────────────────────────────────
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { page ->
             when (page) {
                 0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
