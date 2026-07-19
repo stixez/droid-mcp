@@ -1,11 +1,14 @@
 package io.droidmcp.device
 
+import android.Manifest
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.PermissionHelper
 
 /**
  * Provider for the device module: read-only hardware and system facts (model, battery,
- * connectivity, storage). Requires no permissions — all data is public.
+ * connectivity, storage). Only [GetConnectivityTool] needs a permission — the normal
+ * (install-time) `ACCESS_NETWORK_STATE` — for `ConnectivityManager.getNetworkCapabilities()`.
  */
 object DeviceTools {
 
@@ -17,9 +20,10 @@ object DeviceTools {
         GetStorageInfoTool(),
     )
 
-    /** Permissions this module needs — none; device facts are freely readable. */
-    fun requiredPermissions(): List<String> = emptyList()
+    /** Permissions this module needs: `ACCESS_NETWORK_STATE`, for [GetConnectivityTool]. */
+    fun requiredPermissions(): List<String> = listOf(Manifest.permission.ACCESS_NETWORK_STATE)
 
-    /** Always true: this module needs no permissions. */
-    fun hasPermissions(context: Context): Boolean = true
+    /** True if all [requiredPermissions] are currently granted. */
+    fun hasPermissions(context: Context): Boolean =
+        PermissionHelper.hasPermissions(context, requiredPermissions())
 }

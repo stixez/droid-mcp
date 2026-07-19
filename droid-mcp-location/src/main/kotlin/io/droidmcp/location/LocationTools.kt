@@ -24,7 +24,12 @@ object LocationTools {
         Manifest.permission.ACCESS_COARSE_LOCATION,
     )
 
-    /** True when at least the declared location permissions are granted. */
+    /**
+     * True when at least one of fine or coarse location is granted. [PermissionHelper.hasPermissions]
+     * itself is all-of (correct for modules needing every listed permission), so "either is
+     * sufficient" is implemented here by checking each permission individually — otherwise a
+     * coarse-only grant (Android 12+ "Approximate location") would be wrongly reported as ungranted.
+     */
     fun hasPermissions(context: Context): Boolean =
-        PermissionHelper.hasPermissions(context, requiredPermissions())
+        requiredPermissions().any { PermissionHelper.hasPermissions(context, listOf(it)) }
 }

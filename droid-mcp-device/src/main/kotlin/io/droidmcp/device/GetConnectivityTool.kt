@@ -13,8 +13,7 @@ import io.droidmcp.core.ToolResult
  * `has_cellular`, `has_bluetooth`. All false when there is no active network.
  *
  * Reading network capabilities requires the normal (install-time) `ACCESS_NETWORK_STATE`
- * permission. The device module does not declare it; a host that uses this tool standalone
- * should add it (the `wifi` / `network` modules already declare it, so a merged APK is covered).
+ * permission, declared by this module's manifest and reported via [DeviceTools.requiredPermissions].
  */
 class GetConnectivityTool(private val context: Context) : McpTool {
 

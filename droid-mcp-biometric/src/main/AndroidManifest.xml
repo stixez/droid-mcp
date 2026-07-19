@@ -1,1 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Belt-and-suspenders: androidx.biometric already merges this in, but
+         GetBiometricEnrollmentsTool's legacy FingerprintManager.hasEnrolledFingerprints()
+         call depends on it directly rather than through that transitive dependency. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+</manifest>

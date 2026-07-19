@@ -1,1 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Without this, API 30+ package-visibility filtering makes getInstalledApplications(),
+         getPackageInfo(), and getLaunchIntentForPackage() see only a handful of force-visible
+         packages — list_installed_apps/get_app_info/launch_app would silently return almost
+         nothing on modern devices. This declares visibility into every launchable app
+         specifically (the standard mitigation for an app-launcher use case); apps with no
+         LAUNCHER activity (background-only services) remain invisible by design. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+</manifest>

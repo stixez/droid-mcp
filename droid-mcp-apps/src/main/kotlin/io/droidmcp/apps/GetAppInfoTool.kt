@@ -11,9 +11,10 @@ import io.droidmcp.core.ToolResult
 import java.util.Date
 
 /**
- * Returns details for one installed app identified by `package_name`. No permissions,
- * though API 30+ package visibility rules may make some packages invisible (reported as
- * "App not found").
+ * Returns details for one installed app identified by `package_name`. No permissions; the
+ * module's manifest declares a `<queries>` element for `MAIN`/`LAUNCHER` intents so API 30+
+ * package-visibility filtering doesn't hide launchable apps — a package with no launcher
+ * activity (background-only) is still invisible (reported as "App not found").
  * Output: `app_name`, `package_name`, `version_name`, `version_code`, `install_date`,
  * `last_update`, and `permissions` (the app's requested permissions).
  */

@@ -13,8 +13,9 @@ import io.droidmcp.core.ParameterType
 /**
  * Sets the torch brightness via [CameraManager.turnOnTorchWithStrengthLevel] (level 0 turns it off).
  *
- * Requires Android 13+ (API 33+, `TIRAMISU`), the `CAMERA` permission, and a camera with
- * `FLASH_INFO_AVAILABLE`. Returns an error on older API levels. The `level` param is clamped to 0–255;
+ * Requires Android 13+ (API 33+, `TIRAMISU`) and a camera with `FLASH_INFO_AVAILABLE`; no
+ * runtime permission needed (torch control is permission-free, same as [ToggleFlashlightTool]).
+ * Returns an error on older API levels. The `level` param is clamped to 0–255;
  * note the underlying API caps strength at the camera's reported maximum, which may be below 255.
  *
  * Output map: `level` (the clamped value applied) and `status` ("on"/"off").

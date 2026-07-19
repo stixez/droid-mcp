@@ -12,7 +12,8 @@ import io.droidmcp.core.ParameterType
 /**
  * Turns the device torch (camera flash LED) on or off via [CameraManager.setTorchMode].
  *
- * Requires the `CAMERA` permission and a camera with `FLASH_INFO_AVAILABLE`.
+ * No runtime permission needed (torch control is permission-free); requires a camera with
+ * `FLASH_INFO_AVAILABLE`.
  *
  * Output map: `status` ("on"/"off") and `enabled` (the boolean applied).
  */
