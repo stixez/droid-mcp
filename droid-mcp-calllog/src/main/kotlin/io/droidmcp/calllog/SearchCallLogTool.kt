@@ -23,6 +23,10 @@ class SearchCallLogTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
+        if (!CallLogTools.hasPermissions(context)) {
+            return ToolResult.error("READ_CALL_LOG permission not granted")
+        }
+
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

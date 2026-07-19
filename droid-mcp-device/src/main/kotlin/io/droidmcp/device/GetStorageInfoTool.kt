@@ -6,6 +6,7 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import java.util.Locale
 
 /**
  * Reports internal data-partition storage via [StatFs] on the data directory: `total_bytes`,
@@ -29,8 +30,10 @@ class GetStorageInfoTool : McpTool {
             "total_bytes" to totalBytes,
             "available_bytes" to availableBytes,
             "used_bytes" to usedBytes,
-            "total_gb" to String.format("%.1f", totalBytes / 1_073_741_824.0),
-            "available_gb" to String.format("%.1f", availableBytes / 1_073_741_824.0),
+            // Locale.US, not the default locale — a comma-decimal locale (e.g. "117,2") would
+            // otherwise produce a string downstream JSON consumers could misparse as a number.
+            "total_gb" to String.format(Locale.US, "%.1f", totalBytes / 1_073_741_824.0),
+            "available_gb" to String.format(Locale.US, "%.1f", availableBytes / 1_073_741_824.0),
         ))
     }
 }

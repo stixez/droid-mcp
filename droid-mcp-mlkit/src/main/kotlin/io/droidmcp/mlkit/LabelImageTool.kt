@@ -10,6 +10,8 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -31,20 +33,20 @@ class LabelImageTool(private val context: Context) : McpTool {
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
+    override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()
-            ?: return ToolResult.error("image_path is required")
+            ?: return@withContext ToolResult.error("image_path is required")
         if (!PathValidator.isAllowed(path)) {
-            return ToolResult.error("Access denied: image_path is outside allowed storage directories")
+            return@withContext ToolResult.error("Access denied: image_path is outside allowed storage directories")
         }
         val file = File(path)
         if (!file.exists() || !file.isFile) {
-            return ToolResult.error("Image file not found: $path")
+            return@withContext ToolResult.error("Image file not found: $path")
         }
         val threshold = (params["min_confidence"] as? Number)?.toFloat()
             ?.coerceIn(0f, 1f) ?: 0.5f
 
-        return try {
+        try {
             val image = InputImage.fromFilePath(context, Uri.fromFile(file))
             val options = ImageLabelerOptions.Builder()
                 .setConfidenceThreshold(threshold)

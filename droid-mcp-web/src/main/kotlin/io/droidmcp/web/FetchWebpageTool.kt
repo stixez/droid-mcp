@@ -5,6 +5,8 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
@@ -14,7 +16,14 @@ import java.util.concurrent.TimeUnit
  * Fetches a URL with OkHttp (15s connect/read timeouts) and extracts readable body text via Jsoup,
  * stripping script/style/noscript/nav/footer/header before extraction. Reaches the network
  * (`openWorldHint`); requires `INTERNET` (always-granted). A malformed URL returns an "Invalid URL"
- * error; non-2xx status, empty body, or any other failure returns a [ToolResult.error].
+ * error; non-2xx status, empty body, or any other failure returns a [ToolResult.error]. The response
+ * body is capped at 5 MB while reading (see [readBounded]) regardless of `max_length`.
+ *
+ * No URL scheme/host restriction: this can fetch `http://` targets on the phone's own LAN
+ * (including `localhost`) same as any browser would. Whoever holds the bearer token can direct
+ * the phone to probe its local network through this tool — consistent with this SDK's general
+ * trust model (the host app / token holder is the trust boundary), but worth knowing before
+ * exposing the HTTP transport beyond a trusted network.
  *
  * Output map: `title` (String), `url` (echoed), `content` (text truncated to `max_length`),
  * `content_length` (Int — full untruncated length).
@@ -34,9 +43,9 @@ class FetchWebpageTool : McpTool {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
+    override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val url = params["url"]?.toString()
-            ?: return ToolResult.error("url is required")
+            ?: return@withContext ToolResult.error("url is required")
         val maxLength = (params["max_length"] as? Number)?.toInt()?.coerceAtLeast(1) ?: 2000
 
         val request = Request.Builder()
@@ -44,13 +53,13 @@ class FetchWebpageTool : McpTool {
             .header("User-Agent", "Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36")
             .build()
 
-        return try {
+        try {
             val response = client.newCall(request).execute()
-            val body = response.body?.string()
-                ?: return ToolResult.error("Empty response from $url")
+            val body = readBounded(response)
+                ?: return@withContext ToolResult.error("Empty response from $url")
 
             if (!response.isSuccessful) {
-                return ToolResult.error("Server returned HTTP ${response.code} for $url")
+                return@withContext ToolResult.error("Server returned HTTP ${response.code} for $url")
             }
 
             val doc = Jsoup.parse(body, url)

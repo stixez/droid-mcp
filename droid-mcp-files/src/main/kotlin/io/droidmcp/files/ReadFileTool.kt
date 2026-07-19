@@ -41,12 +41,16 @@ class ReadFileTool(private val context: Context) : McpTool {
         if (!file.canRead()) return ToolResult.error("Cannot read file: $path — check READ_EXTERNAL_STORAGE or READ_MEDIA_* permissions")
 
         val extension = file.extension.lowercase()
-        if (extension.isNotEmpty() && extension !in textExtensions) {
-            // Heuristic binary check: scan first 8KB for null bytes
+        if (extension !in textExtensions) {
+            // Heuristic binary check: scan first 8KB for null bytes. Applies to extensionless
+            // files too — an unrecognized (missing) extension is exactly the "unrecognized
+            // extension" case this check exists for.
             val header = file.inputStream().use { stream ->
                 val buf = ByteArray(8192)
                 val read = stream.read(buf)
-                buf.take(read)
+                // read() returns -1 at EOF (e.g. a genuinely empty file) — take(-1) throws
+                // IllegalArgumentException; there's simply no header to scan in that case.
+                if (read <= 0) emptyList() else buf.take(read)
             }
             if (header.any { it == 0.toByte() }) {
                 return ToolResult.error("File appears to be binary: $path — only text files can be read")
@@ -55,14 +59,21 @@ class ReadFileTool(private val context: Context) : McpTool {
 
         val lines = mutableListOf<String>()
         var truncated = false
-        file.bufferedReader().use { reader ->
-            for (line in reader.lineSequence()) {
-                if (lines.size >= maxLines) {
-                    truncated = true
-                    break
+        try {
+            file.bufferedReader().use { reader ->
+                for (line in reader.lineSequence()) {
+                    if (lines.size >= maxLines) {
+                        truncated = true
+                        break
+                    }
+                    lines.add(line)
                 }
-                lines.add(line)
             }
+        } catch (e: OutOfMemoryError) {
+            // lineSequence() buffers a whole line before yielding it — one enormous line
+            // (minified JSON, a single-line log) can exhaust the heap. OutOfMemoryError is an
+            // Error, not an Exception, so it would otherwise escape uncaught and crash the host.
+            return ToolResult.error("File contains an extremely long line and cannot be read as text: $path")
         }
 
         return ToolResult.success(mapOf(

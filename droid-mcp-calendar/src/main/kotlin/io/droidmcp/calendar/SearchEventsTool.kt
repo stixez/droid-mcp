@@ -37,7 +37,8 @@ class SearchEventsTool(private val context: Context) : McpTool {
             CalendarContract.Events.DESCRIPTION,
         )
 
-        val selection = "${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?"
+        val selection = "(${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?) " +
+            "AND ${CalendarContract.Events.DELETED} != 1"
         val selectionArgs = arrayOf("%$query%", "%$query%")
         val sortOrder = "${CalendarContract.Events.DTSTART} DESC"
 
@@ -55,7 +56,8 @@ class SearchEventsTool(private val context: Context) : McpTool {
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events._ID)),
                     "title" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.TITLE)),
                     "start" to timeFormat.format(Date(dtStart)),
-                    "end" to timeFormat.format(Date(dtEnd)),
+                    // Recurring events store DURATION instead of DTEND, which reads back as 0.
+                    "end" to (if (dtEnd > 0) timeFormat.format(Date(dtEnd)) else null),
                     "location" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)),
                     "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
                 ))

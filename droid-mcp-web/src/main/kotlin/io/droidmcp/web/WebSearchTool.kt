@@ -5,8 +5,11 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.Jsoup
 
 /**
@@ -31,10 +34,10 @@ class WebSearchTool : McpTool {
 
     private val client = OkHttpClient()
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
+    override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val query = params["query"]?.toString()
-            ?: return ToolResult.error("query is required")
-        val limit = (params["limit"] as? Number)?.toInt()?.coerceAtLeast(1) ?: 5
+            ?: return@withContext ToolResult.error("query is required")
+        val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 50) ?: 5
 
         val url = "https://html.duckduckgo.com/html/?q=${java.net.URLEncoder.encode(query, "UTF-8")}"
 
@@ -43,13 +46,13 @@ class WebSearchTool : McpTool {
             .header("User-Agent", "Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36")
             .build()
 
-        return try {
+        try {
             val response = client.newCall(request).execute()
-            val body = response.body?.string()
-                ?: return ToolResult.error("Empty response from DuckDuckGo")
+            val body = readBounded(response)
+                ?: return@withContext ToolResult.error("Empty response from DuckDuckGo")
 
             if (!response.isSuccessful) {
-                return ToolResult.error("DuckDuckGo returned HTTP ${response.code}")
+                return@withContext ToolResult.error("DuckDuckGo returned HTTP ${response.code}")
             }
 
             val doc = Jsoup.parse(body)
@@ -67,7 +70,7 @@ class WebSearchTool : McpTool {
 
                 mapOf(
                     "title" to title,
-                    "url" to href,
+                    "url" to resolveResultUrl(href),
                     "snippet" to snippet,
                 )
             }
@@ -79,6 +82,20 @@ class WebSearchTool : McpTool {
             ))
         } catch (e: Exception) {
             ToolResult.error("Web search failed: ${e.message}")
+        }
+    }
+
+    /**
+     * html.duckduckgo.com result anchors are protocol-relative redirector links
+     * (`//duckduckgo.com/l/?uddg=<url-encoded-destination>&rut=...`), not the destination URL
+     * itself. Decode `uddg` when present; fall back to the raw href for any other shape.
+     */
+    private fun resolveResultUrl(href: String): String {
+        val encoded = Regex("""uddg=([^&]+)""").find(href)?.groupValues?.get(1) ?: return href
+        return try {
+            java.net.URLDecoder.decode(encoded, "UTF-8")
+        } catch (e: Exception) {
+            href
         }
     }
 }

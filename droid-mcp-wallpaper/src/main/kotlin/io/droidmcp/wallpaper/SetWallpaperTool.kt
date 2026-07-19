@@ -59,8 +59,11 @@ class SetWallpaperTool(private val context: Context) : McpTool {
             return ToolResult.error("Setting wallpaper is not allowed by device policy")
         }
 
-        val bitmap = BitmapFactory.decodeFile(path)
-            ?: return ToolResult.error("Failed to decode image file: $path")
+        val bitmap = try {
+            BitmapFactory.decodeFile(path)
+        } catch (e: OutOfMemoryError) {
+            return ToolResult.error("Image too large to decode: $path")
+        } ?: return ToolResult.error("Failed to decode image file: $path")
 
         return try {
             val which = when (target) {

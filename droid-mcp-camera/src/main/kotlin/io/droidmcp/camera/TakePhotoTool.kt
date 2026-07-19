@@ -38,7 +38,7 @@ import kotlin.coroutines.resumeWithException
  * `return_data = true` the JPEG bytes are also returned base64-encoded (rejected if over ~10 MB).
  * Capture is bounded by a 10-second timeout.
  *
- * Requires [Manifest.permission.CAMERA] and camera hardware; uses
+ * Requires [android.Manifest.permission.CAMERA] and camera hardware; uses
  * [android.hardware.camera2.params.SessionConfiguration] (API 28+, met by the SDK's min API).
  *
  * Result keys: `file_path` (MediaStore content URI), `width`, `height`, and optionally `image_data`
@@ -62,6 +62,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
         var device: CameraDevice? = null
         var session: CameraCaptureSession? = null
         var imageReader: ImageReader? = null
+        var sessionExecutor: java.util.concurrent.ExecutorService? = null
 
         try {
             val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -82,7 +83,13 @@ class TakePhotoTool(private val context: Context) : McpTool {
             val imageBytes = withTimeoutOrNull(10_000L) {
                 device = suspendCancellableCoroutine { cont ->
                     cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-                        override fun onOpened(camera: CameraDevice) = cont.resume(camera)
+                        // If the overall withTimeoutOrNull already fired, this continuation is no
+                        // longer active — a plain cont.resume(camera) would be silently discarded,
+                        // leaking an opened CameraDevice that keeps the camera locked for every
+                        // app (including this one) until process death. Close it instead.
+                        override fun onOpened(camera: CameraDevice) {
+                            if (cont.isActive) cont.resume(camera) else camera.close()
+                        }
                         override fun onDisconnected(camera: CameraDevice) {
                             camera.close()
                             if (cont.isActive) cont.resumeWithException(RuntimeException("Camera disconnected"))
@@ -96,12 +103,16 @@ class TakePhotoTool(private val context: Context) : McpTool {
 
                 session = suspendCancellableCoroutine { cont ->
                     val outputConfig = OutputConfiguration(imageReader!!.surface)
+                    sessionExecutor = Executors.newSingleThreadExecutor()
                     val sessionConfig = SessionConfiguration(
                         SessionConfiguration.SESSION_REGULAR,
                         listOf(outputConfig),
-                        Executors.newSingleThreadExecutor(),
+                        sessionExecutor,
                         object : CameraCaptureSession.StateCallback() {
-                            override fun onConfigured(s: CameraCaptureSession) = cont.resume(s)
+                            // Same late-callback-after-timeout rationale as onOpened above.
+                            override fun onConfigured(s: CameraCaptureSession) {
+                                if (cont.isActive) cont.resume(s) else s.close()
+                            }
                             override fun onConfigureFailed(s: CameraCaptureSession) {
                                 if (cont.isActive) cont.resumeWithException(RuntimeException("Session configuration failed"))
                             }
@@ -143,10 +154,12 @@ class TakePhotoTool(private val context: Context) : McpTool {
             }
 
             val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            uri?.let { context.contentResolver.openOutputStream(it)?.use { os -> os.write(imageBytes) } }
+                ?: return@withContext ToolResult.error("Failed to create MediaStore entry for photo")
+            context.contentResolver.openOutputStream(uri)?.use { os -> os.write(imageBytes) }
+                ?: return@withContext ToolResult.error("Failed to open output stream for photo")
 
             val result = mutableMapOf<String, Any?>(
-                "file_path" to uri?.toString(),
+                "file_path" to uri.toString(),
                 "width" to size.width,
                 "height" to size.height,
             )
@@ -165,6 +178,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
             session?.close()
             device?.close()
             imageReader?.close()
+            sessionExecutor?.shutdown()
             handlerThread.quitSafely()
         }
     }

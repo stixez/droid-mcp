@@ -14,8 +14,8 @@ import io.droidmcp.core.ToolResult
  * needs `READ_PHONE_STATE`/privileged access and is null on API 29+ for non-privileged apps;
  * `SecurityException` is caught and yields null. Carrier name and country ISO need no
  * permission. Output: `sim_serial` (nullable), `carrier_name`, `country_iso`, and `slot_index`
- * — which actually carries the default `subscriptionId` (API 23+), NOT the physical SIM slot,
- * and is 0 below API 23 or on error.
+ * — which actually carries the default `subscriptionId` (public API 30+; the method didn't exist earlier),
+ * NOT the physical SIM slot, and is 0 below API 30 or on error.
  */
 class GetSimInfoTool(private val context: Context) : McpTool {
 
@@ -37,11 +37,10 @@ class GetSimInfoTool(private val context: Context) : McpTool {
 
         val carrierName = telephonyManager.simOperatorName
         val countryIso = telephonyManager.simCountryIso
-        val slotIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val slotIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
-                @Suppress("DEPRECATION")
                 telephonyManager.subscriptionId
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 0
             }
         } else {

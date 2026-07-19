@@ -10,6 +10,8 @@ import io.droidmcp.core.ToolResult
 /**
  * Reports Bluetooth adapter status. Reading `adapter_name`/`adapter_address` needs the
  * Bluetooth permission (see [BluetoothTools]); they return `null` if it is missing.
+ * `adapter_address` is also null on API 26+ when the platform's anonymized dummy value
+ * (`02:00:00:00:00:00`) is all a non-privileged caller ever gets back.
  *
  * Output keys: `is_enabled`, `adapter_name`, `adapter_address`, `bluetooth_supported`
  * (`false` when the device has no adapter).
@@ -38,7 +40,10 @@ class GetBluetoothStatusTool(private val context: Context) : McpTool {
         } catch (e: SecurityException) { null }
 
         val adapterAddress = try {
-            adapter.address
+            // Since API 26, getAddress() returns the fixed dummy value below for any
+            // non-privileged caller, regardless of permission — filter it out rather than
+            // present it as if it were the real MAC (same treatment as wifi's BSSID).
+            adapter.address?.takeIf { it != "02:00:00:00:00:00" }
         } catch (e: SecurityException) { null }
 
         return ToolResult.success(mapOf(

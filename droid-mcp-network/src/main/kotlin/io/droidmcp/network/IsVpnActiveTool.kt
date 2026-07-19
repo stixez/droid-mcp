@@ -54,23 +54,15 @@ class IsVpnActiveTool(private val context: Context) : McpTool {
                 val hasVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
 
                 if (hasVpn) {
-                    // Try to get VPN package name via reflection (not officially available in public API)
-                    val vpnPackage = try {
-                        val underlyingNetworksField = capabilities.javaClass.getDeclaredField("underlyingNetworks")
-                        underlyingNetworksField.isAccessible = true
-                        @Suppress("UNCHECKED_CAST")
-                        val networks = underlyingNetworksField.get(capabilities) as? Array<Network>
-                        networks?.firstOrNull()?.toString()
-                    } catch (e: Exception) {
-                        null
-                    }
-
-                    // Alternative: try to get from NetworkCapabilities via reflection
+                    // ownerUid is a hidden NetworkCapabilities field, accessed via reflection
+                    // (not officially available in the public API). Note: on API 30+ the
+                    // platform strips ownerUid to INVALID_UID for any caller other than the
+                    // VPN app itself, so this only ever resolves a real package pre-30.
                     val packageName = try {
                         val ownerUidField = capabilities.javaClass.getDeclaredField("ownerUid")
                         ownerUidField.isAccessible = true
                         val uid = ownerUidField.get(capabilities) as? Int
-                        if (uid != null && uid > 10000) {
+                        if (uid != null && uid >= android.os.Process.FIRST_APPLICATION_UID) {
                             val packageManager = context.packageManager
                             val packages = packageManager.getPackagesForUid(uid)
                             packages?.firstOrNull()

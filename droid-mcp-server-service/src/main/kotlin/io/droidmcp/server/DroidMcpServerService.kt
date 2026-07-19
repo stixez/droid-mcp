@@ -61,7 +61,17 @@ abstract class DroidMcpServerService : Service() {
         ensureChannel()
         startForegroundCompat(buildNotification())
         if (server == null) {
-            server = createServer().also { it.startServer() }
+            try {
+                server = createServer().also { it.startServer() }
+            } catch (e: Exception) {
+                // createServer()/startServer() can fail (port already bound, bad TLS config,
+                // etc.). Uncaught, this would crash the host app on the main thread, and with
+                // START_STICKY the system would just restart the service into the same failure —
+                // a crash-loop. Stop cleanly instead.
+                server = null
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
         return START_STICKY
     }

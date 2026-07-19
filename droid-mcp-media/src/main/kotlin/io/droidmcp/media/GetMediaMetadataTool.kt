@@ -2,6 +2,7 @@ package io.droidmcp.media
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 import io.droidmcp.core.*
 import java.text.SimpleDateFormat
@@ -14,6 +15,12 @@ import java.util.*
  * Output: `id`, `name`, `path`, `date_taken`, `date_modified`, `size_bytes`, `mime_type`,
  * `width`, `height`, `media_type`; videos add `duration_seconds`/`resolution`, images add
  * `latitude`/`longitude`/`description` (when present).
+ *
+ * `latitude`/`longitude` are only queried below API 29: since Q, `MediaProvider` rejects those
+ * columns in a normal projection (`IllegalArgumentException: Invalid column latitude`) unless the
+ * caller holds `ACCESS_MEDIA_LOCATION` — which this SDK doesn't request, consistent with modules
+ * never requesting permissions themselves. Including them unconditionally previously broke the
+ * *entire* query (not just those two fields) on every image lookup on API 29+.
  */
 class GetMediaMetadataTool(private val context: Context) : McpTool {
 
@@ -40,20 +47,22 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
 
         val itemUri = Uri.withAppendedPath(contentUri, mediaId.toString())
 
-        val imageProjection = arrayOf(
-            MediaStore.MediaColumns._ID,
-            MediaStore.MediaColumns.DISPLAY_NAME,
-            MediaStore.MediaColumns.DATA,
-            MediaStore.MediaColumns.DATE_TAKEN,
-            MediaStore.MediaColumns.DATE_MODIFIED,
-            MediaStore.MediaColumns.SIZE,
-            MediaStore.MediaColumns.MIME_TYPE,
-            MediaStore.MediaColumns.WIDTH,
-            MediaStore.MediaColumns.HEIGHT,
-            MediaStore.Images.ImageColumns.LATITUDE,
-            MediaStore.Images.ImageColumns.LONGITUDE,
-            MediaStore.Images.ImageColumns.DESCRIPTION,
-        )
+        val imageProjection = buildList {
+            add(MediaStore.MediaColumns._ID)
+            add(MediaStore.MediaColumns.DISPLAY_NAME)
+            add(MediaStore.MediaColumns.DATA)
+            add(MediaStore.MediaColumns.DATE_TAKEN)
+            add(MediaStore.MediaColumns.DATE_MODIFIED)
+            add(MediaStore.MediaColumns.SIZE)
+            add(MediaStore.MediaColumns.MIME_TYPE)
+            add(MediaStore.MediaColumns.WIDTH)
+            add(MediaStore.MediaColumns.HEIGHT)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                add(MediaStore.Images.ImageColumns.LATITUDE)
+                add(MediaStore.Images.ImageColumns.LONGITUDE)
+            }
+            add(MediaStore.Images.ImageColumns.DESCRIPTION)
+        }.toTypedArray()
 
         val videoProjection = arrayOf(
             MediaStore.MediaColumns._ID,

@@ -40,6 +40,14 @@ class SetBrightnessTool(private val context: Context) : McpTool {
         val clamped = level.coerceIn(0, 255)
 
         return try {
+            // Adaptive brightness (SCREEN_BRIGHTNESS_MODE_AUTOMATIC) continuously overrides
+            // SCREEN_BRIGHTNESS from the ambient light sensor, silently discarding this write
+            // unless manual mode is forced first.
+            Settings.System.putInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS_MODE,
+                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL,
+            )
             Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, clamped)
             ToolResult.success(mapOf(
                 "success" to true,

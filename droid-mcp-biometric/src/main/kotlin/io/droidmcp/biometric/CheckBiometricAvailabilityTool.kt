@@ -50,8 +50,8 @@ class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE,
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> false to "none"
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> true to "none"
-            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> true to "update_required"
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> false to "none"
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> false to "update_required"
             else -> false to "unknown"
         }
 

@@ -27,6 +27,9 @@ class ReadMessagesTool(private val context: Context) : McpTool {
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val box = params["box"]?.toString() ?: "inbox"
+        if (box !in setOf("inbox", "sent")) {
+            return ToolResult.error("Invalid box '$box'. Use: inbox, sent")
+        }
         val address = params["address"]?.toString()
         val since = params["since"]?.toString()
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
@@ -44,14 +47,16 @@ class ReadMessagesTool(private val context: Context) : McpTool {
             selectionArgs.add("%$address%")
         }
         if (since != null) {
+            // Previously a bad `since` was silently swallowed, dropping the filter entirely
+            // while the caller believed messages were date-filtered — now it's an error.
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            try {
-                val sinceMillis = dateFormat.parse(since)?.time
-                if (sinceMillis != null) {
-                    selectionParts.add("${Telephony.Sms.DATE} >= ?")
-                    selectionArgs.add(sinceMillis.toString())
-                }
-            } catch (_: Exception) { }
+            val sinceMillis = try {
+                dateFormat.parse(since)?.time
+            } catch (e: Exception) {
+                null
+            } ?: return ToolResult.error("Invalid since date '$since'. Use format: YYYY-MM-DD")
+            selectionParts.add("${Telephony.Sms.DATE} >= ?")
+            selectionArgs.add(sinceMillis.toString())
         }
 
         val selection = if (selectionParts.isNotEmpty()) selectionParts.joinToString(" AND ") else null

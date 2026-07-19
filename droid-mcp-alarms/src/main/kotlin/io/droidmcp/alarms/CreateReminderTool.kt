@@ -45,7 +45,7 @@ class CreateReminderTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("title is required")
         val datetimeStr = params["datetime"]?.toString()
             ?: return ToolResult.error("datetime is required")
-        val minutesBefore = (params["minutes_before"] as? Number)?.toInt() ?: 10
+        val minutesBefore = (params["minutes_before"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 10
 
         val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
         val startMillis = try {
@@ -78,6 +78,7 @@ class CreateReminderTool(private val context: Context) : McpTool {
             put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
         }
         context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, reminderValues)
+            ?: return ToolResult.error("Event created (id=$eventId) but failed to attach the reminder alert")
 
         return ToolResult.success(mapOf(
             "success" to true,

@@ -63,6 +63,8 @@ suspend fun readSensor(
                         )
                     )
 
+                    if (!continuation.isActive) return
+
                     val elapsed = System.currentTimeMillis() - startTime
                     if (durationMs == null && readings.isNotEmpty()) {
                         // Single reading mode

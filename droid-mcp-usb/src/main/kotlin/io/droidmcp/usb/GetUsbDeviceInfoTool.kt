@@ -17,6 +17,11 @@ import io.droidmcp.core.ToolResult
  * device permission). Returns an error if USB host mode is unsupported or the device is absent.
  * Read-only.
  *
+ * `serial_number` needs device-specific permission on API 29+ ([UsbManager.hasPermission]); when
+ * missing, `UsbDevice.getSerialNumber()` throws `SecurityException` rather than returning null —
+ * caught here so `serial_number` is simply null instead of failing the whole call. Check
+ * `has_permission` to distinguish "denied" from "device has no serial."
+ *
  * Output keys: `name`, `vendor_id`, `product_id`, `device_class`, `device_subclass`,
  * `device_protocol`, `manufacturer`, `product`, `serial_number`, `version`, `interface_count`,
  * `interfaces` (each with `id`, `class`, `subclass`, `protocol`, `endpoint_count`, `endpoints`),
@@ -68,6 +73,14 @@ class GetUsbDeviceInfoTool(private val context: Context) : McpTool {
             )
         }
 
+        // getSerialNumber() requires device-specific permission on API 29+; without it,
+        // it throws SecurityException rather than returning null (unlike manufacturer/product).
+        val serialNumber = try {
+            device.serialNumber
+        } catch (e: SecurityException) {
+            null
+        }
+
         return ToolResult.success(mapOf(
             "name" to device.deviceName,
             "vendor_id" to device.vendorId,
@@ -77,7 +90,7 @@ class GetUsbDeviceInfoTool(private val context: Context) : McpTool {
             "device_protocol" to device.deviceProtocol,
             "manufacturer" to device.manufacturerName,
             "product" to device.productName,
-            "serial_number" to device.serialNumber,
+            "serial_number" to serialNumber,
             "version" to device.version,
             "interface_count" to device.interfaceCount,
             "interfaces" to interfaces,

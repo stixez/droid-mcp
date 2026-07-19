@@ -5,10 +5,12 @@ import io.droidmcp.shell.ShellException
 import io.droidmcp.shell.ShellResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import rikka.shizuku.Shizuku
 import java.io.ByteArrayOutputStream
 
@@ -64,29 +66,39 @@ class ShizukuShellBackend : ShellBackend {
         // coroutineScope's children-join phase — closing the pipes promptly
         // unblocks the drain children's blocking copyTo calls so they can
         // exit and coroutineScope can return.
-        coroutineScope {
-            val outJob = launch(Dispatchers.IO) {
-                runCatching { process.inputStream.use { it.copyTo(stdoutBuf) } }
+        try {
+            withTimeout(EXEC_TIMEOUT_MS) {
+                coroutineScope {
+                    val outJob = launch(Dispatchers.IO) {
+                        runCatching { process.inputStream.use { it.copyTo(stdoutBuf) } }
+                    }
+                    val errJob = launch(Dispatchers.IO) {
+                        runCatching { process.errorStream.use { it.copyTo(stderrBuf) } }
+                    }
+                    try {
+                        // runInterruptible converts InterruptedException to
+                        // CancellationException so the coroutine cancellation reaches
+                        // the blocked waitFor() call. Without it, coroutine cancel
+                        // would have to wait for the process to exit naturally.
+                        val exit = runInterruptible(Dispatchers.IO) { process.waitFor() }
+                        outJob.join()
+                        errJob.join()
+                        ShellResult(
+                            exitCode = exit,
+                            stdoutBytes = stdoutBuf.toByteArray(),
+                            stderr = stderrBuf.toString("UTF-8"),
+                        )
+                    } finally {
+                        // Also covers the timeout path: withTimeout cancels this scope,
+                        // which reaches the blocked waitFor() via runInterruptible above,
+                        // then unwinds through this finally — destroy() closes the pipes,
+                        // which unblocks the drain jobs' blocking copyTo calls in turn.
+                        runCatching { process.destroy() }
+                    }
+                }
             }
-            val errJob = launch(Dispatchers.IO) {
-                runCatching { process.errorStream.use { it.copyTo(stderrBuf) } }
-            }
-            try {
-                // runInterruptible converts InterruptedException to
-                // CancellationException so the coroutine cancellation reaches
-                // the blocked waitFor() call. Without it, coroutine cancel
-                // would have to wait for the process to exit naturally.
-                val exit = runInterruptible(Dispatchers.IO) { process.waitFor() }
-                outJob.join()
-                errJob.join()
-                ShellResult(
-                    exitCode = exit,
-                    stdoutBytes = stdoutBuf.toByteArray(),
-                    stderr = stderrBuf.toString("UTF-8"),
-                )
-            } finally {
-                runCatching { process.destroy() }
-            }
+        } catch (e: TimeoutCancellationException) {
+            throw ShellException.SpawnFailed("Command timed out after ${EXEC_TIMEOUT_MS}ms without exiting")
         }
     }
 
@@ -104,6 +116,14 @@ class ShizukuShellBackend : ShellBackend {
     }
 
     companion object {
+        /**
+         * Upper bound on how long [exec] waits for the spawned process to exit. Without this,
+         * a command that forks a daemon inheriting the stdout/stderr pipes (so they never hit
+         * EOF) or that simply never terminates would block the call indefinitely — there's no
+         * other timeout anywhere in this pipeline.
+         */
+        private const val EXEC_TIMEOUT_MS = 30_000L
+
         /**
          * Cached reflective handle to `Shizuku.newProcess(String[], String[], String)`.
          * Lazily resolved on first use; `null` if the method isn't present on

@@ -5,6 +5,7 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.File
+import java.io.IOException
 import java.math.BigInteger
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -57,14 +58,19 @@ object SelfSignedCert {
         validityDays: Long = 3650,
     ): TlsConfig {
         val keyStore = if (file.exists()) {
-            KeyStore.getInstance(KEYSTORE_TYPE).apply {
-                file.inputStream().use { load(it, password) }
+            try {
+                KeyStore.getInstance(KEYSTORE_TYPE).apply {
+                    file.inputStream().use { load(it, password) }
+                }
+            } catch (e: Exception) {
+                // Corrupt or truncated keystore (e.g. the process was killed mid-write, since
+                // the previous write wasn't atomic) — regenerate rather than permanently
+                // breaking TLS for this host app until someone manually deletes the file.
+                file.delete()
+                generateAndPersist(file, alias, password, validityDays)
             }
         } else {
-            generate(alias, password, validityDays).also { ks ->
-                file.parentFile?.mkdirs()
-                file.outputStream().use { ks.store(it, password) }
-            }
+            generateAndPersist(file, alias, password, validityDays)
         }
         return TlsConfig(
             keyStore = keyStore,
@@ -73,6 +79,21 @@ object SelfSignedCert {
             privateKeyPassword = password,
             httpsPort = httpsPort,
         )
+    }
+
+    /** Generates a fresh keystore and persists it to [file] via a temp-file-then-rename
+     * so a process kill mid-write leaves either the old file or nothing — never a
+     * truncated one. */
+    private fun generateAndPersist(file: File, alias: String, password: CharArray, validityDays: Long): KeyStore {
+        val keyStore = generate(alias, password, validityDays)
+        file.parentFile?.mkdirs()
+        val tmp = File(file.parentFile, "${file.name}.tmp")
+        tmp.outputStream().use { keyStore.store(it, password) }
+        if (!tmp.renameTo(file)) {
+            tmp.delete()
+            throw IOException("Failed to persist TLS keystore to ${file.path}")
+        }
+        return keyStore
     }
 
     private fun generate(alias: String, password: CharArray, validityDays: Long): KeyStore {

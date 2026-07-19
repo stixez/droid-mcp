@@ -78,12 +78,19 @@ class CreateEventTool(private val context: Context) : McpTool {
     private fun getPrimaryCalendarId(): Long? {
         val projection = arrayOf(CalendarContract.Calendars._ID)
         val selection = "${CalendarContract.Calendars.IS_PRIMARY} = 1"
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
-        )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                return cursor.getLong(0)
+        // IS_PRIMARY is a computed alias on some providers, not a real column — several OEM
+        // calendar providers throw SQLiteException ("no such column") for it. Uncaught, that
+        // would abort create_event entirely despite the perfectly good fallback query below.
+        try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return cursor.getLong(0)
+                }
             }
+        } catch (e: Exception) {
+            // Fall through to the unfiltered query below.
         }
         // Fallback: get first available calendar
         context.contentResolver.query(

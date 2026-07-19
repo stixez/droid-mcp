@@ -45,4 +45,16 @@ class SelfSignedCertTest {
         val b = SelfSignedCert.loadOrCreate(File(dir.toFile(), "b.p12"))
         assertThat(a.certFingerprintSha256).isNotEqualTo(b.certFingerprintSha256)
     }
+
+    @Test
+    fun `corrupted keystore file is regenerated instead of throwing`(@TempDir dir: Path) {
+        val file = File(dir.toFile(), "corrupt.p12")
+        file.writeBytes(byteArrayOf(1, 2, 3, 4)) // not a valid PKCS12 file
+
+        val config = SelfSignedCert.loadOrCreate(file)
+
+        assertThat(file.exists()).isTrue()
+        val cert = config.keyStore.getCertificate(config.keyAlias) as X509Certificate
+        assertThat(cert.subjectX500Principal.name).contains("droid-mcp")
+    }
 }

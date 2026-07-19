@@ -23,6 +23,7 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-core"))
+    implementation(libs.kotlinx.coroutines.core)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.18.3")
     testImplementation(libs.junit5.api)
