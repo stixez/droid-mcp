@@ -343,6 +343,14 @@ It also demonstrates the 0.10.0 hardening features end-to-end:
 
 ---
 
+## Documentation
+
+Full KDoc API reference for every module, generated with Dokka and published on every push to `main`: **[stixez.github.io/droid-mcp](https://stixez.github.io/droid-mcp/)**
+
+See also: [docs/PAIRING.md](docs/PAIRING.md) (mDNS/QR pairing), [docs/SECURITY.md](docs/SECURITY.md), [docs/VERSIONING.md](docs/VERSIONING.md), [docs/SHIZUKU.md](docs/SHIZUKU.md), [docs/ROOT.md](docs/ROOT.md), [docs/MIGRATION-0-TO-1.md](docs/MIGRATION-0-TO-1.md).
+
+---
+
 ## Contributing
 
 Contributions welcome. Please open an issue before submitting a PR for non-trivial changes.
