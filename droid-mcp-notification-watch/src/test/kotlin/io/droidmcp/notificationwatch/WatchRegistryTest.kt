@@ -74,6 +74,48 @@ class WatchRegistryTest {
         assertThat(spec.matches(event())).isTrue()
     }
 
+    @Test
+    fun `dispatch buffers matched events and poll drains them`() {
+        WatchRegistry.register(makeSpec(id = "p1", keyword = "urgent"))
+        WatchRegistry.dispatch(event(key = "a", text = "urgent one"))
+        WatchRegistry.dispatch(event(key = "b", text = "boring"))
+        WatchRegistry.dispatch(event(key = "a", text = "urgent again")) // same key, fire-once
+
+        val peek = WatchRegistry.poll("p1", clear = false)!!
+        assertThat(peek.events.map { it.key }).containsExactly("a")
+        val drained = WatchRegistry.poll("p1", clear = true)!!
+        assertThat(drained.events).hasSize(1)
+        assertThat(WatchRegistry.poll("p1", clear = true)!!.events).isEmpty()
+    }
+
+    @Test
+    fun `buffer is bounded and counts dropped events`() {
+        WatchRegistry.register(makeSpec(id = "p2", fireOnUpdate = true))
+        repeat(WatchRegistry.MAX_BUFFERED_EVENTS + 5) { i -> WatchRegistry.dispatch(event(key = "k$i")) }
+        val polled = WatchRegistry.poll("p2", clear = true)!!
+        assertThat(polled.events).hasSize(WatchRegistry.MAX_BUFFERED_EVENTS)
+        assertThat(polled.dropped).isEqualTo(5)
+        assertThat(polled.events.first().key).isEqualTo("k5")
+    }
+
+    @Test
+    fun `dispatch after unregister does not resurrect watch state`() {
+        WatchRegistry.register(makeSpec(id = "gone"))
+        WatchRegistry.unregister("gone")
+        WatchRegistry.dispatch(event())
+        assertThat(WatchRegistry.firedCount("gone")).isEqualTo(0)
+        assertThat(WatchRegistry.poll("gone", clear = true)).isNull()
+    }
+
+    @Test
+    fun `register refuses beyond the active watch cap`() {
+        repeat(WatchRegistry.MAX_WATCHES) { i ->
+            assertThat(WatchRegistry.register(makeSpec(id = "w$i"))).isTrue()
+        }
+        assertThat(WatchRegistry.register(makeSpec(id = "overflow"))).isFalse()
+        assertThat(WatchRegistry.get("overflow")).isNull()
+    }
+
     private fun makeSpec(
         id: String = "w1",
         packageName: String? = null,

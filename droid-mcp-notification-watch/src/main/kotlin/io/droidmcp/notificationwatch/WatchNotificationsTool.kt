@@ -10,7 +10,10 @@ import io.droidmcp.notification.NotificationListenerHolder
 
 /**
  * Registers a filter against the live notification stream in [WatchRegistry], returning a
- * `watch_id` for later [ListNotificationWatchesTool] / [UnwatchNotificationsTool] calls.
+ * `watch_id` for later [PollNotificationWatchTool] / [ListNotificationWatchesTool] /
+ * [UnwatchNotificationsTool] calls. Matched events are buffered per watch (up to
+ * [WatchRegistry.MAX_BUFFERED_EVENTS]) and retrieved with `poll_notification_watch`. At most
+ * [WatchRegistry.MAX_WATCHES] watches may be active at once, else `too_many_watches`.
  * Requires the listener service bound and notification listener access granted, else
  * `notification_listener_not_enabled`. At least one of `package_name` (exact match),
  * `sender_pattern` (substring on title), or `keyword` (substring on text/bigText/subText/
@@ -23,7 +26,7 @@ import io.droidmcp.notification.NotificationListenerHolder
 class WatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "watch_notifications"
-    override val description = "Register a filter against the live notification stream. Returns a watch_id. At least one of package_name / sender_pattern / keyword is required; multiple fields AND-combine. Matching is case-insensitive substring. Fire-once-per-key by default — set fire_on_update=true to fire again on subsequent updates of the same notification."
+    override val description = "Register a filter against the live notification stream. Returns a watch_id; retrieve matched notifications with poll_notification_watch. At least one of package_name / sender_pattern / keyword is required; multiple fields AND-combine. Matching is case-insensitive substring. Fire-once-per-key by default — set fire_on_update=true to fire again on subsequent updates of the same notification."
     override val parameters = listOf(
         ToolParameter("package_name", "Filter to a specific app's notifications (exact match against the source package name).", ParameterType.STRING, required = false),
         ToolParameter("sender_pattern", "Case-insensitive substring match against the notification title.", ParameterType.STRING, required = false),
@@ -31,7 +34,7 @@ class WatchNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("ttl_seconds", "Watch lifetime in seconds (60-86400, default 3600). Watch is auto-removed when it expires.", ParameterType.INTEGER, required = false),
         ToolParameter("fire_on_update", "When true, fire again on every update of the same notification key. Default false.", ParameterType.BOOLEAN, required = false),
     )
-    override val annotations = ToolAnnotations(readOnlyHint = true)
+    override val annotations = ToolAnnotations()
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (NotificationListenerHolder.componentName == null) {
@@ -60,8 +63,12 @@ class WatchNotificationsTool(private val context: Context) : McpTool {
             fireOnUpdate = fireOnUpdate,
             createdAt = System.currentTimeMillis(),
         )
-        WatchRegistry.register(spec)
-        // ensureCollecting is called inside register; explicit here for clarity is unnecessary.
+        if (!WatchRegistry.register(spec)) {
+            return ToolResult.error(
+                "too_many_watches",
+                "at most ${WatchRegistry.MAX_WATCHES} watches may be active; unwatch_notifications some first",
+            )
+        }
 
         return ToolResult.success(mapOf(
             "watch_id" to spec.id,

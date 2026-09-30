@@ -10,7 +10,8 @@ import android.app.RemoteInput
  * tools and tests can manipulate it without touching SDK-only classes.
  *
  * `replyAction` is non-null when at least one [Notification.Action] on the
- * source notification exposes a [RemoteInput] with `allowFreeFormInput = true`.
+ * source notification exposes a [RemoteInput] with `allowFreeFormInput = true`
+ * and a non-null `actionIntent`.
  * Quick-reply-only actions (choice arrays without free-form text) are not
  * included — they cannot accept arbitrary LLM-authored text.
  */
@@ -31,7 +32,14 @@ data class ReplyAction(
     val pendingIntent: PendingIntent,
 )
 
+/**
+ * Project this action into a [ReplyAction], or null when it carries no
+ * free-form [RemoteInput] or has no `actionIntent`. `Notification.Action.actionIntent`
+ * is nullable and fully controlled by the posting app, so an action without one
+ * is skipped rather than allowed to NPE inside the listener callback.
+ */
 internal fun Notification.Action.toReplyActionOrNull(): ReplyAction? {
+    val intent: PendingIntent = actionIntent ?: return null
     val inputs = remoteInputs ?: return null
     val freeForm = inputs.firstOrNull { it.allowFreeFormInput } ?: return null
     return ReplyAction(
@@ -39,6 +47,6 @@ internal fun Notification.Action.toReplyActionOrNull(): ReplyAction? {
         resultKey = freeForm.resultKey,
         hintLabel = freeForm.label?.toString(),
         remoteInputs = inputs,
-        pendingIntent = actionIntent,
+        pendingIntent = intent,
     )
 }

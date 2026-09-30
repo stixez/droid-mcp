@@ -23,7 +23,9 @@ import io.droidmcp.core.ToolResult
  *
  * On success returns `count` (Int) and `nodes` (List of node projection maps).
  * Returns a validation error when no selector is supplied, and the long-form
- * [notConnectedError] message when the service is not bound.
+ * [notConnectedError] message when the service is not bound (or
+ * `no_active_window` when bound without an active root; see
+ * [rootUnavailableError]).
  */
 class FindNodeTool(private val context: Context) : McpTool {
 
@@ -60,7 +62,7 @@ class FindNodeTool(private val context: Context) : McpTool {
                 "count" to matches.size,
                 "nodes" to matches,
             )
-        } ?: return ToolResult.error(notConnectedError())
+        } ?: return rootUnavailableError(shortForm = false)
 
         return ToolResult.success(payload)
     }

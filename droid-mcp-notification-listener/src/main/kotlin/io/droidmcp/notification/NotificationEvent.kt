@@ -37,9 +37,10 @@ data class NotificationEvent(
     /** `Notification.priority` — only meaningful pre-O; usually 0 post-O. */
     val legacyPriority: Int,
     /**
-     * `NotificationChannel.importance` for the channel that posted this. This
-     * is the user-settable "how much do I care" signal that dominates on O+.
-     * `-1` when the channel can't be resolved (older device, unknown channel).
+     * Effective importance (`NotificationManager.IMPORTANCE_*`) from the
+     * listener's `Ranking.importance` — on O+ this is the posting channel's
+     * user-settable "how much do I care" signal. `-1` when no ranking is
+     * available for the notification.
      */
     val channelImportance: Int,
     /** When the system received and posted this notification. */

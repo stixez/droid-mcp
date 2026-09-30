@@ -10,6 +10,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.delay
 
 /**
  * `scroll_to_find` — repeatedly swipe in `direction` until `match` appears in
@@ -28,7 +29,9 @@ import io.droidmcp.core.ToolResult
  * `match` is a case-insensitive substring against text + content-description.
  *
  * Params: required `match`; optional `direction` (default `down`), `max_scrolls`
- * (clamped 1–20, default 5).
+ * (clamped 1–20, default 5). After each swipe the tool waits ~300ms for the
+ * scroll to settle, then re-checks the tree — including after the final swipe,
+ * so up to `max_scrolls` swipes and `max_scrolls + 1` checks are performed.
  *
  * On success returns `found = true`, `scrolls` (Int iterations performed before
  * the hit), and `node` (the matched node projection, shaped like
@@ -66,8 +69,11 @@ class ScrollToFindTool(private val context: Context) : McpTool {
         // Reading-direction → finger-physics swipe path.
         val (startX, startY, endX, endY) = swipeCoordsFor(direction, width, height)
 
-        repeat(maxScrolls) { iteration ->
+        // maxScrolls swipes means maxScrolls + 1 tree checks: one before any
+        // swipe, one after each swipe (including the last).
+        for (iteration in 0..maxScrolls) {
             // Check current screen first — match may already be visible on iteration 0.
+            // A null root (bound service, no active window) counts as "not found".
             val foundNode = NodeQuery.withRoot { root ->
                 var hit: Map<String, Any?>? = null
                 NodeQuery.walk(root) { node, depth ->
@@ -87,6 +93,7 @@ class ScrollToFindTool(private val context: Context) : McpTool {
                     "node" to foundNode,
                 ))
             }
+            if (iteration == maxScrolls) break
 
             // Not found; dispatch one swipe and try again.
             val path = Path().apply {
@@ -99,11 +106,17 @@ class ScrollToFindTool(private val context: Context) : McpTool {
             if (!swiped) {
                 return ToolResult.error("gesture_failed", "scroll swipe ${iteration + 1} was cancelled")
             }
+            // Let fling/inertia settle and the a11y tree refresh before re-checking.
+            delay(SETTLE_DELAY_MS)
         }
 
         return ToolResult.error("scroll_exhausted", "no match after $maxScrolls scrolls")
     }
 
+    private companion object {
+        /** Pause after each swipe so scrolling settles before the tree re-check. */
+        const val SETTLE_DELAY_MS = 300L
+    }
 }
 
 /**

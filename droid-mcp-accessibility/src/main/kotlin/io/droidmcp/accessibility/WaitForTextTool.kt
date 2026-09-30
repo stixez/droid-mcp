@@ -30,6 +30,8 @@ import kotlinx.coroutines.delay
  *
  * Error codes: `invalid_selector` (unknown `condition`, or `text` missing when
  * `condition='text'`) and `accessibility_not_enabled` (service not bound).
+ * A bound service whose active-window root is momentarily null (window
+ * transitions, lock screen) is treated as "not yet" and polling continues.
  */
 class WaitForTextTool(private val context: Context) : McpTool {
 
@@ -67,8 +69,13 @@ class WaitForTextTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("invalid_selector", "text is required when condition='text'")
 
         while (true) {
+            if (!AccessibilityServiceHolder.isConnected()) {
+                return ToolResult.error("accessibility_not_enabled", null)
+            }
             var found = false
-            val walked = NodeQuery.withRoot { root ->
+            // A null root while the service is bound is a transient "no active
+            // window" state — treat it as "not yet" and keep polling.
+            NodeQuery.withRoot { root ->
                 NodeQuery.walk(root) { node, _ ->
                     if (NodeQuery.matches(node, text, null, null, null)) {
                         found = true
@@ -77,9 +84,7 @@ class WaitForTextTool(private val context: Context) : McpTool {
                         true
                     }
                 }
-                true
-            } ?: return ToolResult.error("accessibility_not_enabled", null)
-            if (!walked) return ToolResult.error("accessibility_not_enabled", null)
+            }
 
             if (found) {
                 return ToolResult.success(mapOf(
@@ -107,15 +112,22 @@ class WaitForTextTool(private val context: Context) : McpTool {
     ): ToolResult {
         var initial: WindowSnapshot? = null
         while (true) {
+            if (!AccessibilityServiceHolder.isConnected()) {
+                return ToolResult.error("accessibility_not_enabled", null)
+            }
+            // Null root while bound = transient "no active window"; skip this
+            // poll rather than failing (or recording it as the baseline).
             val snapshot = NodeQuery.withRoot { root ->
                 WindowSnapshot(
                     pkg = root.packageName?.toString(),
                     rootClass = root.className?.toString(),
                     windowId = root.windowId,
                 )
-            } ?: return ToolResult.error("accessibility_not_enabled", null)
+            }
 
-            if (initial == null) {
+            if (snapshot == null) {
+                // not yet — fall through to the deadline check
+            } else if (initial == null) {
                 initial = snapshot
             } else if (snapshot != initial) {
                 return ToolResult.success(mapOf(

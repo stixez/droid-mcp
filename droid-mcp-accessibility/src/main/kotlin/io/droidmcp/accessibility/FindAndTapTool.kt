@@ -24,6 +24,7 @@ import io.droidmcp.core.ToolResult
  *
  * On success returns `success = true`, `view_id`, `class`, and the echoed
  * `match_kind`. Error codes: `accessibility_not_enabled` (service not bound),
+ * `no_active_window` (service bound but no active-window root),
  * `invalid_selector` (missing `match` or unknown `match_kind`), `node_not_found`
  * (no match), `gesture_failed` (ACTION_CLICK returned false on the matched
  * node).
@@ -71,7 +72,7 @@ class FindAndTapTool(private val context: Context) : McpTool {
                 node.recycle()
             }
         }
-        return result ?: ToolResult.error("accessibility_not_enabled", null)
+        return result ?: rootUnavailableError(shortForm = true)
     }
 
     private fun predicateFor(

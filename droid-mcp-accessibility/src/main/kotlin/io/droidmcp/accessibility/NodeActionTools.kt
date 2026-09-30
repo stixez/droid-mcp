@@ -16,9 +16,13 @@ import io.droidmcp.core.ToolResult
  * ([ClickNodeTool], [LongClickNodeTool], [SetNodeTextTool], [ScrollNodeTool]):
  * `text`, `view_id`, `class_name`, `package_name`, `index`. See [parseSelector]
  * for the validation rules.
+ *
+ * @param textKey The param name used for the substring text matcher. Defaults
+ *   to `text`; [SetNodeTextTool] passes `match_text` because its `text` param
+ *   is the replacement string, not a selector.
  */
-private fun nodeSelectorParams(): List<ToolParameter> = listOf(
-    ToolParameter("text", "Substring match against node text / contentDescription.", ParameterType.STRING, required = false),
+private fun nodeSelectorParams(textKey: String = "text"): List<ToolParameter> = listOf(
+    ToolParameter(textKey, "Substring match against node text / contentDescription.", ParameterType.STRING, required = false),
     ToolParameter("view_id", "Exact match against view-id resource name.", ParameterType.STRING, required = false),
     ToolParameter("class_name", "Exact match against node class.", ParameterType.STRING, required = false),
     ToolParameter("package_name", "Exact match against node package.", ParameterType.STRING, required = false),
@@ -46,17 +50,19 @@ private data class SelectorCriteria(
  * Parse and validate the shared selector params into a [SelectorCriteria].
  *
  * @param params The raw tool params.
+ * @param textKey The param key read as the substring text matcher (`text` for
+ *   most tools, `match_text` for [SetNodeTextTool]).
  * @return `success` with the criteria, or `failure` carrying an
  *   [IllegalArgumentException] whose message becomes the tool error when no
  *   selector field is supplied or `index` is negative.
  */
-private fun parseSelector(params: Map<String, Any>): Result<SelectorCriteria> {
-    val text = (params["text"] as? String)?.takeIf { it.isNotBlank() }
+private fun parseSelector(params: Map<String, Any>, textKey: String = "text"): Result<SelectorCriteria> {
+    val text = (params[textKey] as? String)?.takeIf { it.isNotBlank() }
     val viewId = (params["view_id"] as? String)?.takeIf { it.isNotBlank() }
     val className = (params["class_name"] as? String)?.takeIf { it.isNotBlank() }
     val pkg = (params["package_name"] as? String)?.takeIf { it.isNotBlank() }
     if (text == null && viewId == null && className == null && pkg == null) {
-        return Result.failure(IllegalArgumentException("At least one of text, view_id, class_name, or package_name is required."))
+        return Result.failure(IllegalArgumentException("At least one of $textKey, view_id, class_name, or package_name is required."))
     }
     val index = (params["index"] as? Number)?.toInt() ?: 0
     if (index < 0) {
@@ -73,7 +79,8 @@ private fun parseSelector(params: Map<String, Any>): Result<SelectorCriteria> {
  * On success returns `success = true`, `action` (the [actionName] string), and
  * the matched node's `view_id`. Error cases (all long-form messages except
  * `node_not_editable`, which is short-form): service not bound
- * ([notConnectedError]), invalid selector (from [parseSelector]), no node
+ * ([notConnectedError]), `no_active_window` when the service is bound but has
+ * no active root ([rootUnavailableError]), invalid selector (from [parseSelector]), no node
  * matched, `node_not_editable` when `requireEditable` and the node isn't
  * editable, and a "performAction returned false" message when the node rejects
  * the action.
@@ -83,6 +90,8 @@ private fun parseSelector(params: Map<String, Any>): Result<SelectorCriteria> {
  * @param arguments Optional action arguments (e.g. set-text payload).
  * @param requireEditable When true, fails with `node_not_editable` unless the
  *   matched node reports `isEditable`.
+ * @param textKey The param key used as the substring text selector (see
+ *   [parseSelector]).
  * @return The [ToolResult] to hand back from the calling tool's `execute`.
  */
 private fun perform(
@@ -90,9 +99,10 @@ private fun perform(
     params: Map<String, Any>,
     arguments: Bundle? = null,
     requireEditable: Boolean = false,
+    textKey: String = "text",
 ): ToolResult {
     if (!AccessibilityServiceHolder.isConnected()) return ToolResult.error(notConnectedError())
-    val criteria = parseSelector(params).getOrElse { return ToolResult.error(it.message ?: "invalid selector") }
+    val criteria = parseSelector(params, textKey).getOrElse { return ToolResult.error(it.message ?: "invalid selector") }
 
     val result = NodeQuery.withRoot { root ->
         val node = NodeQuery.findOne(
@@ -118,7 +128,7 @@ private fun perform(
             node.recycle()
         }
     }
-    return result ?: ToolResult.error(notConnectedError())
+    return result ?: rootUnavailableError(shortForm = false)
 }
 
 /** Map an `AccessibilityNodeInfo.ACTION_*` constant to the short string echoed
@@ -166,17 +176,21 @@ class LongClickNodeTool(private val context: Context) : McpTool {
  * Works for most native EditText fields; some apps disable accessibility
  * text-set, in which case the IME tools are the fallback.
  *
- * Params: the shared selector plus required `text` (replacement string). The
- * matched node must report `isEditable` or the call fails with the short-form
+ * Params: required `text` (the **replacement** string — never used as a
+ * selector here) plus the shared selector, whose substring text matcher is
+ * named `match_text` for this tool instead of `text` (`view_id`, `class_name`,
+ * `package_name`, `index` are unchanged). At least one of `match_text`,
+ * `view_id`, `class_name`, `package_name` is required. The matched node must
+ * report `isEditable` or the call fails with the short-form
  * `node_not_editable`. See [perform]; on success returns `success`,
  * `action = "set_text"`, and the matched `view_id`.
  */
 class SetNodeTextTool(private val context: Context) : McpTool {
     override val name = "set_node_text"
-    override val description = "Replace the text of an editable node via ACTION_SET_TEXT. Works for most native EditText fields; some apps disable accessibility text-set, in which case use the IME tools instead."
-    override val parameters = nodeSelectorParams() + ToolParameter(
-        "text", "Replacement text.", ParameterType.STRING, required = true,
-    )
+    override val description = "Replace the text of an editable node via ACTION_SET_TEXT. `text` is the replacement string; select the target node with `match_text` (substring against existing text / contentDescription), `view_id`, `class_name`, `package_name`, and `index`. Works for most native EditText fields; some apps disable accessibility text-set, in which case use the IME tools instead."
+    override val parameters = listOf(
+        ToolParameter("text", "Replacement text.", ParameterType.STRING, required = true),
+    ) + nodeSelectorParams(textKey = MATCH_TEXT_KEY)
     override val annotations = ToolAnnotations(destructiveHint = true)
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()
@@ -184,7 +198,18 @@ class SetNodeTextTool(private val context: Context) : McpTool {
         val args = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
         }
-        return perform(AccessibilityNodeInfo.ACTION_SET_TEXT, params, args, requireEditable = true)
+        return perform(
+            AccessibilityNodeInfo.ACTION_SET_TEXT,
+            params,
+            args,
+            requireEditable = true,
+            textKey = MATCH_TEXT_KEY,
+        )
+    }
+
+    private companion object {
+        /** Selector key for the substring matcher; `text` is the replacement. */
+        const val MATCH_TEXT_KEY = "match_text"
     }
 }
 

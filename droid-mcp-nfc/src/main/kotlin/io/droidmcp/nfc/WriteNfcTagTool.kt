@@ -74,6 +74,8 @@ class WriteNfcTagTool(private val context: Context) : McpTool {
                 return@withContext ToolResult.error("Content too large for tag (max ${ndef.maxSize} bytes)")
             }
             ndef.writeNdefMessage(message)
+            // Keep read_nfc_tag's out-of-range fallback in sync with what's now on the tag.
+            NfcTagCache.refresh(tag, message, ndef.maxSize, ndef.isWritable)
 
             ToolResult.success(mapOf(
                 "success" to true,

@@ -10,12 +10,14 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
 import android.graphics.ImageFormat
+import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.provider.MediaStore
+import android.util.Size
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -35,14 +37,20 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * Records an H.264/MP4 video (video only — no audio track) for `duration_sec` seconds (clamped 1–60,
- * default 10) via Camera2 + [MediaRecorder], preferring the back-facing camera at its maximum size,
- * then copies the file into `MediaStore` under `Movies/droid-mcp`.
+ * default 10) via Camera2 + [MediaRecorder], preferring the back-facing camera, then copies the file
+ * into `MediaStore` under `Movies/droid-mcp`.
+ *
+ * The recording size is the largest `MediaRecorder` output size that fits within 1920x1080 (either
+ * orientation) — sensor-maximum sizes are often not encodable by the device's H.264 encoder. The
+ * bit rate comes from the matching `CamcorderProfile` / `EncoderProfiles` (1080p/720p/480p) when
+ * the device defines one, else is derived from the frame size (~0.1 bits per pixel per frame at
+ * 30fps, clamped 1–12 Mbps).
  *
  * Requires [android.Manifest.permission.CAMERA] and camera hardware; uses
  * [android.hardware.camera2.params.SessionConfiguration] (API 28+, met by the SDK's min API). No audio
  * is captured, so no `RECORD_AUDIO` permission is needed.
  *
- * Result keys: `file_path` (MediaStore content URI), `duration_ms`.
+ * Result keys: `file_path` (MediaStore content URI), `duration_ms`, `width`, `height`, `bit_rate`.
  */
 class CaptureVideoTool(private val context: Context) : McpTool {
 
@@ -77,8 +85,9 @@ class CaptureVideoTool(private val context: Context) : McpTool {
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
             val configMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val videoSizes = configMap?.getOutputSizes(MediaRecorder::class.java)
-            val videoSize = videoSizes?.maxByOrNull { it.width * it.height }
+            val videoSize = videoSizes?.let { pickVideoSize(it) }
                 ?: return@withContext ToolResult.error("Cannot determine video resolution")
+            val bitRate = bitRateFor(cameraId, videoSize)
 
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())
             tempFile = File(context.cacheDir, "VIDEO_$timestamp.mp4")
@@ -96,7 +105,7 @@ class CaptureVideoTool(private val context: Context) : McpTool {
                 setVideoEncoder(MediaRecorder.VideoEncoder.H264)
                 setVideoSize(videoSize.width, videoSize.height)
                 setVideoFrameRate(30)
-                setVideoEncodingBitRate(10_000_000)
+                setVideoEncodingBitRate(bitRate)
                 setOutputFile(tempFile.absolutePath)
                 prepare()
             }
@@ -173,20 +182,38 @@ class CaptureVideoTool(private val context: Context) : McpTool {
                 put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/droid-mcp")
+                    put(MediaStore.Video.Media.IS_PENDING, 1)
                 }
             }
 
-            val uri = context.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+            val resolver = context.contentResolver
+            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
                 ?: return@withContext ToolResult.error("Failed to create MediaStore entry for video")
-            context.contentResolver.openOutputStream(uri)?.use { os ->
-                tempFile.inputStream().use { it.copyTo(os) }
-            } ?: return@withContext ToolResult.error("Failed to open output stream for video")
+            val written = try {
+                resolver.openOutputStream(uri)?.use { os ->
+                    tempFile.inputStream().use { it.copyTo(os) }
+                    true
+                } ?: false
+            } catch (e: Exception) {
+                runCatching { resolver.delete(uri, null, null) }
+                throw e
+            }
+            if (!written) {
+                runCatching { resolver.delete(uri, null, null) }
+                return@withContext ToolResult.error("Failed to open output stream for video")
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                resolver.update(uri, ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }, null, null)
+            }
             tempFile.delete()
             tempFile = null
 
             ToolResult.success(mapOf(
                 "file_path" to uri.toString(),
                 "duration_ms" to (durationSec * 1000L),
+                "width" to videoSize.width,
+                "height" to videoSize.height,
+                "bit_rate" to bitRate,
             ))
         } catch (e: Exception) {
             ToolResult.error("Failed to capture video: ${e.message}")
@@ -199,5 +226,42 @@ class CaptureVideoTool(private val context: Context) : McpTool {
             handlerThread.quitSafely()
             tempFile?.delete()
         }
+    }
+
+    /** Largest size fitting 1920x1080 in either orientation; the smallest size if none fits. */
+    private fun pickVideoSize(sizes: Array<Size>): Size? =
+        sizes.filter { maxOf(it.width, it.height) <= 1920 && minOf(it.width, it.height) <= 1080 }
+            .maxByOrNull { it.width * it.height }
+            ?: sizes.minByOrNull { it.width * it.height }
+
+    /**
+     * Bit rate for [size]: the device's camcorder/encoder profile for the matching quality
+     * level when available, else ~0.1 bpp at 30fps clamped to 1–12 Mbps.
+     */
+    private fun bitRateFor(cameraId: String, size: Size): Int {
+        val pixels = size.width * size.height
+        val quality = when {
+            pixels >= 1920 * 1080 -> CamcorderProfile.QUALITY_1080P
+            pixels >= 1280 * 720 -> CamcorderProfile.QUALITY_720P
+            pixels >= 720 * 480 -> CamcorderProfile.QUALITY_480P
+            else -> null
+        }
+        val fromProfile = quality?.let { q ->
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    CamcorderProfile.getAll(cameraId, q)?.videoProfiles?.firstOrNull { it != null }?.bitrate
+                } else {
+                    val id = cameraId.toIntOrNull()
+                    if (id != null && CamcorderProfile.hasProfile(id, q)) {
+                        @Suppress("DEPRECATION")
+                        CamcorderProfile.get(id, q).videoBitRate
+                    } else {
+                        null
+                    }
+                }
+            }.getOrNull()
+        }
+        return fromProfile?.takeIf { it > 0 }
+            ?: (pixels.toLong() * 30L / 10L).toInt().coerceIn(1_000_000, 12_000_000)
     }
 }

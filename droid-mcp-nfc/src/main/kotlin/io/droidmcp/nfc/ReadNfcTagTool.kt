@@ -1,8 +1,11 @@
 package io.droidmcp.nfc
 
 import android.content.Context
+import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.TagLostException
 import android.nfc.tech.Ndef
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
@@ -18,15 +21,20 @@ import kotlinx.coroutines.withContext
  * host Activity populates from `onNewIntent()` via NFC foreground dispatch.
  * Requires NFC to be available and enabled. Read-only.
  *
+ * For NDEF tags it first tries a live read; if the tag has left the field
+ * (`TagLostException`) it serves the NDEF snapshot [NfcTagCache] took at
+ * discovery time and reports `cached = true`.
+ *
  * Output keys: `has_tag`; when a tag is cached, `tag_id` (hex), `is_ndef`, and
  * `tech_list` (non-NDEF tags) or `is_ndef`/`max_size`/`is_writable`/`records`
- * (each record: `tnf`, `type`, `payload`). When no tag is cached: `has_tag`
- * false plus a `message`.
+ * (each record: `tnf`, `type`, `payload`) plus `cached` (true when served from
+ * the discovery-time snapshot, false for a live read). When no tag is cached:
+ * `has_tag` false plus a `message`.
  */
 class ReadNfcTagTool(private val context: Context) : McpTool {
 
     override val name = "read_nfc_tag"
-    override val description = "Read NDEF data from the last scanned NFC tag. Returns cached tag data from the most recent scan, or indicates no tag has been scanned yet."
+    override val description = "Read NDEF data from the last scanned NFC tag. Reads live if the tag is still in range, otherwise returns the data captured when it was scanned (cached=true); indicates when no tag has been scanned yet."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -57,27 +65,46 @@ class ReadNfcTagTool(private val context: Context) : McpTool {
         try {
             ndef.connect()
             val ndefMessage = ndef.ndefMessage
-            val records = ndefMessage?.records?.map { record ->
-                mapOf(
-                    "tnf" to record.tnf,
-                    "type" to String(record.type),
-                    "payload" to decodePayload(record),
-                )
-            } ?: emptyList()
-
-            ToolResult.success(mapOf(
-                "has_tag" to true,
-                "is_ndef" to true,
-                "tag_id" to tag.id?.joinToString("") { "%02x".format(it) },
-                "max_size" to ndef.maxSize,
-                "is_writable" to ndef.isWritable,
-                "records" to records,
-            ))
+            val maxSize = ndef.maxSize
+            val isWritable = ndef.isWritable
+            NfcTagCache.refresh(tag, ndefMessage, maxSize, isWritable)
+            ToolResult.success(ndefResult(tag, ndefMessage, maxSize, isWritable, cached = false))
+        } catch (e: TagLostException) {
+            // The tag left the field (the usual case by the time a tool runs):
+            // serve the NDEF snapshot taken when it was discovered.
+            val snap = NfcTagCache.snapshot
+                ?: return@withContext ToolResult.error("Failed to read NFC tag: tag is out of range and no cached NDEF data is available. Tap the tag again.")
+            ToolResult.success(ndefResult(tag, snap.message, snap.maxSize, snap.isWritable, cached = true))
         } catch (e: Exception) {
             ToolResult.error("Failed to read NFC tag: ${e.message}")
         } finally {
             try { ndef.close() } catch (_: Exception) {}
         }
+    }
+
+    private fun ndefResult(
+        tag: Tag,
+        message: NdefMessage?,
+        maxSize: Int,
+        isWritable: Boolean,
+        cached: Boolean,
+    ): Map<String, Any?> {
+        val records = message?.records?.map { record ->
+            mapOf(
+                "tnf" to record.tnf,
+                "type" to String(record.type),
+                "payload" to decodePayload(record),
+            )
+        } ?: emptyList()
+        return mapOf(
+            "has_tag" to true,
+            "is_ndef" to true,
+            "tag_id" to tag.id?.joinToString("") { "%02x".format(it) },
+            "max_size" to maxSize,
+            "is_writable" to isWritable,
+            "records" to records,
+            "cached" to cached,
+        )
     }
 
     /**
@@ -86,7 +113,7 @@ class ReadNfcTagTool(private val context: Context) : McpTool {
      * every record: URI records lose their abbreviated prefix, text records keep the IANA
      * language-code prefix stuck to the text, and MIME/other records shouldn't be trimmed at all.
      */
-    private fun decodePayload(record: android.nfc.NdefRecord): String = when {
+    private fun decodePayload(record: NdefRecord): String = when {
         record.tnf == NdefRecord.TNF_WELL_KNOWN && record.type.contentEquals(NdefRecord.RTD_TEXT) ->
             decodeTextPayload(record.payload)
         record.tnf == NdefRecord.TNF_WELL_KNOWN && record.type.contentEquals(NdefRecord.RTD_URI) ->

@@ -30,7 +30,11 @@ internal object NodeQuery {
     /**
      * Run [block] with the active-window root, recycling the node afterwards.
      * Returns null when no accessibility service is bound or the root is
-     * unavailable.
+     * unavailable. Callers distinguish the two null causes via
+     * [rootUnavailableError] / [AccessibilityServiceHolder.isConnected]: a
+     * bound service with a null `rootInActiveWindow` is a transient
+     * "no active window" state (e.g. during window transitions or when the
+     * foreground window is not exposed), not a disabled service.
      */
     inline fun <T> withRoot(block: (AccessibilityNodeInfo) -> T): T? {
         val root = AccessibilityServiceHolder.service?.rootInActiveWindow ?: return null

@@ -5,18 +5,17 @@ import android.service.notification.StatusBarNotification
 
 /**
  * Projects a platform [StatusBarNotification] into a pure-data
- * [NotificationEvent]. The caller passes the resolved
- * `NotificationChannel.importance` (or -1 if unresolvable) — channel lookup
- * lives in [McpNotificationListenerServiceBase] where the
- * `NotificationListenerService.getNotificationChannels(pkg, user)` API is
- * available.
+ * [NotificationEvent]. The caller passes the resolved channel importance
+ * (or -1 if unresolvable) — the lookup lives in
+ * [McpNotificationListenerServiceBase], which reads it from the listener's
+ * `currentRanking`.
  */
 internal fun StatusBarNotification.toEvent(channelImportance: Int): NotificationEvent {
     val n = notification
     val extras = n?.extras
     val actions = n?.actions ?: emptyArray()
     val hasReply = actions.any { action ->
-        action.remoteInputs?.any { it.allowFreeFormInput } == true
+        action.actionIntent != null && action.remoteInputs?.any { it.allowFreeFormInput } == true
     }
     return NotificationEvent(
         key = key,

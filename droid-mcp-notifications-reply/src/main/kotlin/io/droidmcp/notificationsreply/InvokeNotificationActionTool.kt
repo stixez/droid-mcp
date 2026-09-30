@@ -17,7 +17,8 @@ import io.droidmcp.notification.NotificationStore
  * insensitive substring match on the action title) or `action_index` must be supplied —
  * supplying both or neither is `conflicting_args`. Looks the notification up by key in
  * [NotificationStore]; a notification with no actions, or no match for the given
- * label/index, returns `action_not_found`. Output on success: `success` (true), the echoed
+ * label/index, returns `action_not_found`; an action whose `actionIntent` is null, or whose
+ * PendingIntent was cancelled, returns `action_not_invokable`. Output on success: `success` (true), the echoed
  * `key`, the resolved `action_label`, and `package_name`.
  */
 class InvokeNotificationActionTool(private val context: Context) : McpTool {
@@ -66,8 +67,11 @@ class InvokeNotificationActionTool(private val context: Context) : McpTool {
         }
 
         val actionLabel = action.title?.toString()
+        // actionIntent is nullable and app-controlled.
+        val pendingIntent = action.actionIntent
+            ?: return ToolResult.error("action_not_invokable", "action '${actionLabel ?: index}' has no PendingIntent")
         return try {
-            action.actionIntent.send()
+            pendingIntent.send()
             ToolResult.success(mapOf(
                 "success" to true,
                 "key" to key,

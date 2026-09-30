@@ -10,7 +10,8 @@ import io.droidmcp.notification.NotificationListenerHolder
 
 /**
  * Provider for the notification-watch module. Wires up [WatchNotificationsTool],
- * [UnwatchNotificationsTool], and [ListNotificationWatchesTool], all backed by [WatchRegistry].
+ * [UnwatchNotificationsTool], [ListNotificationWatchesTool], and [PollNotificationWatchTool],
+ * all backed by [WatchRegistry].
  * Watches match against the live stream via
  * [NotificationListenerBus.events][io.droidmcp.notification.NotificationListenerBus] rather
  * than polling — the host's listener service must be bound and notification listener access
@@ -25,6 +26,7 @@ object NotificationWatchTools {
         WatchNotificationsTool(context),
         UnwatchNotificationsTool(context),
         ListNotificationWatchesTool(context),
+        PollNotificationWatchTool(context),
     )
 
     /**

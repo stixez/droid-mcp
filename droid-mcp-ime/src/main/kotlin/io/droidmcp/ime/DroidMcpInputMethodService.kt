@@ -29,6 +29,9 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
     @Volatile
     private var inputBound: Boolean = false
 
+    @Volatile
+    private var editorInfo: EditorInfo? = null
+
     override fun onCreate() {
         super.onCreate()
         InputMethodServiceHolder.set(this)
@@ -44,16 +47,19 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        editorInfo = attribute
         inputBound = true
     }
 
     override fun onFinishInput() {
         inputBound = false
+        editorInfo = null
         super.onFinishInput()
     }
 
     override fun onDestroy() {
         inputBound = false
+        editorInfo = null
         InputMethodServiceHolder.clear(this)
         super.onDestroy()
     }
@@ -70,4 +76,11 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
      * IME isn't currently driving an editor.
      */
     fun connection(): InputConnection? = if (inputBound) currentInputConnection else null
+
+    /**
+     * The [EditorInfo] captured in [onStartInput] for the currently-bound
+     * editor, or null when no editor is bound. Read tools use its `inputType`
+     * to refuse password fields (see [isPasswordInputType]).
+     */
+    fun editorInfo(): EditorInfo? = if (inputBound) editorInfo else null
 }

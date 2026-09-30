@@ -15,7 +15,8 @@ import io.droidmcp.core.ToolResult
  *
  * On success returns `package_name` (String?), `root_class` (String?), and
  * `window_id` (Int). Returns the long-form [notConnectedError] message when the
- * service is not bound.
+ * service is not bound, and `no_active_window` when it is bound but no
+ * active-window root is available (see [rootUnavailableError]).
  */
 class GetActiveWindowInfoTool(private val context: Context) : McpTool {
 
@@ -31,7 +32,7 @@ class GetActiveWindowInfoTool(private val context: Context) : McpTool {
                 "root_class" to root.className?.toString(),
                 "window_id" to root.windowId,
             )
-        } ?: return ToolResult.error(notConnectedError())
+        } ?: return rootUnavailableError(shortForm = false)
         return ToolResult.success(payload)
     }
 }
