@@ -5,6 +5,7 @@ import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.TrafficStats
+import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -17,10 +18,12 @@ import java.util.Calendar
 /**
  * Returns mobile (cellular) data usage over a look-back window. Prefers
  * [android.app.usage.NetworkStatsManager.querySummaryForDevice] which requires the
- * `PACKAGE_USAGE_STATS` special-access grant; on `SecurityException`/failure it silently
- * falls back to [android.net.TrafficStats] cumulative-since-boot totals (which ignore the
- * `days` window and add a `note`). Param `days` (1-90, default 30). Output: `bytes_rx`,
- * `bytes_tx`, `query_period_days`, and `note` only on the fallback path. Returns
+ * `PACKAGE_USAGE_STATS` special-access grant; on `SecurityException`/failure — or on API < 29,
+ * where a null subscriber id yields an empty (all-zero) summary — it falls back to
+ * [android.net.TrafficStats] cumulative-since-boot totals (which ignore the `days` window and
+ * add a `note`). Param `days` (1-90, default 30). Output: `bytes_rx`, `bytes_tx`, plus
+ * `query_period_days` on the windowed path or `note` (and no `query_period_days`) on the
+ * since-boot fallback path. Returns
  * [ToolResult.error] only when even TrafficStats is unsupported.
  */
 class GetDataUsageTool(private val context: Context) : McpTool {
@@ -41,7 +44,7 @@ class GetDataUsageTool(private val context: Context) : McpTool {
 
         try {
             val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE) as? NetworkStatsManager
-                ?: return@withContext getDataUsageFallback(days)
+                ?: return@withContext getDataUsageFallback()
 
             val calendar = Calendar.getInstance()
             val endTime = calendar.timeInMillis
@@ -55,19 +58,25 @@ class GetDataUsageTool(private val context: Context) : McpTool {
                 endTime,
             )
 
+            // Below API 29 a null subscriberId matches no mobile stats, so the summary comes back
+            // empty rather than throwing — treat that as "unsupported" and fall back.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && bucket.rxBytes == 0L && bucket.txBytes == 0L) {
+                return@withContext getDataUsageFallback()
+            }
+
             ToolResult.success(mapOf(
                 "bytes_rx" to bucket.rxBytes,
                 "bytes_tx" to bucket.txBytes,
                 "query_period_days" to days,
             ))
         } catch (e: SecurityException) {
-            getDataUsageFallback(days)
+            getDataUsageFallback()
         } catch (e: Exception) {
-            getDataUsageFallback(days)
+            getDataUsageFallback()
         }
     }
 
-    private fun getDataUsageFallback(days: Int): ToolResult {
+    private fun getDataUsageFallback(): ToolResult {
         return try {
             val mobileRx = TrafficStats.getMobileRxBytes()
             val mobileTx = TrafficStats.getMobileTxBytes()
@@ -78,8 +87,7 @@ class GetDataUsageTool(private val context: Context) : McpTool {
                 ToolResult.success(mapOf(
                     "bytes_rx" to mobileRx,
                     "bytes_tx" to mobileTx,
-                    "query_period_days" to days,
-                    "note" to "Using TrafficStats (cumulative lifetime data)",
+                    "note" to "Using TrafficStats (cumulative since boot; the days window is not applied)",
                 ))
             }
         } catch (e: Exception) {

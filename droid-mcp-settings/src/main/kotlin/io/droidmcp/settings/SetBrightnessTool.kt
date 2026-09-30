@@ -1,5 +1,6 @@
 package io.droidmcp.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,7 +13,8 @@ import io.droidmcp.core.ToolResult
 
 /**
  * Sets screen brightness (0-255, clamped). Requires `WRITE_SETTINGS`; when not granted it launches
- * the system grant screen and returns an error instead of writing.
+ * the system grant screen (only if the host is foreground or holds `SYSTEM_ALERT_WINDOW`, since
+ * Android 10+ blocks background activity starts) and returns an error instead of writing.
  *
  * Output keys on success: `success` (true), `brightness` (the clamped value applied).
  */
@@ -27,12 +29,21 @@ class SetBrightnessTool(private val context: Context) : McpTool {
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!Settings.System.canWrite(context)) {
+            if (!canStartActivityNow(context)) {
+                return ToolResult.error("WRITE_SETTINGS permission not granted. $BACKGROUND_LAUNCH_ERROR")
+            }
             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
                 data = Uri.parse("package:${context.packageName}")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(intent)
-            return ToolResult.error("WRITE_SETTINGS permission not granted. Opening settings to grant it.")
+            return try {
+                context.startActivity(intent)
+                ToolResult.error("WRITE_SETTINGS permission not granted. Opening settings to grant it.")
+            } catch (e: ActivityNotFoundException) {
+                ToolResult.error("WRITE_SETTINGS permission not granted, and this device has no settings screen to grant it.")
+            } catch (e: Exception) {
+                ToolResult.error("WRITE_SETTINGS permission not granted; failed to open settings: ${e.message}")
+            }
         }
 
         val level = (params["level"] as? Number)?.toInt()

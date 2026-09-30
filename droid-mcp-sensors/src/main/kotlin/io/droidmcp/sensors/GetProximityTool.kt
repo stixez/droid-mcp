@@ -13,9 +13,9 @@ import kotlinx.coroutines.withContext
 /**
  * Reads the `TYPE_PROXIMITY` sensor. No permissions. Many devices report only binary
  * near/far rather than a true centimetre distance. With `duration_ms` (1-5000) it collects a
- * series of samples; otherwise a single reading. See [readSensor]. Output: latest
+ * series of samples; otherwise a single reading. See [sampleSensor]. Output: latest
  * `distance_cm`, `is_near` (`distance < 5cm`), `accuracy`, `timestamp`, plus a `readings`
- * list of `{distance_cm,is_near,timestamp}`. Returns [ToolResult.error] when the device has
+ * list of `{distance_cm,is_near,timestamp}`. Returns [ToolResult.error] (with distinct messages) if no reading arrives in time or when the device has
  * no proximity sensor.
  */
 class GetProximityTool(private val context: Context) : McpTool {
@@ -30,8 +30,9 @@ class GetProximityTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)
 
-        val readings = readSensor(context, Sensor.TYPE_PROXIMITY, durationMs)
-            ?: return@withContext ToolResult.error("Proximity sensor not available on this device")
+        val result = sampleSensor(context, Sensor.TYPE_PROXIMITY, durationMs)
+        result.toErrorOrNull("Proximity sensor")?.let { return@withContext it }
+        val readings = (result as SensorSampleResult.Readings).readings
 
         val latest = readings.lastOrNull()
         val distance = latest?.values?.get(0) ?: Float.MAX_VALUE

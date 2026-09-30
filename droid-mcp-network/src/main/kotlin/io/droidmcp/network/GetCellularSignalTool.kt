@@ -3,6 +3,12 @@ package io.droidmcp.network
 import android.Manifest
 import android.content.Context
 import android.os.Build
+import android.telephony.CellSignalStrengthCdma
+import android.telephony.CellSignalStrengthGsm
+import android.telephony.CellSignalStrengthLte
+import android.telephony.CellSignalStrengthNr
+import android.telephony.CellSignalStrengthTdscdma
+import android.telephony.CellSignalStrengthWcdma
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolParameter
@@ -16,8 +22,9 @@ import kotlinx.coroutines.withContext
 /**
  * Returns current cellular signal strength. Requires `ACCESS_NETWORK_STATE` (checked up
  * front). On API 29+ reads the first cellular entry from `SignalStrength.cellSignalStrengths`
- * (added in Q — calling it on API 28 throws `NoSuchMethodError`); below that falls back to a
- * reflection-based GSM read with a synthesized dBm estimate. Output:
+ * (added in Q — calling it on API 28 throws `NoSuchMethodError`). On API 28 it uses the public
+ * `TelephonyManager.getSignalStrength()` + `SignalStrength.getLevel()` for the level; `signal_asu`
+ * and `signal_dbm` there come from the GSM reading and are null when it is unknown. Output:
  * `signal_asu`, `signal_dbm`, `level` (`excellent`/`good`/`moderate`/`poor`/`none`),
  * `level_numeric` (0-4). Returns [ToolResult.error] when permission is missing, no
  * SignalStrength/cellular entry is available, or on failure.
@@ -42,23 +49,17 @@ class GetCellularSignalTool(private val context: Context) : McpTool {
                     ?: return@withContext ToolResult.error("Signal strength not available")
 
                 val signalLevels = signalStrength.cellSignalStrengths
-                val cellularSignal = signalLevels.firstOrNull { it is android.telephony.CellSignalStrengthGsm ||
-                        it is android.telephony.CellSignalStrengthLte ||
-                        it is android.telephony.CellSignalStrengthNr ||
-                        it is android.telephony.CellSignalStrengthCdma ||
-                        it is android.telephony.CellSignalStrengthTdscdma ||
-                        it is android.telephony.CellSignalStrengthWcdma }
+                val cellularSignal = signalLevels.firstOrNull { it is CellSignalStrengthGsm ||
+                        it is CellSignalStrengthLte ||
+                        it is CellSignalStrengthNr ||
+                        it is CellSignalStrengthCdma ||
+                        it is CellSignalStrengthTdscdma ||
+                        it is CellSignalStrengthWcdma }
 
                 if (cellularSignal != null) {
                     val asu = cellularSignal.asuLevel
                     val dbm = cellularSignal.dbm
-                    val level = when (cellularSignal.level) {
-                        4 -> "excellent"
-                        3 -> "good"
-                        2 -> "moderate"
-                        1 -> "poor"
-                        else -> "none"
-                    }
+                    val level = levelName(cellularSignal.level)
 
                     ToolResult.success(mapOf(
                         "signal_asu" to asu,
@@ -70,50 +71,23 @@ class GetCellularSignalTool(private val context: Context) : McpTool {
                     ToolResult.error("No cellular signal available")
                 }
             } else {
-                @Suppress("DEPRECATION")
-                val asu = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    // Use reflection for older APIs
-                    try {
-                        val method = TelephonyManager::class.java.getMethod("getSignalStrength")
-                        val signalStrength = method.invoke(telephonyManager) as? android.telephony.SignalStrength
-                        signalStrength?.let {
-                            val gsmMethod = it.javaClass.getMethod("getGsmSignalStrength")
-                            val gsmStrength = gsmMethod.invoke(it) as? Int ?: 0
-                            if (gsmStrength == 99) 0 else gsmStrength
-                        } ?: 0
-                    } catch (e: Exception) {
-                        0
-                    }
-                } else {
-                    0
-                }
+                // API 28: TelephonyManager.getSignalStrength() (API 28) and SignalStrength.getLevel()
+                // (API 23) are public; per-technology cellSignalStrengths is API 29+. ASU/dBm are
+                // only derivable from the GSM reading — null when it is unknown (99).
+                val signalStrength = telephonyManager.signalStrength
+                    ?: return@withContext ToolResult.error("Signal strength not available")
 
+                val levelNumeric = signalStrength.level.coerceIn(0, 4)
                 @Suppress("DEPRECATION")
-                val dbm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    -113 + (asu * 2)
-                } else {
-                    -113 + (asu * 2)
-                }
-
-                val level = when {
-                    asu >= 20 -> "excellent"
-                    asu >= 14 -> "good"
-                    asu >= 8 -> "moderate"
-                    asu >= 3 -> "poor"
-                    else -> "none"
-                }
+                val gsmAsu = signalStrength.gsmSignalStrength
+                val asu: Int? = gsmAsu.takeIf { it in 0..31 }
+                val dbm: Int? = asu?.let { -113 + (it * 2) }
 
                 ToolResult.success(mapOf(
                     "signal_asu" to asu,
                     "signal_dbm" to dbm,
-                    "level" to level,
-                    "level_numeric" to when {
-                        asu >= 20 -> 4
-                        asu >= 14 -> 3
-                        asu >= 8 -> 2
-                        asu >= 3 -> 1
-                        else -> 0
-                    }
+                    "level" to levelName(levelNumeric),
+                    "level_numeric" to levelNumeric,
                 ))
             }
         } catch (e: SecurityException) {
@@ -121,5 +95,13 @@ class GetCellularSignalTool(private val context: Context) : McpTool {
         } catch (e: Exception) {
             ToolResult.error("Failed to get signal strength: ${e.message}")
         }
+    }
+
+    private fun levelName(level: Int): String = when (level) {
+        4 -> "excellent"
+        3 -> "good"
+        2 -> "moderate"
+        1 -> "poor"
+        else -> "none"
     }
 }

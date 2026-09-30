@@ -24,7 +24,7 @@ object TelephonyTools {
     /** Permissions backing the identity/state tools. */
     fun requiredPermissions(): List<String> = listOf(
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.READ_SMS,
+        Manifest.permission.READ_PHONE_NUMBERS,
     )
 
     /** True when [requiredPermissions] are granted. */

@@ -2,10 +2,11 @@ package io.droidmcp.screen
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.hardware.display.DisplayManager
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.Display
 import android.view.Surface
-import android.view.WindowManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -15,6 +16,8 @@ import io.droidmcp.core.ToolResult
  * Reports current screen state: interactivity, rotation, brightness, and keyguard lock. No
  * permissions required. `brightness` is the raw `Settings.System.SCREEN_BRIGHTNESS` value (0–255),
  * or -1 if it could not be read (e.g. adaptive brightness).
+ *
+ * Rotation is read from the default display via [DisplayManager] (0 if unavailable).
  *
  * Output map: `is_screen_on` (Boolean), `rotation` (Int degrees: 0/90/180/270), `brightness` (Int),
  * `is_locked` (Boolean).
@@ -30,10 +33,10 @@ class GetScreenStateTool(private val context: Context) : McpTool {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val isScreenOn = powerManager.isInteractive
 
-        @Suppress("DEPRECATION")
-        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        @Suppress("DEPRECATION")
-        val rotation = when (windowManager.defaultDisplay.rotation) {
+        // DisplayManager works from any Context; WindowManager.defaultDisplay is deprecated and
+        // throws / misreports when obtained from a non-visual (application) context on API 30+.
+        val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+        val rotation = when (displayManager?.getDisplay(Display.DEFAULT_DISPLAY)?.rotation) {
             Surface.ROTATION_0 -> 0
             Surface.ROTATION_90 -> 90
             Surface.ROTATION_180 -> 180

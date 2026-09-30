@@ -3,8 +3,6 @@ package io.droidmcp.vibration
 import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -34,15 +32,8 @@ class VibrateTool(private val context: Context) : McpTool {
 
         val amplitude = (params["amplitude"] as? Number)?.toInt()?.coerceIn(1, 255)
 
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vm.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
-
-        if (!vibrator.hasVibrator()) {
+        val vibrator = defaultVibrator(context)
+        if (vibrator == null || !vibrator.hasVibrator()) {
             return ToolResult.error("Device does not have a vibrator")
         }
 
@@ -53,6 +44,7 @@ class VibrateTool(private val context: Context) : McpTool {
                 } else {
                     VibrationEffect.createOneShot(duration.toLong(), VibrationEffect.DEFAULT_AMPLITUDE)
                 }
+                RepeatingVibrationWatchdog.disarm()
                 vibrator.vibrate(effect)
             } else {
                 @Suppress("DEPRECATION")

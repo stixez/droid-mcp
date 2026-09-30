@@ -3,6 +3,7 @@ package io.droidmcp.telephony
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
+import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
@@ -13,9 +14,12 @@ import io.droidmcp.core.ToolResult
  * Returns SIM card details from [android.telephony.TelephonyManager]. `simSerialNumber` (ICCID)
  * needs `READ_PHONE_STATE`/privileged access and is null on API 29+ for non-privileged apps;
  * `SecurityException` is caught and yields null. Carrier name and country ISO need no
- * permission. Output: `sim_serial` (nullable), `carrier_name`, `country_iso`, and `slot_index`
- * — which actually carries the default `subscriptionId` (public API 30+; the method didn't exist earlier),
- * NOT the physical SIM slot, and is 0 below API 30 or on error.
+ * permission. Output: `sim_serial` (nullable), `carrier_name`, `country_iso`,
+ * `subscription_id` (the default subscription's id — `TelephonyManager.subscriptionId` on API 30+,
+ * `SubscriptionManager.getDefaultSubscriptionId()` below; `-1` if none), and `slot_index` — the
+ * physical SIM slot of that subscription (`SubscriptionInfo.simSlotIndex`, which needs
+ * `READ_PHONE_STATE`, falling back to the permission-free `SubscriptionManager.getSlotIndex` on
+ * API 29+; `-1` if unknown).
  */
 class GetSimInfoTool(private val context: Context) : McpTool {
 
@@ -37,21 +41,49 @@ class GetSimInfoTool(private val context: Context) : McpTool {
 
         val carrierName = telephonyManager.simOperatorName
         val countryIso = telephonyManager.simCountryIso
-        val slotIndex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            try {
+        val subscriptionId = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 telephonyManager.subscriptionId
-            } catch (e: Throwable) {
-                0
+            } else {
+                SubscriptionManager.getDefaultSubscriptionId()
             }
-        } else {
-            0
+        } catch (e: Exception) {
+            SubscriptionManager.INVALID_SUBSCRIPTION_ID
         }
+        val slotIndex = resolveSlotIndex(subscriptionId)
 
         return ToolResult.success(mapOf(
             "sim_serial" to simSerialNumber,
             "carrier_name" to carrierName,
             "country_iso" to countryIso,
-            "slot_index" to slotIndex
+            "slot_index" to slotIndex,
+            "subscription_id" to subscriptionId,
         ))
+    }
+
+    /** Physical SIM slot for [subscriptionId], or `-1` when it can't be determined. */
+    @SuppressLint("MissingPermission")
+    private fun resolveSlotIndex(subscriptionId: Int): Int {
+        if (subscriptionId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return INVALID_SLOT
+        val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
+        val fromInfo = try {
+            subscriptionManager?.getActiveSubscriptionInfo(subscriptionId)?.simSlotIndex
+        } catch (e: SecurityException) {
+            null
+        }
+        if (fromInfo != null) return fromInfo
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                SubscriptionManager.getSlotIndex(subscriptionId)
+            } catch (e: Exception) {
+                INVALID_SLOT
+            }
+        } else {
+            INVALID_SLOT
+        }
+    }
+
+    private companion object {
+        const val INVALID_SLOT = -1
     }
 }

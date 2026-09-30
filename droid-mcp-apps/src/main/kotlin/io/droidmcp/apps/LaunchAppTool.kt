@@ -1,8 +1,11 @@
 package io.droidmcp.apps
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -15,6 +18,8 @@ import io.droidmcp.core.ToolResult
  * activity. No permissions; the module's manifest declares a `<queries>` element for
  * `MAIN`/`LAUNCHER` intents so API 30+ package-visibility filtering doesn't hide launchable
  * targets (a package with no launcher activity — background-only — is still invisible).
+ * On API 29+ the host must be in the foreground (or hold `SYSTEM_ALERT_WINDOW`), otherwise the
+ * system silently blocks the launch; the tool detects this up front and returns an error.
  * Output: `success` (true) and `package_name`.
  */
 class LaunchAppTool(private val context: Context) : McpTool {
@@ -42,6 +47,14 @@ class LaunchAppTool(private val context: Context) : McpTool {
         val launchIntent = pm.getLaunchIntentForPackage(packageName)
             ?: return ToolResult.error("No launch intent available for: $packageName")
 
+        if (!canStartActivityNow()) {
+            return ToolResult.error(
+                "Cannot launch $packageName while the host app is in the background: Android 10+ " +
+                    "blocks background activity starts. Bring the host app to the foreground or grant " +
+                    "it 'Display over other apps' (SYSTEM_ALERT_WINDOW).",
+            )
+        }
+
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         return try {
@@ -53,5 +66,17 @@ class LaunchAppTool(private val context: Context) : McpTool {
         } catch (e: Exception) {
             ToolResult.error("Failed to launch app: ${e.message}")
         }
+    }
+
+    /**
+     * On API 29+ background activity starts are silently dropped unless the app is
+     * foreground/visible or holds `SYSTEM_ALERT_WINDOW`. Always true below API 29.
+     */
+    private fun canStartActivityNow(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return true
+        val info = ActivityManager.RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(info)
+        if (info.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE) return true
+        return Settings.canDrawOverlays(context)
     }
 }

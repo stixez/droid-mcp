@@ -13,9 +13,9 @@ import kotlinx.coroutines.withContext
 /**
  * Reads the `TYPE_ACCELEROMETER` sensor (x/y/z acceleration in m/s2). No permissions. With
  * `duration_ms` (1-5000) it collects a series of samples; otherwise it captures a single
- * reading. See [readSensor] for the sampling/timeout mechanics. Output: latest `x`, `y`, `z`,
+ * reading. See [sampleSensor] for the sampling/timeout mechanics. Output: latest `x`, `y`, `z`,
  * `accuracy`, `timestamp`, plus a `readings` list of `{x,y,z,timestamp}`. Returns
- * [ToolResult.error] when the device has no accelerometer.
+ * [ToolResult.error] (with distinct messages) if no reading arrives in time or when the device has no accelerometer.
  */
 class GetAccelerometerTool(private val context: Context) : McpTool {
 
@@ -29,8 +29,9 @@ class GetAccelerometerTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)
 
-        val readings = readSensor(context, Sensor.TYPE_ACCELEROMETER, durationMs)
-            ?: return@withContext ToolResult.error("Accelerometer not available on this device")
+        val result = sampleSensor(context, Sensor.TYPE_ACCELEROMETER, durationMs)
+        result.toErrorOrNull("Accelerometer")?.let { return@withContext it }
+        val readings = (result as SensorSampleResult.Readings).readings
 
         val latest = readings.lastOrNull()
 

@@ -10,7 +10,7 @@ import io.droidmcp.core.ToolResult
 
 /**
  * Returns the device's line-1 phone number via the deprecated `TelephonyManager.line1Number`.
- * Requires `READ_PHONE_STATE` (or `READ_SMS`/`READ_PHONE_NUMBERS`); even so the value is
+ * Requires `READ_PHONE_NUMBERS` on API 30+ (`READ_PHONE_STATE` suffices on API <= 29); even so the value is
  * frequently unavailable (carrier/SIM does not populate it) and `SecurityException` is caught
  * and treated as null. Output: `phone_number` (nullable), `is_available`.
  */
