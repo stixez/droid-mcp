@@ -369,7 +369,7 @@ Start the HTTP server from the app, then pair a desktop client with the QR code 
 
 KDoc API reference (Dokka, rebuilt on every push to `main`): **[stixez.github.io/droid-mcp](https://stixez.github.io/droid-mcp/)**
 
-Guides: [TOOLS](docs/TOOLS.md) · [PAIRING](docs/PAIRING.md) · [SECURITY](docs/SECURITY.md) · [SHIZUKU](docs/SHIZUKU.md) · [ROOT](docs/ROOT.md) · [VERSIONING](docs/VERSIONING.md) · [MIGRATION](docs/MIGRATION-0-TO-1.md)
+Release notes: [GitHub Releases](https://github.com/stixez/droid-mcp/releases) · Guides: [TOOLS](docs/TOOLS.md) · [PAIRING](docs/PAIRING.md) · [SECURITY](docs/SECURITY.md) · [SHIZUKU](docs/SHIZUKU.md) · [ROOT](docs/ROOT.md) · [VERSIONING](docs/VERSIONING.md)
 
 ---
 

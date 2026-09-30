@@ -36,7 +36,7 @@ Result-map keys can't be introspected, so neither check covers them. Reviewers c
 
 Semver allows breaking changes in any pre-1.0 release. droid-mcp still avoids them: from 0.4.0 on, no tool, parameter or result key has been renamed or removed, and cleanup alone is never a reason to rename.
 
-The exception is a bug fix whose correct behavior differs from the broken one. 0.11.0 has several: for example, `slot_index` now holds the SIM slot as documented, and `set_node_text` no longer uses its replacement text as a selector. Each one is listed in [MIGRATION-0-TO-1.md](MIGRATION-0-TO-1.md#0110).
+The exception is a bug fix whose correct behavior differs from the broken one. 0.11.0 has several: for example, `slot_index` now holds the SIM slot as documented, and `set_node_text` no longer uses its replacement text as a selector. Each one is listed in the release notes on GitHub Releases.
 
 One consequence: the 0.5.0–0.9.0 tool surface never reached a public GitHub release (it sat on a branch). Tools introduced there could adopt short-form error codes from the start; only **0.4.0** tools keep their original human-prose error envelope forever.
 
