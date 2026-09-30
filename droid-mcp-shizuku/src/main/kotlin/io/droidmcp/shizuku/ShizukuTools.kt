@@ -49,10 +49,11 @@ object ShizukuTools {
     fun isShizukuReady(): Boolean = backend.isAvailable()
 
     /**
-     * Open the Shizuku app's permission flow. If Shizuku is installed and
-     * pingable, calls `Shizuku.requestPermission(requestCode)` which surfaces
-     * a system dialog. If not installed, returns a launch intent for the
-     * Play Store / install screen.
+     * Ask Shizuku to show its permission dialog (`Shizuku.requestPermission`).
+     * Does nothing if the Shizuku service isn't running — check
+     * [isShizukuReady] first, and use [installOrOpenIntent] to send the user
+     * to Shizuku when it isn't. The result arrives via Shizuku's
+     * `OnRequestPermissionResultListener`.
      */
     fun requestPermission(requestCode: Int) {
         runCatching { Shizuku.requestPermission(requestCode) }

@@ -3,16 +3,15 @@ package io.droidmcp.shell
 /**
  * Abstraction over a privileged shell-command pipeline.
  *
- * Two concrete implementations are planned:
- *  - `ShizukuShellBackend` (in `:droid-mcp-shizuku`, ships 0.8.0) — wraps
- *    `Shizuku.newProcess` for `shell`-UID execution without root.
- *  - `RootShellBackend` (in `:droid-mcp-root`, ships 0.9.0) — wraps `libsu` for
- *    `root`-UID execution. Same surface, broader capabilities (writes to
- *    `/system`, etc.).
+ * Implementations:
+ *  - `ShizukuShellBackend` (`:droid-mcp-shizuku`) — `shell`-UID execution via
+ *    `Shizuku.newProcess`, no root needed.
+ *  - `RootShellBackend` (`:droid-mcp-root`) — `root`-UID execution via a
+ *    per-call `libsu` shell.
  *
  * Tools in `:droid-mcp-shell-core` are parameterised over [ShellBackend] so
- * the LLM-facing surface is identical across backends; the host app picks
- * which one (or both) to register at startup.
+ * the LLM-facing surface is identical across backends. Register one backend's
+ * tool set — the tool names are the same, so a second set replaces the first.
  */
 interface ShellBackend {
 
@@ -59,7 +58,7 @@ interface ShellBackend {
 
     /**
      * One-line description of what this backend is, surfaced in tool errors
-     * (e.g. `"Shizuku"`, `"libsu (root)"`). Helps the LLM disambiguate when
+     * (`"Shizuku"`, `"Root (libsu)"`). Helps the LLM disambiguate when
      * one tool errors with "shell_unavailable" and the host registered
      * multiple backends.
      */

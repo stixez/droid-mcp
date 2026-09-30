@@ -18,7 +18,7 @@ import io.droidmcp.notification.NotificationListenerHolder
  * `notification_listener_not_enabled`. At least one of `package_name` (exact match),
  * `sender_pattern` (substring on title), or `keyword` (substring on text/bigText/subText/
  * ticker) is required — supplying none is `invalid_filter`; supplying several AND-combines.
- * All string matching is case-insensitive. `ttl_seconds` (clamped 60-86400, default 3600)
+ * `sender_pattern` and `keyword` match case-insensitively. `ttl_seconds` (clamped 60-86400, default 3600)
  * auto-expires the watch; `fire_on_update` (default `false`) controls whether subsequent
  * updates to an already-matched notification key fire again. Output: `watch_id`, `expires_at`,
  * the effective `ttl_seconds`, and `fire_on_update`.
@@ -26,7 +26,7 @@ import io.droidmcp.notification.NotificationListenerHolder
 class WatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "watch_notifications"
-    override val description = "Register a filter against the live notification stream. Returns a watch_id; retrieve matched notifications with poll_notification_watch. At least one of package_name / sender_pattern / keyword is required; multiple fields AND-combine. Matching is case-insensitive substring. Fire-once-per-key by default — set fire_on_update=true to fire again on subsequent updates of the same notification."
+    override val description = "Register a filter against the live notification stream. Returns a watch_id; retrieve matched notifications with poll_notification_watch. At least one of package_name / sender_pattern / keyword is required; multiple fields AND-combine. package_name must match exactly; sender_pattern and keyword are case-insensitive substrings. Fire-once-per-key by default — set fire_on_update=true to fire again on subsequent updates of the same notification."
     override val parameters = listOf(
         ToolParameter("package_name", "Filter to a specific app's notifications (exact match against the source package name).", ParameterType.STRING, required = false),
         ToolParameter("sender_pattern", "Case-insensitive substring match against the notification title.", ParameterType.STRING, required = false),

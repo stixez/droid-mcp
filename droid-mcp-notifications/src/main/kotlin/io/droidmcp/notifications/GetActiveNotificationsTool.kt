@@ -11,10 +11,9 @@ import java.util.*
 /**
  * Reads the host app's currently active (status-bar) notifications via [NotificationManager.getActiveNotifications].
  *
- * No permissions required, but limited to API 23+ (Android 6.0). KNOWN LIMITATION: this only returns
- * notifications posted by the MCP host app itself — cross-app notification access requires a
- * `NotificationListenerService` (not included in this build), which is the domain of the
- * `droid-mcp-notifications-reply` / `droid-mcp-notification-watch` modules.
+ * No permissions required. KNOWN LIMITATION: this only returns notifications posted by the MCP
+ * host app itself. Cross-app access needs a `NotificationListenerService` — use the
+ * `droid-mcp-notifications-reply` / `droid-mcp-notification-watch` modules for that.
  *
  * Result keys: `notifications` (list of maps with `id`, `tag`, `package_name`, `title`, `text`,
  * `timestamp`, `is_ongoing`, `is_foreground_service`), `count`, and a `note` describing the limitation.
@@ -25,10 +24,8 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
     override val description = """
         Read currently active (visible in the status bar) notifications.
         LIMITATION: This tool only reads notifications posted by this app itself.
-        To read notifications from all apps, the app must be set up as a NotificationListenerService
-        and the user must grant notification access in Settings > Apps > Special app access > Notification access.
-        That integration is not included in this build — this tool is useful for testing and inspecting
-        notifications the MCP host app has itself posted.
+        To read other apps' notifications, use list_repliable_notifications or watch_notifications
+        if they are registered (they need notification access granted in Settings).
     """.trimIndent()
     override val parameters = listOf(
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER),

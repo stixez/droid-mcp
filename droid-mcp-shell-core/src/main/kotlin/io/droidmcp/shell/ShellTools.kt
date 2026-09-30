@@ -4,8 +4,8 @@ import android.content.Context
 import io.droidmcp.core.McpTool
 
 /**
- * Factory for the shell-based tool set. Backend-modules (`:droid-mcp-shizuku`,
- * eventually `:droid-mcp-root`) call [all] with their concrete [ShellBackend]
+ * Factory for the shell-based tool set. Backend modules (`:droid-mcp-shizuku`,
+ * `:droid-mcp-root`) call [all] with their concrete [ShellBackend]
  * and expose the resulting list under a module-specific provider
  * (`ShizukuTools`, `RootTools`).
  *
@@ -15,7 +15,7 @@ import io.droidmcp.core.McpTool
 object ShellTools {
 
     /**
-     * The full 0.8.0 shell-tool set, wired against [shell].
+     * The full shell-tool set (17 tools), wired against [shell].
      *
      * @param policy optional host denylist applied to the settings-write and
      *   `grant_permission` tools. Defaults to [ShellPolicy.PERMISSIVE] (denies nothing).
@@ -40,7 +40,7 @@ object ShellTools {
         PutSecureSettingTool(shell, policy),
         PutGlobalSettingTool(shell, policy),
         PutSystemSettingTool(shell, policy),
-        // Dumpsys (just the cheap ones in 0.8.0; batterystats / procstats / notifications dumpsys deferred)
+        // Dumpsys (only the cheap ones; batterystats / procstats / notifications dumpsys not exposed)
         GetTopWindowTool(shell),
         // Standby
         SetAppStandbyBucketTool(shell),
