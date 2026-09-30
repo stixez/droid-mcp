@@ -35,7 +35,7 @@ class SetWallpaperTool(private val context: Context) : McpTool {
     override val description = "Set the wallpaper from an image file. Supports setting for home screen, lock screen, or both."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path to the image file", ParameterType.STRING, required = true),
-        ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING),
+        ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING, enumValues = listOf("home", "lock", "both")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 

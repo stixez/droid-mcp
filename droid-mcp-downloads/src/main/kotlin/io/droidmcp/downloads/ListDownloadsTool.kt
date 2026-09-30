@@ -30,8 +30,8 @@ class ListDownloadsTool(private val context: Context) : McpTool {
     override val name = "list_downloads"
     override val description = "List files in the Downloads directory. On Android 11+ scoped storage hides non-media files created by other apps."
     override val parameters = listOf(
-        ToolParameter("limit", "Maximum number of files to return (1-100, default: 10)", ParameterType.INTEGER),
-        ToolParameter("sort_by", "Sort order: date, name, size (default: date)", ParameterType.STRING),
+        ToolParameter("limit", "Maximum number of files to return (1-100, default: 10)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("sort_by", "Sort order: date, name, size (default: date)", ParameterType.STRING, enumValues = listOf("date", "name", "size")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

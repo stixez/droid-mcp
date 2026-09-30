@@ -38,10 +38,10 @@ class WaitForTextTool(private val context: Context) : McpTool {
     override val name = "wait_for_text"
     override val description = "Block (with timeout) until a text substring appears on screen, or the active window changes. Returns a structured result with status='matched' or status='timeout'. Timeout is NOT an error — branch on status."
     override val parameters = listOf(
-        ToolParameter("condition", "'text' (default) waits for `text` to appear; 'window_change' waits for the foreground package or root activity to change.", ParameterType.STRING, required = false),
+        ToolParameter("condition", "'text' (default) waits for `text` to appear; 'window_change' waits for the foreground package or root activity to change.", ParameterType.STRING, required = false, enumValues = listOf("text", "window_change")),
         ToolParameter("text", "Substring to wait for (required when condition='text'; matched against text + contentDescription, case-insensitive).", ParameterType.STRING, required = false),
-        ToolParameter("timeout_ms", "Max wait in milliseconds (100-60000, default 5000).", ParameterType.INTEGER, required = false),
-        ToolParameter("poll_ms", "Polling interval in milliseconds (50-2000, default 200).", ParameterType.INTEGER, required = false),
+        ToolParameter("timeout_ms", "Max wait in milliseconds (100-60000, default 5000).", ParameterType.INTEGER, required = false, minimum = 100.0, maximum = 60000.0),
+        ToolParameter("poll_ms", "Polling interval in milliseconds (50-2000, default 200).", ParameterType.INTEGER, required = false, minimum = 50.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
 

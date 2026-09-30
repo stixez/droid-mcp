@@ -31,7 +31,7 @@ class WatchNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Filter to a specific app's notifications (exact match against the source package name).", ParameterType.STRING, required = false),
         ToolParameter("sender_pattern", "Case-insensitive substring match against the notification title.", ParameterType.STRING, required = false),
         ToolParameter("keyword", "Case-insensitive substring match against text / bigText / subText / tickerText.", ParameterType.STRING, required = false),
-        ToolParameter("ttl_seconds", "Watch lifetime in seconds (60-86400, default 3600). Watch is auto-removed when it expires.", ParameterType.INTEGER, required = false),
+        ToolParameter("ttl_seconds", "Watch lifetime in seconds (60-86400, default 3600). Watch is auto-removed when it expires.", ParameterType.INTEGER, required = false, minimum = 60.0, maximum = 86400.0),
         ToolParameter("fire_on_update", "When true, fire again on every update of the same notification key. Default false.", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations()

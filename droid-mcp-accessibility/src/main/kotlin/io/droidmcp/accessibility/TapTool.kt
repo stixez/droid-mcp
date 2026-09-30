@@ -25,8 +25,8 @@ class TapTool(private val context: Context) : McpTool {
     override val name = "tap"
     override val description = "Dispatch a single-tap gesture at the given screen coordinates via the accessibility service. Use when no node matches the selector or for raw coord-based input."
     override val parameters = listOf(
-        ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true),
-        ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true),
+        ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
+        ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

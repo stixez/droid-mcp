@@ -10,7 +10,7 @@ import io.droidmcp.core.McpTool
  * Requires no permissions; printing is mediated entirely by the system print UI.
  *
  * [PrintContentTool] needs a live, resumed [Activity]: `PrintManager.print()` throws when called
- * from an application context. Pass an [activityProvider] that returns the host's current
+ * from an application context. Pass an `activityProvider` that returns the host's current
  * foreground Activity (or `null` when none is showing). If the provider returns `null` and the
  * supplied [Context] is not itself an Activity, `print_content` returns a clear error instead of
  * pretending to succeed.

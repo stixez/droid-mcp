@@ -22,7 +22,7 @@ class GetAccelerometerTool(private val context: Context) : McpTool {
     override val name = "get_accelerometer"
     override val description = "Read accelerometer data (x, y, z acceleration in m/s\u00B2)"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

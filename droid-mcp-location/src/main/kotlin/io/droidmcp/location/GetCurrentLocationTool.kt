@@ -25,7 +25,7 @@ class GetCurrentLocationTool(private val context: Context) : McpTool {
     override val name = "get_current_location"
     override val description = "Get the device's current location using the last known cached location. Requires ACCESS_FINE_LOCATION or ACCESS_COARSE_LOCATION permission. Returns latitude, longitude, accuracy, altitude, speed, and timestamp. If no cached location is available, suggests opening Google Maps or another location app to warm the cache."
     override val parameters = listOf(
-        ToolParameter("accuracy", "Location accuracy preference: 'fine' (GPS) or 'coarse' (network). Default: 'coarse'", ParameterType.STRING),
+        ToolParameter("accuracy", "Location accuracy preference: 'fine' (GPS) or 'coarse' (network). Default: 'coarse'", ParameterType.STRING, enumValues = listOf("fine", "coarse")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

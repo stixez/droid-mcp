@@ -31,7 +31,7 @@ class VibratePatternTool(private val context: Context) : McpTool {
     override val description = "Vibrate the device with a custom pattern of alternating OFF/ON durations"
     override val parameters = listOf(
         ToolParameter("timings", "Alternating OFF/ON durations in milliseconds, starting with OFF — timings[0] is a delay before the first vibration (e.g. [0, 100, 50, 100] vibrates immediately for 100ms, pauses 50ms, then vibrates 100ms). Each entry ≤ 10000ms, total ≤ 30000ms", ParameterType.ARRAY, required = true, itemsType = ParameterType.INTEGER),
-        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart). A repeating pattern loops until cancel_vibration is called (auto-stops after 60s)", ParameterType.INTEGER, required = false),
+        ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart). A repeating pattern loops until cancel_vibration is called (auto-stops after 60s)", ParameterType.INTEGER, required = false, minimum = -1.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

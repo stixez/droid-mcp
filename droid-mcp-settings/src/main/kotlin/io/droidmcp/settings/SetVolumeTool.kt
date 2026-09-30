@@ -21,8 +21,8 @@ class SetVolumeTool(private val context: Context) : McpTool {
     override val name = "set_volume"
     override val description = "Set volume for a specific audio stream"
     override val parameters = listOf(
-        ToolParameter("stream", "Audio stream to adjust: media, ring, alarm, notification (default: media)", ParameterType.STRING),
-        ToolParameter("level", "Volume level (0 to max for the stream)", ParameterType.INTEGER, required = true),
+        ToolParameter("stream", "Audio stream to adjust: media, ring, alarm, notification (default: media)", ParameterType.STRING, enumValues = listOf("media", "ring", "alarm", "notification")),
+        ToolParameter("level", "Volume level (0 to max for the stream)", ParameterType.INTEGER, required = true, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
 

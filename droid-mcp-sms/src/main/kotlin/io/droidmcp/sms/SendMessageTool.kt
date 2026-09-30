@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Sends an SMS to `to` with text `body` via `SmsManager` (version-checked: system service on
- * API 31+, else `getDefault()`). The recipient must match [phoneRegex] or an error is returned;
+ * API 31+, else `getDefault()`). The recipient must match `phoneRegex` or an error is returned;
  * the body is always split with `divideMessage`/`sendMultipartTextMessage`. Requires `SEND_SMS`.
  *
  * Each part carries an immutable sent-`PendingIntent` (unique request code, delivered to a

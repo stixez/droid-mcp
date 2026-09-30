@@ -21,7 +21,7 @@ class ReadFileTool(private val context: Context) : McpTool {
     override val description = "Read the text content of a file. Only reads text files — returns an error for binary files. Large files are truncated to max_lines (and at most ~1M characters). On Android 11+ non-media files created by other apps are not visible."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path to the file to read", ParameterType.STRING, required = true),
-        ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER),
+        ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER, minimum = 1.0, maximum = 1000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -76,7 +76,7 @@ class ReadFileTool(private val context: Context) : McpTool {
         ))
     }
 
-    private class BoundedRead(val content: String, val lines: Int, val truncatedBy: String?)
+    internal class BoundedRead(val content: String, val lines: Int, val truncatedBy: String?)
 
     /**
      * Streams [file] through a fixed-size char buffer, normalizing `\n`, `\r\n` and `\r` line
@@ -84,7 +84,7 @@ class ReadFileTool(private val context: Context) : McpTool {
      * first. Unlike `lineSequence()` it never materializes a whole line, so a single enormous line
      * (minified JSON, one-line logs) or a multi-GB file costs at most [MAX_CHARS] of heap.
      */
-    private fun readBounded(file: File, maxLines: Int): BoundedRead {
+    internal fun readBounded(file: File, maxLines: Int): BoundedRead {
         val content = StringBuilder()
         var breaks = 0
         var partial = false

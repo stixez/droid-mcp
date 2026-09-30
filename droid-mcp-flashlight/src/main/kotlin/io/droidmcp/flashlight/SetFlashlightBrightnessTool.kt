@@ -35,7 +35,7 @@ class SetFlashlightBrightnessTool(private val context: Context) : McpTool {
             "level",
             "Brightness level from 0-255 (0 = off, 1-255 = on at specified brightness)",
             ParameterType.INTEGER,
-            required = true
+            required = true, minimum = 0.0, maximum = 255.0
         )
     )
     override val annotations = ToolAnnotations(idempotentHint = true)

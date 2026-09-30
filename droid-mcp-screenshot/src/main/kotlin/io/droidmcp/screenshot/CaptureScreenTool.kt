@@ -53,8 +53,8 @@ class CaptureScreenTool(private val context: Context) : McpTool {
     override val name = "capture_screen"
     override val description = "Capture a screenshot of the current screen. Requires MediaProjection consent from the host app. Saves the image (PNG by default, or JPEG) to the gallery (Pictures/droid-mcp) and returns its path / content URI."
     override val parameters = listOf(
-        ToolParameter("quality", "JPEG quality 1-100 (default: 90). Only used if format is 'jpeg'.", ParameterType.INTEGER),
-        ToolParameter("format", "Image format: 'png' (default) or 'jpeg'", ParameterType.STRING),
+        ToolParameter("quality", "JPEG quality 1-100 (default: 90). Only used if format is 'jpeg'.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("format", "Image format: 'png' (default) or 'jpeg'", ParameterType.STRING, enumValues = listOf("png", "jpeg")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

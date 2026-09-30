@@ -26,9 +26,9 @@ class SearchMediaTool(private val context: Context) : McpTool {
         ToolParameter("query", "Filename keyword to search for (case-insensitive substring). Optional.", ParameterType.STRING),
         ToolParameter("start_date", "Filter by date taken from (YYYY-MM-DD). Optional.", ParameterType.STRING),
         ToolParameter("end_date", "Filter by date taken until (YYYY-MM-DD, inclusive). Optional.", ParameterType.STRING),
-        ToolParameter("media_type", "Type of media to search: 'images', 'videos', or 'all'. Default: 'all'", ParameterType.STRING),
-        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
-        ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER),
+        ToolParameter("media_type", "Type of media to search: 'images', 'videos', or 'all'. Default: 'all'", ParameterType.STRING, enumValues = listOf("images", "videos", "all")),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -142,7 +142,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
     }
 
     /** Strict `yyyy-MM-dd` parse (device timezone): non-lenient and the whole string must match. */
-    private fun parseDate(input: String): Date? {
+    internal fun parseDate(input: String): Date? {
         val text = input.trim()
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
         val pos = ParsePosition(0)
@@ -151,6 +151,6 @@ class SearchMediaTool(private val context: Context) : McpTool {
     }
 
     /** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
-    private fun escapeLike(value: String): String =
+    internal fun escapeLike(value: String): String =
         value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

@@ -19,7 +19,7 @@ class SearchMessagesTool(private val context: Context) : McpTool {
     override val description = "Search SMS messages by keyword in message body"
     override val parameters = listOf(
         ToolParameter("query", "Search keyword", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

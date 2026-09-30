@@ -73,9 +73,9 @@ class TakePhotoTool(private val context: Context) : McpTool {
     override val description = "Capture a photo using the device camera (headless, no preview required). Saves the full-resolution JPEG to the gallery; with return_data=true also returns a downscaled base64 copy (max_dimension, format, quality)."
     override val parameters = listOf(
         ToolParameter("return_data", "Return image as base64 data (downscaled; see max_dimension)", ParameterType.BOOLEAN, required = false),
-        ToolParameter("max_dimension", "Longest side in pixels of the returned image (64-4096, default 1280). Only used with return_data.", ParameterType.INTEGER, required = false),
-        ToolParameter("format", "Returned image format: 'jpeg' (default) or 'png'. Only used with return_data.", ParameterType.STRING, required = false),
-        ToolParameter("quality", "JPEG quality 1-100 for the returned image (default 85). Ignored for PNG.", ParameterType.INTEGER, required = false),
+        ToolParameter("max_dimension", "Longest side in pixels of the returned image (64-4096, default 1280). Only used with return_data.", ParameterType.INTEGER, required = false, minimum = 64.0, maximum = 4096.0),
+        ToolParameter("format", "Returned image format: 'jpeg' (default) or 'png'. Only used with return_data.", ParameterType.STRING, required = false, enumValues = listOf("jpeg", "png")),
+        ToolParameter("quality", "JPEG quality 1-100 for the returned image (default 85). Ignored for PNG.", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

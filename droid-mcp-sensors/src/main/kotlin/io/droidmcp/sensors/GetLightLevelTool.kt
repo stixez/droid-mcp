@@ -21,7 +21,7 @@ class GetLightLevelTool(private val context: Context) : McpTool {
     override val name = "get_light_level"
     override val description = "Read ambient light level in lux"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

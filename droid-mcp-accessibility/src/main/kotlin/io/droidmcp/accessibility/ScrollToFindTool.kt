@@ -46,8 +46,8 @@ class ScrollToFindTool(private val context: Context) : McpTool {
     override val description = "Repeatedly swipe in `direction` (reading semantics: 'down' reveals content below, 'up' reveals content above, 'left'/'right' likewise) until `match` appears in the active window's UI tree or `max_scrolls` exhausts. Returns the matched node's selector fields on hit."
     override val parameters = listOf(
         ToolParameter("match", "Substring to find in the UI tree (matched against text + contentDescription, case-insensitive).", ParameterType.STRING, required = true),
-        ToolParameter("direction", "'down' (default) / 'up' / 'left' / 'right'. Uses reading semantics: 'down' reveals content below.", ParameterType.STRING, required = false),
-        ToolParameter("max_scrolls", "Max scroll iterations (1-20, default 5).", ParameterType.INTEGER, required = false),
+        ToolParameter("direction", "'down' (default) / 'up' / 'left' / 'right'. Uses reading semantics: 'down' reveals content below.", ParameterType.STRING, required = false, enumValues = listOf("down", "up", "left", "right")),
+        ToolParameter("max_scrolls", "Max scroll iterations (1-20, default 5).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 20.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

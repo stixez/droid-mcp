@@ -16,8 +16,8 @@ class ListContactsTool(private val context: Context) : McpTool {
     override val name = "list_contacts"
     override val description = "List all contacts with basic info, paginated"
     override val parameters = listOf(
-        ToolParameter("limit", "Max results per page. Default 50.", ParameterType.INTEGER),
-        ToolParameter("offset", "Number of contacts to skip. Default 0.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results per page. Default 50.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("offset", "Number of contacts to skip. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

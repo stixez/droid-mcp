@@ -32,7 +32,7 @@ class WebSearchTool @JvmOverloads constructor(
     override val description = "Search the web using DuckDuckGo and return titles, URLs, and snippets"
     override val parameters = listOf(
         ToolParameter("query", "Search query", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER, minimum = 1.0, maximum = 50.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 

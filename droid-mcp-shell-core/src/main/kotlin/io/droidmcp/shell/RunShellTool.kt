@@ -49,7 +49,7 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
     override val parameters = listOf(
         ToolParameter("command", "Bin name (argv form) or full command line (string form). The host allowlist is matched token-by-token against the leading argv entries: in string form the whitespace-split command line, in argv form `command` followed by `args` verbatim (an arg containing a space never matches an allowlist token).", ParameterType.STRING, required = true),
         ToolParameter("args", "Optional argv array. When set, each entry is passed as a discrete argument with no shell tokenisation (so quoted strings, paths with spaces, etc. just work).", ParameterType.ARRAY, required = false),
-        ToolParameter("max_stdout_bytes", "Truncate stdout above this many bytes (1024-65536, default 8192). Same cap is applied to stderr (bytes, not characters).", ParameterType.INTEGER, required = false),
+        ToolParameter("max_stdout_bytes", "Truncate stdout above this many bytes (1024-65536, default 8192). Same cap is applied to stderr (bytes, not characters).", ParameterType.INTEGER, required = false, minimum = 1024.0, maximum = 65536.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

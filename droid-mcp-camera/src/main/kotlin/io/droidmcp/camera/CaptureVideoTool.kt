@@ -57,7 +57,7 @@ class CaptureVideoTool(private val context: Context) : McpTool {
     override val name = "capture_video"
     override val description = "Capture a video using the device camera"
     override val parameters = listOf(
-        ToolParameter("duration_sec", "Recording duration in seconds (1-60, default 10)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_sec", "Recording duration in seconds (1-60, default 10)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 60.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

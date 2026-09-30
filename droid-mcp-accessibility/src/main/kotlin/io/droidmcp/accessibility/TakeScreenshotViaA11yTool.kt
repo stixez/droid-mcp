@@ -42,9 +42,9 @@ class TakeScreenshotViaA11yTool(private val context: Context) : McpTool {
     override val name = "take_screenshot_via_a11y"
     override val description = "Capture the screen via AccessibilityService.takeScreenshot — no MediaProjection consent prompt required. Returns a base64-encoded JPEG (default) or PNG, downscaled so the longest side is at most `max_dimension` (default 1280). Requires API 30+. Returns a specific error when the foreground window has FLAG_SECURE set or the screenshot rate-limit was hit."
     override val parameters = listOf(
-        ToolParameter("format", "'jpeg' (default) or 'png' (lossless, larger).", ParameterType.STRING, required = false),
-        ToolParameter("quality", "JPEG quality 1-100, default 80. Ignored for PNG.", ParameterType.INTEGER, required = false),
-        ToolParameter("max_dimension", "Downscale so the longest side is at most this many pixels (64-4096, default 1280).", ParameterType.INTEGER, required = false),
+        ToolParameter("format", "'jpeg' (default) or 'png' (lossless, larger).", ParameterType.STRING, required = false, enumValues = listOf("jpeg", "png")),
+        ToolParameter("quality", "JPEG quality 1-100, default 80. Ignored for PNG.", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
+        ToolParameter("max_dimension", "Downscale so the longest side is at most this many pixels (64-4096, default 1280).", ParameterType.INTEGER, required = false, minimum = 64.0, maximum = 4096.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
 

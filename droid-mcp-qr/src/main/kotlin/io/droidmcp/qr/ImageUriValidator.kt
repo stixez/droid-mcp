@@ -30,9 +30,10 @@ internal object ImageUriValidator {
      *   tool error.
      */
     fun validate(context: Context, raw: String): Result<Uri> {
-        val parsed = Uri.parse(raw.trim())
+        val input = raw.trim()
+        val parsed = Uri.parse(input)
         return when (parsed.scheme?.lowercase()) {
-            null -> if (raw.startsWith("/")) validateFile(File(raw.trim())) else deny("image_uri must be a file:// or content:// URI")
+            null -> if (input.startsWith("/")) validateFile(File(input)) else deny("image_uri must be a file:// or content:// URI")
             ContentResolver.SCHEME_FILE -> {
                 val path = parsed.path ?: return deny("image_uri has no path")
                 validateFile(File(path))

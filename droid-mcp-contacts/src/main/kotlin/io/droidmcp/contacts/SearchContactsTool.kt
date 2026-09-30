@@ -17,7 +17,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
     override val description = "Search contacts by display name (substring match)"
     override val parameters = listOf(
         ToolParameter("query", "Search query matched against the contact's display name", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -102,6 +102,6 @@ class SearchContactsTool(private val context: Context) : McpTool {
     }
 
     /** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
-    private fun escapeLike(value: String): String =
+    internal fun escapeLike(value: String): String =
         value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

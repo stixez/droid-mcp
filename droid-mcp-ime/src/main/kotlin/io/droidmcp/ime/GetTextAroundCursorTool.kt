@@ -24,8 +24,8 @@ class GetTextAroundCursorTool(private val context: Context) : McpTool {
     override val name = "get_text_around_cursor"
     override val description = "Read text before and after the cursor in the focused editor via InputConnection.getTextBeforeCursor / getTextAfterCursor. Privacy: refuses with error `password_field` when the focused editor is a password input (text/visible/web password or numeric PIN variations)."
     override val parameters = listOf(
-        ToolParameter("before", "Max characters before the cursor (1-2000, default 200).", ParameterType.INTEGER, required = false),
-        ToolParameter("after", "Max characters after the cursor (1-2000, default 200).", ParameterType.INTEGER, required = false),
+        ToolParameter("before", "Max characters before the cursor (1-2000, default 200).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
+        ToolParameter("after", "Max characters after the cursor (1-2000, default 200).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
 

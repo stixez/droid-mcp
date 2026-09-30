@@ -41,7 +41,7 @@ class FetchWebpageTool @JvmOverloads constructor(
     override val description = "Fetch an http(s) URL and extract readable text content from the page. Private/local network addresses are blocked by default."
     override val parameters = listOf(
         ToolParameter("url", "URL to fetch", ParameterType.STRING, required = true),
-        ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER),
+        ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER, minimum = 1.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 

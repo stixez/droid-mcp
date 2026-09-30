@@ -23,7 +23,7 @@ class SetBrightnessTool(private val context: Context) : McpTool {
     override val name = "set_brightness"
     override val description = "Set screen brightness level (0-255). Requires WRITE_SETTINGS permission."
     override val parameters = listOf(
-        ToolParameter("level", "Brightness level (0-255)", ParameterType.INTEGER, required = true),
+        ToolParameter("level", "Brightness level (0-255)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 255.0),
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
 

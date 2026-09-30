@@ -35,6 +35,8 @@ class GetDataUsageTool(private val context: Context) : McpTool {
             description = "Number of days to look back (1-90, default 30)",
             type = ParameterType.INTEGER,
             required = false,
+            minimum = 1.0,
+            maximum = 90.0,
         )
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)

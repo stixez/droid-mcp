@@ -23,7 +23,7 @@ class ListInstalledAppsTool(private val context: Context) : McpTool {
     override val description = "List installed apps on the device"
     override val parameters = listOf(
         ToolParameter("include_system", "Include system apps in results (default: false)", ParameterType.BOOLEAN),
-        ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

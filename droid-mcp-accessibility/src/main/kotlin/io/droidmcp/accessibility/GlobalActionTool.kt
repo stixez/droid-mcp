@@ -29,7 +29,7 @@ class GlobalActionTool(private val context: Context) : McpTool {
     override val name = "global_action"
     override val description = "Dispatch a system-wide AccessibilityService global action: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot."
     override val parameters = listOf(
-        ToolParameter("action", "One of: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot.", ParameterType.STRING, required = true),
+        ToolParameter("action", "One of: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot.", ParameterType.STRING, required = true, enumValues = listOf("back", "home", "recents", "notifications", "quick_settings", "power_dialog", "lock_screen", "screenshot")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

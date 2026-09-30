@@ -31,7 +31,7 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
     override val description = "Search files in the Downloads directory by filename. On Android 11+ scoped storage hides non-media files created by other apps."
     override val parameters = listOf(
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

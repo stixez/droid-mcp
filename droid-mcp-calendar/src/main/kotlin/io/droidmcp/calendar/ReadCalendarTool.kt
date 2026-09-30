@@ -31,7 +31,7 @@ class ReadCalendarTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("start_date", "Start date in YYYY-MM-DD format", ParameterType.STRING, required = true),
         ToolParameter("end_date", "End date in YYYY-MM-DD format. Defaults to start_date.", ParameterType.STRING),
-        ToolParameter("limit", "Max number of events to return. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of events to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

@@ -28,7 +28,7 @@ class InvokeNotificationActionTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("key", "Notification key from list_repliable_notifications or notification-watch event.", ParameterType.STRING, required = true),
         ToolParameter("action_label", "Case-insensitive substring match against the action title.", ParameterType.STRING, required = false),
-        ToolParameter("action_index", "Zero-indexed action position.", ParameterType.INTEGER, required = false),
+        ToolParameter("action_index", "Zero-indexed action position.", ParameterType.INTEGER, required = false, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

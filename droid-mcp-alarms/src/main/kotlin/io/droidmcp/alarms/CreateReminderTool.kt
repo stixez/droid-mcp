@@ -31,7 +31,7 @@ class CreateReminderTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("title", "Title of the reminder", ParameterType.STRING, required = true),
         ToolParameter("datetime", "Date and time in YYYY-MM-DD HH:mm format", ParameterType.STRING, required = true),
-        ToolParameter("minutes_before", "Minutes before the event to trigger the alert (default: 10)", ParameterType.INTEGER),
+        ToolParameter("minutes_before", "Minutes before the event to trigger the alert (default: 10)", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

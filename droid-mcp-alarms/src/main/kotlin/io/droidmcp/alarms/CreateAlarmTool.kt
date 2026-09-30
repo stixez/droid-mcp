@@ -28,8 +28,8 @@ class CreateAlarmTool(private val context: Context) : McpTool {
     override val name = "create_alarm"
     override val description = "Create an alarm at the specified time. Note: Reading existing alarms is not supported by a standard Android API — each clock app stores them differently."
     override val parameters = listOf(
-        ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true),
-        ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true),
+        ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 23.0),
+        ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 59.0),
         ToolParameter("message", "Label/message for the alarm", ParameterType.STRING),
         ToolParameter("days", "Comma-separated days to repeat (e.g. mon,tue,wed). Leave empty for one-time alarm.", ParameterType.STRING),
     )

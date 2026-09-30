@@ -129,12 +129,14 @@ class ListAppPermissionsTool(private val shell: ShellBackend) : McpTool {
     /**
      * Pull permission lines out of `dumpsys package` output. Relevant sections:
      *
-     *   requested permissions:
-     *     android.permission.INTERNET
-     *   install permissions:
-     *     android.permission.INTERNET: granted=true
-     *   runtime permissions:
-     *     android.permission.READ_CONTACTS: granted=true, flags=[USER_SET]
+     * ```
+     * requested permissions:
+     *   android.permission.INTERNET
+     * install permissions:
+     *   android.permission.INTERNET: granted=true
+     * runtime permissions:
+     *   android.permission.READ_CONTACTS: granted=true, flags=[USER_SET]
+     * ```
      *
      * Some API levels / OEM skins emit trailing fields (`gids=[...]`,
      * `restricted=true`) on the same line. We use anchored `find` (not

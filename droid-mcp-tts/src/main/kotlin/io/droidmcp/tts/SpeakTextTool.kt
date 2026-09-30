@@ -36,8 +36,8 @@ class SpeakTextTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("text", "Text to speak aloud", ParameterType.STRING, required = true),
         ToolParameter("language", "BCP-47 language code (default: en)", ParameterType.STRING),
-        ToolParameter("pitch", "Pitch of the speech (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
-        ToolParameter("speed", "Speech rate (0.5-2.0, default: 1.0)", ParameterType.NUMBER),
+        ToolParameter("pitch", "Pitch of the speech (0.5-2.0, default: 1.0)", ParameterType.NUMBER, minimum = 0.5, maximum = 2.0),
+        ToolParameter("speed", "Speech rate (0.5-2.0, default: 1.0)", ParameterType.NUMBER, minimum = 0.5, maximum = 2.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

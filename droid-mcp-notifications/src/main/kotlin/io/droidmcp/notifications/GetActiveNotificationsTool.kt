@@ -28,7 +28,7 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
         if they are registered (they need notification access granted in Settings).
     """.trimIndent()
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

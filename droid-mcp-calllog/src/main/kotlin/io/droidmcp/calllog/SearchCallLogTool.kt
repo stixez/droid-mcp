@@ -19,7 +19,7 @@ class SearchCallLogTool(private val context: Context) : McpTool {
     override val description = "Search the call log by phone number or contact name. Returns matching call records."
     override val parameters = listOf(
         ToolParameter("query", "Phone number or contact name to search for (substring match)", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

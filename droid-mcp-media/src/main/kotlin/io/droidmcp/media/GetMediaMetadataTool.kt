@@ -28,7 +28,7 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
     override val description = "Get detailed metadata for a specific media file by its MediaStore ID. Returns full details including date, dimensions, size, location (if available), and video duration."
     override val parameters = listOf(
         ToolParameter("media_id", "MediaStore media ID (from search_media results)", ParameterType.INTEGER, required = true),
-        ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING),
+        ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING, enumValues = listOf("image", "video")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

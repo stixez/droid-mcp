@@ -29,7 +29,7 @@ class LabelImageTool(private val context: Context) : McpTool {
     override val description = "Classify the contents of an image using ML Kit image labeling"
     override val parameters = listOf(
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
-        ToolParameter("min_confidence", "Minimum confidence threshold 0.0-1.0 (default 0.5)", ParameterType.NUMBER, required = false),
+        ToolParameter("min_confidence", "Minimum confidence threshold 0.0-1.0 (default 0.5)", ParameterType.NUMBER, required = false, minimum = 0.0, maximum = 1.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

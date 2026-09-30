@@ -37,7 +37,7 @@ class GestureTool(private val context: Context) : McpTool {
     override val description = "Dispatch a touch gesture on the screen via AccessibilityService.dispatchGesture. The gesture is described as a single ordered sequence of points and an optional duration; use this for swipes, drags, or tap-by-coordinate when no node matches. Single-stroke only — cannot express multi-finger gestures like pinch."
     override val parameters = listOf(
         ToolParameter("points", "Array of [x, y] integer screen coordinates the stroke walks through, in order. Minimum 2 points (start, end). Each entry must be a 2-element array of non-negative numbers; malformed entries reject the entire call.", ParameterType.ARRAY, required = true),
-        ToolParameter("duration_ms", "Duration of the stroke in milliseconds (10-3000, default 300).", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration of the stroke in milliseconds (10-3000, default 300).", ParameterType.INTEGER, required = false, minimum = 10.0, maximum = 3000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

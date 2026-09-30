@@ -25,9 +25,9 @@ class LongPressTool(private val context: Context) : McpTool {
     override val name = "long_press"
     override val description = "Dispatch a long-press gesture at the given screen coordinates. Holds for `duration_ms` (default 800ms)."
     override val parameters = listOf(
-        ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true),
-        ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true),
-        ToolParameter("duration_ms", "Hold duration in milliseconds (100-5000, default 800).", ParameterType.INTEGER, required = false),
+        ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
+        ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
+        ToolParameter("duration_ms", "Hold duration in milliseconds (100-5000, default 800).", ParameterType.INTEGER, required = false, minimum = 100.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

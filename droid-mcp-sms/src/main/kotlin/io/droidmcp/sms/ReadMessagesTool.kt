@@ -21,10 +21,10 @@ class ReadMessagesTool(private val context: Context) : McpTool {
     override val name = "read_messages"
     override val description = "Read SMS messages. Filter by inbox/sent, contact number, or date range."
     override val parameters = listOf(
-        ToolParameter("box", "Message box: 'inbox' or 'sent'. Default 'inbox'.", ParameterType.STRING),
+        ToolParameter("box", "Message box: 'inbox' or 'sent'. Default 'inbox'.", ParameterType.STRING, enumValues = listOf("inbox", "sent")),
         ToolParameter("address", "Filter by phone number", ParameterType.STRING),
         ToolParameter("since", "Only messages after this date (YYYY-MM-DD)", ParameterType.STRING),
-        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

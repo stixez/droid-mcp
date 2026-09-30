@@ -28,7 +28,7 @@ class SetAppStandbyBucketTool(private val shell: ShellBackend) : McpTool {
     override val description = "Set an app's standby bucket via `am set-standby-bucket`. Buckets are 'active', 'working_set', 'frequent', 'rare', or 'restricted' (lowercase). 'restricted' is the most aggressive throttling. Idempotent."
     override val parameters = listOf(
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
-        ToolParameter("bucket", "active | working_set | frequent | rare | restricted", ParameterType.STRING, required = true),
+        ToolParameter("bucket", "active | working_set | frequent | rare | restricted", ParameterType.STRING, required = true, enumValues = listOf("active", "working_set", "frequent", "rare", "restricted")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 

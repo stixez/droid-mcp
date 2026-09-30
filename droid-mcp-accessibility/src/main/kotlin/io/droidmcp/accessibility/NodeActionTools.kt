@@ -26,7 +26,7 @@ private fun nodeSelectorParams(textKey: String = "text"): List<ToolParameter> = 
     ToolParameter("view_id", "Exact match against view-id resource name.", ParameterType.STRING, required = false),
     ToolParameter("class_name", "Exact match against node class.", ParameterType.STRING, required = false),
     ToolParameter("package_name", "Exact match against node package.", ParameterType.STRING, required = false),
-    ToolParameter("index", "If the selector matches multiple nodes, zero-indexed pick. Must be >= 0. Default 0.", ParameterType.INTEGER, required = false),
+    ToolParameter("index", "If the selector matches multiple nodes, zero-indexed pick. Must be >= 0. Default 0.", ParameterType.INTEGER, required = false, minimum = 0.0),
 )
 
 /**
@@ -226,7 +226,7 @@ class ScrollNodeTool(private val context: Context) : McpTool {
     override val name = "scroll_node"
     override val description = "Scroll a scrollable node forward or backward."
     override val parameters = nodeSelectorParams() + ToolParameter(
-        "direction", "'forward' (default) or 'backward'.", ParameterType.STRING, required = false,
+        "direction", "'forward' (default) or 'backward'.", ParameterType.STRING, required = false, enumValues = listOf("forward", "backward"),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
     override suspend fun execute(params: Map<String, Any>): ToolResult {

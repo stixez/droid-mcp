@@ -28,7 +28,7 @@ class WriteNfcTagTool(private val context: Context) : McpTool {
     override val name = "write_nfc_tag"
     override val description = "Write an NDEF record to the currently scanned NFC tag. A tag must have been scanned first (see read_nfc_tag). Supports text and URI record types."
     override val parameters = listOf(
-        ToolParameter("type", "Record type: 'text' or 'uri'", ParameterType.STRING, required = true),
+        ToolParameter("type", "Record type: 'text' or 'uri'", ParameterType.STRING, required = true, enumValues = listOf("text", "uri")),
         ToolParameter("content", "The text or URI to write", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
