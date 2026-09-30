@@ -17,7 +17,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.utils.io.readRemaining
+import io.ktor.utils.io.readBuffer
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -238,7 +238,7 @@ class HttpTransport(
             call.respond(HttpStatusCode.PayloadTooLarge)
             return null
         }
-        val bytes = call.receiveChannel().readRemaining(MAX_BODY_BYTES + 1L).readByteArray()
+        val bytes = call.receiveChannel().readBuffer(MAX_BODY_BYTES + 1L).readByteArray()
         if (bytes.size > MAX_BODY_BYTES) {
             call.respond(HttpStatusCode.PayloadTooLarge)
             return null

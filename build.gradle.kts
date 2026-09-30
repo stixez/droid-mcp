@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.LibraryExtension
+
 plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.application) apply false
@@ -18,7 +20,7 @@ subprojects {
             add("dokkaPlugin", rootProject.libs.dokka.android.plugin)
         }
 
-        extensions.configure<com.android.build.gradle.LibraryExtension> {
+        extensions.configure<LibraryExtension> {
             publishing {
                 singleVariant("release") {
                     withSourcesJar()
