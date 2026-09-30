@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 146 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 147 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.4, Android SDK 28+ (compile/target 36), Gradle 9.8, AGP 9 (built-in Kotlin — modules don't apply `kotlin.android`)
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **53 modules**, 146 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
+- **53 modules**, 147 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
 
 ## Key Conventions
 

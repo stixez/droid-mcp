@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 146 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
+Complete reference for all 147 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
 
 ---
 
@@ -59,7 +59,7 @@ Returns notifications posted by the host app by default. Full cross-app access r
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `read_call_log` | Recent call history | `limit`, `type` (all/incoming/outgoing/missed) |
+| `read_call_log` | Recent call history | `limit`, `offset`, `type` (all/incoming/outgoing/missed) |
 | `search_call_log` | Search by number or name | `query` (required), `limit` |
 
 ## Media
@@ -67,8 +67,8 @@ Returns notifications posted by the host app by default. Full cross-app access r
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `search_media` | Search photos and videos | `query`, `start_date`, `end_date`, `media_type`, `limit`, `offset` |
-| `get_media_metadata` | Metadata for a media file | `media_id` (required) |
-| `list_albums` | Photo/video albums with counts | `limit` |
+| `get_media_metadata` | Metadata for a media file | `media_id` (required), `media_type` (image/video, default image) |
+| `list_albums` | Photo/video albums with counts | `limit`, `media_type` (images/videos/all, default images) |
 
 ## Location
 
@@ -240,7 +240,7 @@ Scanning uses ML Kit Barcode Scanning. Supports EAN-13, UPC-A, CODE-128, CODE-39
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `take_photo` | Capture photo via Camera2 API | `return_data` (base64) |
+| `take_photo` | Capture photo via Camera2 API (AE/AWB converged, orientation-corrected). Gallery file is full resolution; `return_data` is downscaled. | `return_data` (base64), `max_dimension` (64-4096, default 1280), `format` (jpeg/png), `quality` (default 85) |
 | `capture_video` | Record video | `duration_sec` (1-60) |
 | `get_camera_capabilities` | List cameras and capabilities | -- |
 
@@ -298,7 +298,7 @@ Requires notification listener access (same as Playback). To enable the active-n
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `watch_notifications` | Register a filter against the live notification stream; returns `watch_id`. Filter semantics: case-insensitive substring on sender / keyword, AND-combine, fire-once-per-key with optional `fire_on_update`, no replay. | `package_name?`, `sender_pattern?`, `keyword?`, `ttl_seconds`, `fire_on_update` |
+| `watch_notifications` | Register a filter against the live notification stream; returns `watch_id`. Filter semantics: case-insensitive substring on sender / keyword, AND-combine, fire-once-per-key with optional `fire_on_update`, no replay. | `package_name`, `sender_pattern`, `keyword`, `ttl_seconds`, `fire_on_update` |
 | `unwatch_notifications` | Remove a watch by id. Idempotent — unknown id returns success with `removed = false`. | `watch_id` (required) |
 | `list_notification_watches` | List currently-active watches with TTL countdown. Expired watches are swept before the list is returned. | -- |
 | `poll_notification_watch` | Return notifications matched by a watch (buffered, max 50 per watch) | `watch_id`, `clear` (default true) |
@@ -316,12 +316,12 @@ Push subscription complement to Notifications (Reply)'s pull/snapshot tools. Sha
 | `wait_for_text` | Block (with timeout) until a condition is met. Result shape: `{ status: "matched" \| "timeout", elapsed_ms, ... }` — timeout is NOT an error. | `condition` (`text` default, or `window_change`), `text` (required when condition=text), `timeout_ms`, `poll_ms` |
 | `click_node` | Perform ACTION_CLICK on a node matching the selector | selector params, `index` |
 | `long_click_node` | Perform ACTION_LONG_CLICK on a node | selector params, `index` |
-| `set_node_text` | Replace an editable node's text via ACTION_SET_TEXT. Returns `node_not_editable` if target is read-only. | selector params, `text` (required) |
+| `set_node_text` | Replace an editable node's text via ACTION_SET_TEXT. Returns `node_not_editable` if target is read-only. | selector params (use `match_text` instead of `text` to match by content), `text` (required — the replacement) |
 | `scroll_node` | Scroll a scrollable node forward or backward | selector params, `direction` |
 | `gesture` | Dispatch a touch gesture path via dispatchGesture | `points` (required, array of [x, y]), `duration_ms` |
 | `global_action` | System-wide action: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot. `AccessibilityTools.idempotentGlobalActions` exposes the safe-to-retry subset. | `action` (required) |
 | `get_active_window_info` | Foreground package + root class + window id | -- |
-| `take_screenshot_via_a11y` | Capture the screen via AccessibilityService.takeScreenshot — no MediaProjection prompt | `format` (png/jpeg), `quality` |
+| `take_screenshot_via_a11y` | Capture the screen via AccessibilityService.takeScreenshot — no MediaProjection prompt | `format` (jpeg default / png), `quality` (default 80), `max_dimension` (64-4096, default 1280) |
 | `tap` | Single-tap at screen coords via `dispatchGesture`. | `x` (required), `y` (required) |
 | `long_press` | Long-press at screen coords for `duration_ms` (default 800). | `x` (required), `y` (required), `duration_ms` |
 | `find_and_tap` | One-call `find_node` + `click_node`. | `match` (required), `match_kind` (`text` default, `desc`, `id`, `class`), `case_insensitive` |

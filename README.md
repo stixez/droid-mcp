@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 146 tools across 53 modules.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 147 tools across 53 modules.
   </p>
 </p>
 
@@ -12,8 +12,8 @@
   <a href="https://stixez.github.io/droid-mcp/"><img src="https://img.shields.io/badge/docs-API%20reference-blue" alt="API docs" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
-  <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-146-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/Kotlin-2.4-purple" alt="Kotlin" />
+  <img src="https://img.shields.io/badge/tools-147-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
   <a href="https://buymeacoffee.com/stixe"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 </p>
@@ -49,7 +49,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 146 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 147 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -133,8 +133,10 @@ val mcp = DroidMcp.builder()
         port = 8080,
         // token = null → auto-generated via SecureRandom (read it from mcp.serverToken)
         // readOnly = true → hide destructive tools from clients
+        // allowedOrigins = setOf("http://localhost:6274") → allow a browser client (MCP Inspector)
         context = context,        // enables mDNS broadcast on _mcp._tcp
     )
+    .toolTimeout(60_000)          // optional; default 5 min per tool call
     .build()
 
 mcp.startServer()
@@ -178,7 +180,7 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-53 modules, 146 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
+53 modules, 147 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
 
 The table below lists 48 of them (`core` plus the tool modules; `overlay` is listed too, though it exposes a programmatic API rather than LLM tools). The remaining five are infrastructure: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
 
@@ -207,7 +209,7 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | **web** | `web_search` `fetch_webpage` | `INTERNET` |
 | **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
 | **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` + `PACKAGE_USAGE_STATS` (special, for `get_data_usage`) |
-| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_SMS` |
+| **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_PHONE_NUMBERS` |
 | **vibration** | `vibrate` `vibrate_pattern` `cancel_vibration` | `VIBRATE` |
 | **biometric** | `check_biometric_availability` `get_biometric_enrollments` | None |
 | **sensors** | `get_accelerometer` `get_gyroscope` `get_light_level` `get_proximity` | None |
@@ -315,6 +317,10 @@ Some modules require permissions that can't be requested at runtime. The tools w
 | **Input validation** | All params validated and clamped. Phone numbers checked before SMS send. |
 | **Permission isolation** | Each module declares only its own permissions. Library never triggers permission requests. |
 | **Network security** | HTTP server on local network only. Bearer token auth required by default — auto-generated via `SecureRandom` if not supplied (accessible via `DroidMcp.serverToken`). |
+| **HTTP hardening** | Foreign `Origin` headers → 403 (DNS-rebinding / drive-by browser protection; allowlist via `allowedOrigins`), non-JSON → 415, bodies > 4 MB → 413, unknown `MCP-Protocol-Version` → 400. Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. |
+| **Bounded execution** | Tool calls always run on `Dispatchers.IO` with a per-call timeout (`toolTimeout()`, default 5 min); a cancelled request cancels its tool. |
+| **SSRF guard** | `fetch_webpage` / `web_search` refuse private, loopback and link-local addresses (re-checked on every redirect) unless `allowPrivateNetwork = true`. |
+| **Intent allowlists** | `send_intent` accepts a safe action list; `send_intent` / `open_deep_link` data URIs are limited to http(s), geo, tel, mailto, sms/mms, market. |
 | **Read-only mode** | `enableHttpServer(readOnly = true)` filters destructive tools from `tools/list` and rejects `tools/call` for non-read-only tools. |
 | **Tool annotations** | Every tool advertises `readOnlyHint` / `destructiveHint` / `idempotentHint` per MCP spec so clients can decide which to expose. |
 | **No telemetry** | No analytics, crash reporting, or phone-home calls. The `web` module accesses the internet only when explicitly invoked by the LLM. |
@@ -323,9 +329,9 @@ Some modules require permissions that can't be requested at runtime. The tools w
 
 ## Requirements
 
-- Android 9+ (API 28)
-- Kotlin 2.0+
-- Gradle 8.12+
+- Android 9+ (API 28) at runtime
+- `compileSdk` 36+ and AGP 8.9.1+ in the consuming app (inherited from AndroidX core 1.18)
+- Kotlin 2.3+ (the SDK is built with Kotlin 2.4)
 
 ---
 
