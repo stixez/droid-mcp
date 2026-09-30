@@ -8,12 +8,20 @@ import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.serialization.json.*
 
 /**
  * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
  * Services `initialize`, `tools/list`, `tools/call` and `ping`. Messages without an `id` are
  * notifications: they are accepted silently and never answered (the transport replies 202).
+ * `notifications/cancelled` cancels the caller's own in-flight `tools/call` with that
+ * `requestId`; the cancelled request then gets no response.
  *
  * `initialize` negotiates the protocol version: the client's requested version is echoed when
  * it is in [SUPPORTED_PROTOCOL_VERSIONS], otherwise the newest supported version is offered.
@@ -48,6 +56,12 @@ class McpProtocolImpl(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Running `tools/call`s keyed by (client label, JSON request id), so `notifications/cancelled`
+     * can stop the right one. The label scopes ids per client: one client can't cancel another's call.
+     */
+    private val inFlight = ConcurrentHashMap<Pair<String?, String>, Job>()
+
     override suspend fun handleMessage(jsonRequest: String): String =
         handleMessage(jsonRequest, clientLabel = null)
 
@@ -79,9 +93,15 @@ class McpProtocolImpl(
             return jsonRpcError(id, -32600, "Invalid Request: missing method")
         }
 
-        // Notifications (no id) must never be answered — including unknown ones such as
-        // notifications/cancelled or notifications/roots/list_changed.
-        if (rawId == null) return ""
+        // Notifications (no id) must never be answered. notifications/cancelled stops the named
+        // in-flight tools/call; unknown ones (e.g. notifications/roots/list_changed) are ignored.
+        if (rawId == null) {
+            if (method == "notifications/cancelled") {
+                val requestId = ((request["params"] as? JsonObject)?.get("requestId") as? JsonPrimitive)
+                requestId?.let { inFlight[clientLabel to it.toString()]?.cancel(CancellationException("Cancelled by client")) }
+            }
+            return ""
+        }
 
         val rawParams = request["params"]
         val params = when (rawParams) {
@@ -174,18 +194,45 @@ class McpProtocolImpl(
         } ?: emptyMap()
 
         val startedAt = System.nanoTime()
-        val toolResult = registry.executeTool(toolName, arguments)
+        val key = clientLabel to id.toString()
+        val toolResult = try {
+            coroutineScope {
+                val call = async { registry.executeTool(toolName, arguments) }
+                inFlight[key] = call
+                try {
+                    call.await()
+                } finally {
+                    inFlight.remove(key, call)
+                }
+            }
+        } catch (e: CancellationException) {
+            // Rethrow if this handler itself was cancelled; otherwise the client cancelled the call.
+            currentCoroutineContext().ensureActive()
+            val durationMs = (System.nanoTime() - startedAt) / 1_000_000
+            recordAudit(toolName, clientLabel, argumentsJson, ToolResult.error("cancelled", "by client"), durationMs)
+            // JSON-RPC: a cancelled request gets no response (the HTTP transport answers 202).
+            return ""
+        }
         val durationMs = (System.nanoTime() - startedAt) / 1_000_000
         recordAudit(toolName, clientLabel, argumentsJson, toolResult, durationMs)
 
         return if (toolResult.isSuccess) {
+            // Image payloads travel once, as image blocks, not also inside the JSON.
+            val imageKeys = toolResult.images.mapNotNull { it.dataKey }.toSet()
             val structured = buildJsonObject {
-                toolResult.data?.forEach { (k, v) -> put(k, ToolSchemas.toJsonElement(v)) }
+                toolResult.data?.forEach { (k, v) -> if (k !in imageKeys) put(k, ToolSchemas.toJsonElement(v)) }
             }
             val content = buildJsonArray {
                 addJsonObject {
                     put("type", "text")
                     put("text", Json.encodeToString(JsonObject.serializer(), structured))
+                }
+                toolResult.images.forEach { image ->
+                    addJsonObject {
+                        put("type", "image")
+                        put("data", image.base64)
+                        put("mimeType", image.mimeType)
+                    }
                 }
             }
             jsonRpcResponse(id, buildJsonObject {

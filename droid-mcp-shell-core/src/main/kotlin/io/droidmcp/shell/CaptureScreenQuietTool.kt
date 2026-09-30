@@ -58,7 +58,7 @@ class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
                 "format" to "png",
                 "size_bytes" to bytes.size,
                 "image_base64" to b64,
-            ))
+            )).withImage("image_base64", "image/png")
         }
     }
 

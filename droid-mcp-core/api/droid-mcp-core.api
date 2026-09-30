@@ -170,6 +170,22 @@ public final class io/droidmcp/core/ToolCallAudit {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class io/droidmcp/core/ToolImage {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/droidmcp/core/ToolImage;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolImage;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ToolImage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBase64 ()Ljava/lang/String;
+	public final fun getDataKey ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class io/droidmcp/core/ToolParameter {
 	public static final field Companion Lio/droidmcp/core/ToolParameter$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/ParameterType;ZLio/droidmcp/core/ParameterType;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;)V
@@ -237,18 +253,22 @@ public final class io/droidmcp/core/ToolRegistry$Companion {
 
 public final class io/droidmcp/core/ToolResult {
 	public static final field Companion Lio/droidmcp/core/ToolResult$Companion;
-	public fun <init> (ZLjava/util/Map;Ljava/lang/String;)V
+	public fun <init> (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Z
 	public final fun component2 ()Ljava/util/Map;
 	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (ZLjava/util/Map;Ljava/lang/String;)Lio/droidmcp/core/ToolResult;
-	public static synthetic fun copy$default (Lio/droidmcp/core/ToolResult;ZLjava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ToolResult;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;)Lio/droidmcp/core/ToolResult;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolResult;ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lio/droidmcp/core/ToolResult;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getData ()Ljava/util/Map;
 	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getImages ()Ljava/util/List;
 	public fun hashCode ()I
 	public final fun isSuccess ()Z
 	public fun toString ()Ljava/lang/String;
+	public final fun withImage (Ljava/lang/String;Ljava/lang/String;)Lio/droidmcp/core/ToolResult;
 }
 
 public final class io/droidmcp/core/ToolResult$Companion {

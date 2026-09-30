@@ -4,6 +4,8 @@ Reference for all 147 tools. They are defined in 45 modules. The 17 tools in `sh
 
 Parameters are optional unless marked (required).
 
+Image results (`take_screenshot_via_a11y`, `capture_screen_quiet`, `take_photo` with `return_data`, `generate_qr_code`): over MCP, the image arrives as an `image` content block and its base64 key (`image_base64`, `image_data` or `qr_image`) is left out of the JSON, so it's sent once. In-process callers still find the base64 under that key in `ToolResult.data`.
+
 On Android 10+, tools that start an activity return an error when the host is in the background and lacks the overlay permission (`SYSTEM_ALERT_WINDOW`). These tools are `launch_app`, `create_alarm`, `create_timer`, `toggle_wifi`, `set_brightness` (when it opens the grant screen), `send_intent`, `share_content` and `open_deep_link`.
 
 ---

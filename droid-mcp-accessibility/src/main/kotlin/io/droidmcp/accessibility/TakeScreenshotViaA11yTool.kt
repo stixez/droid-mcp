@@ -123,7 +123,7 @@ class TakeScreenshotViaA11yTool(private val context: Context) : McpTool {
             "original_width" to originalWidth,
             "original_height" to originalHeight,
             "image_base64" to b64,
-        ))
+        )).withImage("image_base64", if (compressFormat == Bitmap.CompressFormat.PNG) "image/png" else "image/jpeg")
     }
 
     /** Map a framework `ERROR_TAKE_SCREENSHOT_*` code (or the sentinel `-1`

@@ -261,7 +261,10 @@ class TakePhotoTool(private val context: Context) : McpTool {
                 result["data_height"] = encoded.height
             }
 
-            ToolResult.success(result)
+            ToolResult.success(result).withImage(
+                "image_data",
+                if (result["data_format"] == "png") "image/png" else "image/jpeg",
+            )
         } catch (e: Exception) {
             ToolResult.error("Failed to take photo: ${e.message}")
         } finally {

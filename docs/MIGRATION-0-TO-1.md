@@ -55,6 +55,8 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 - `take_screenshot_via_a11y` now defaults to JPEG, downscaled to 1280 px. `take_photo`'s `image_data` is downscaled the same way, while the gallery file stays full resolution.
 - `open_deep_link` and `send_intent` accept only http(s), geo, tel, mailto, sms/smsto, mms/mmsto and market URIs, so app-specific schemes such as `spotify:` are rejected. `send_intent` drops PICK, GET_CONTENT, OPEN_DOCUMENT and CREATE_DOCUMENT, whose results were always discarded.
 - `get_text_around_cursor` refuses password fields.
+- Image tools (`take_screenshot_via_a11y`, `capture_screen_quiet`, `take_photo` with `return_data`, `generate_qr_code`) return the picture as an MCP `image` content block. Over HTTP the base64 key (`image_base64`, `image_data`, `qr_image`) no longer appears in the JSON text or `structuredContent`. In-process results are unchanged.
+- `notifications/cancelled` now stops the caller's in-flight `tools/call`. The cancelled request gets no response (HTTP 202).
 
 ### Tools that used to claim success when nothing happened now return errors
 - `send_message` waits for the carrier result and reports `status` as `sent`, `failed` or `timeout`.
@@ -72,6 +74,7 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 
 ### Build
 - Consumers need `compileSdk` 36+, AGP 8.9.1+ and Kotlin 2.3+.
+- Source-compatible with 0.10, not binary-compatible: `ToolParameter` and `ToolResult` gained constructor parameters. Recompile code (including your own libraries) that builds these classes against 0.11.0.
 
 ## What 1.0 freezes
 

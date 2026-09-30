@@ -63,7 +63,7 @@ class GenerateQrCodeTool : McpTool {
                 "qr_image" to base64,
                 "format" to "png",
                 "size" to size,
-            ))
+            )).withImage("qr_image", "image/png")
         } catch (e: WriterException) {
             ToolResult.error("Failed to generate QR code: ${e.message}")
         }

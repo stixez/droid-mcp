@@ -184,7 +184,8 @@ object MyTools {
 - File and ML Kit tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator` (canonical path); QR `image_uri` via `ImageUriValidator`
 - SMS `send_message` validates phone number format before sending
 - HTTP transport binds all interfaces on its port (no host restriction) — auth and Origin checks are the boundary, not the network; tokens passed in must be ≥ 16 chars
-- MCP protocol: malformed JSON returns -32700 parse error (no crash)
+- MCP protocol: malformed JSON returns -32700 parse error (no crash); `notifications/cancelled` cancels the same client's in-flight `tools/call` (no response is sent)
+- Image tools attach `ToolResult.withImage(key, mime)`: MCP sends an `image` content block and drops that key from the JSON; in-process `data` keeps it
 - All numeric params clamped to safe ranges
 - `ToolRegistry` uses `ConcurrentHashMap` for thread safety
 - Settings: `set_brightness` registers only when `Settings.System.canWrite()`; `toggle_wifi` only with `CHANGE_WIFI_STATE`; `get_settings` and `set_volume` always register

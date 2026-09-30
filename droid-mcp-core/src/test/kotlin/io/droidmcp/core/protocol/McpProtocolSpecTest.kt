@@ -8,6 +8,13 @@ import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -52,10 +59,19 @@ class McpProtocolSpecTest {
         override suspend fun execute(params: Map<String, Any>): ToolResult = ToolResult.success(mapOf("count" to 1))
     }
 
+    private val imageTool = object : McpTool {
+        override val name = "snap"
+        override val description = "returns an image"
+        override val parameters = emptyList<ToolParameter>()
+        override suspend fun execute(params: Map<String, Any>): ToolResult =
+            ToolResult.success(mapOf("width" to 2, "image_base64" to "iVBORw0KGgo=")).withImage("image_base64", "image/png")
+    }
+
     private val registry = ToolRegistry().apply {
         register(echoTool)
         register(writeTool)
         register(typedTool)
+        register(imageTool)
     }
     private val protocol = McpProtocolImpl(registry)
 
@@ -199,5 +215,53 @@ class McpProtocolSpecTest {
         assertThat(out["required"]!!.jsonArray.map { it.jsonPrimitive.content }).containsExactly("count")
         val echo = tools.first { it["name"]!!.jsonPrimitive.content == "echo" }
         assertThat(echo).doesNotContainKey("outputSchema")
+    }
+
+    @Test
+    fun `images travel once as image content blocks`() = runTest {
+        val r = call("""{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"snap"}}""")["result"]!!.jsonObject
+        val content = r["content"]!!.jsonArray.map { it.jsonObject }
+        assertThat(content.map { it["type"]!!.jsonPrimitive.content }).containsExactly("text", "image").inOrder()
+        val image = content[1]
+        assertThat(image["data"]!!.jsonPrimitive.content).isEqualTo("iVBORw0KGgo=")
+        assertThat(image["mimeType"]!!.jsonPrimitive.content).isEqualTo("image/png")
+        // The base64 is not duplicated in the JSON text or structuredContent.
+        assertThat(content[0]["text"]!!.jsonPrimitive.content).doesNotContain("iVBORw0KGgo=")
+        val structured = r["structuredContent"]!!.jsonObject
+        assertThat(structured).doesNotContainKey("image_base64")
+        assertThat(structured["width"]!!.jsonPrimitive.int).isEqualTo(2)
+    }
+
+    @Test
+    fun `notifications-cancelled stops only the caller's own in-flight call`() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val stopped = CompletableDeferred<Unit>()
+        val hang = object : McpTool {
+            override val name = "hang"
+            override val description = "never finishes"
+            override val parameters = emptyList<ToolParameter>()
+            override suspend fun execute(params: Map<String, Any>): ToolResult {
+                started.complete(Unit)
+                try {
+                    awaitCancellation()
+                } finally {
+                    stopped.complete(Unit)
+                }
+            }
+        }
+        val p = McpProtocolImpl(ToolRegistry().apply { register(hang) })
+        val response = async(Dispatchers.Default) {
+            p.handleMessage("""{"jsonrpc":"2.0","id":"r1","method":"tools/call","params":{"name":"hang"}}""", "alice")
+        }
+        withTimeout(5_000) { started.await() }
+
+        val cancel = """{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"r1"}}"""
+        assertThat(p.handleMessage(cancel, "bob")).isEmpty()
+        delay(200)
+        assertThat(response.isActive).isTrue()
+
+        assertThat(p.handleMessage(cancel, "alice")).isEmpty()
+        assertThat(withTimeout(5_000) { response.await() }).isEmpty()
+        withTimeout(5_000) { stopped.await() }
     }
 }

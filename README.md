@@ -315,7 +315,7 @@ Background use: Android 10+ blocks activity launches from the background, so too
 | **Permission isolation** | Each module declares only its own permissions. Library never triggers permission requests. |
 | **Authentication** | Bearer token required by default, generated with `SecureRandom` if you don't pass one (`DroidMcp.serverToken`). The server listens on all interfaces of the configured port, so only run it on networks you trust (or enable TLS). |
 | **HTTP hardening** | Foreign `Origin` headers → 403 (DNS-rebinding / drive-by browser protection; allowlist via `allowedOrigins`), non-JSON → 415, bodies > 4 MB → 413, unknown `MCP-Protocol-Version` → 400. Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. |
-| **Bounded execution** | Tool calls always run on `Dispatchers.IO` with a per-call timeout (`toolTimeout()`, default 5 min); a cancelled request cancels its tool. |
+| **Bounded execution** | Tool calls always run on `Dispatchers.IO` with a per-call timeout (`toolTimeout()`, default 5 min); a cancelled request (or an MCP `notifications/cancelled` from the same client) stops its tool. |
 | **SSRF guard** | `fetch_webpage` / `web_search` refuse private, loopback and link-local addresses (re-checked on every redirect) unless `allowPrivateNetwork = true`. |
 | **Intent allowlists** | `send_intent` accepts a safe action list; `send_intent` / `open_deep_link` data URIs are limited to http(s), geo, tel, mailto, sms/mms, market. |
 | **Read-only mode** | `enableHttpServer(readOnly = true)` lists and accepts only tools that don't change anything. It still allows privacy-sensitive reads (SMS, contacts, screenshots); turn those off one by one with `setToolEnabled`. |
