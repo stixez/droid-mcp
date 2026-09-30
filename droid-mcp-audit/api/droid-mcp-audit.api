@@ -1,0 +1,87 @@
+public abstract interface class io/droidmcp/audit/AuditDao {
+	public abstract fun all (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun count (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun deleteOlderThan (JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun insert (Lio/droidmcp/audit/ToolCallAuditEntity;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun observe (I)Lkotlinx/coroutines/flow/Flow;
+	public abstract fun recent (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/audit/AuditDao_Impl : io/droidmcp/audit/AuditDao {
+	public static final field Companion Lio/droidmcp/audit/AuditDao_Impl$Companion;
+	public fun <init> (Landroidx/room/RoomDatabase;)V
+	public fun all (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun count (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun deleteOlderThan (JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun insert (Lio/droidmcp/audit/ToolCallAuditEntity;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun observe (I)Lkotlinx/coroutines/flow/Flow;
+	public fun recent (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/audit/AuditDao_Impl$Companion {
+	public final fun getRequiredConverters ()Ljava/util/List;
+}
+
+public abstract class io/droidmcp/audit/AuditDatabase : androidx/room/RoomDatabase {
+	public fun <init> ()V
+	public abstract fun auditDao ()Lio/droidmcp/audit/AuditDao;
+}
+
+public final class io/droidmcp/audit/AuditDatabase_Impl : io/droidmcp/audit/AuditDatabase {
+	public fun <init> ()V
+	public fun auditDao ()Lio/droidmcp/audit/AuditDao;
+	public fun clearAllTables ()V
+	public fun createAutoMigrations (Ljava/util/Map;)Ljava/util/List;
+	public synthetic fun createOpenDelegate ()Landroidx/room/RoomOpenDelegateMarker;
+	public fun getRequiredAutoMigrationSpecClasses ()Ljava/util/Set;
+}
+
+public final class io/droidmcp/audit/RoomAuditSink : io/droidmcp/core/AuditSink {
+	public static final field Companion Lio/droidmcp/audit/RoomAuditSink$Companion;
+	public static final field DB_NAME Ljava/lang/String;
+	public fun <init> (Landroid/content/Context;Ljava/time/Duration;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Landroid/content/Context;Ljava/time/Duration;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun close ()V
+	public final fun count (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun exportJson (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun flush (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observe (I)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun observe$default (Lio/droidmcp/audit/RoomAuditSink;IILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public final fun pruneNow (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun recent (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun recent$default (Lio/droidmcp/audit/RoomAuditSink;ILkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun record (Lio/droidmcp/core/ToolCallAudit;)V
+}
+
+public final class io/droidmcp/audit/RoomAuditSink$Companion {
+}
+
+public final class io/droidmcp/audit/ToolCallAuditEntity {
+	public fun <init> (JJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;J)V
+	public synthetic fun <init> (JJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()J
+	public final fun copy (JJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;J)Lio/droidmcp/audit/ToolCallAuditEntity;
+	public static synthetic fun copy$default (Lio/droidmcp/audit/ToolCallAuditEntity;JJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JILjava/lang/Object;)Lio/droidmcp/audit/ToolCallAuditEntity;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgumentsJson ()Ljava/lang/String;
+	public final fun getClientLabel ()Ljava/lang/String;
+	public final fun getDurationMs ()J
+	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getId ()J
+	public final fun getSuccess ()Z
+	public final fun getTimestamp ()J
+	public final fun getToolName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

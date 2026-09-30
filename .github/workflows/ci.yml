@@ -24,8 +24,11 @@ jobs:
       - name: Build
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Unit tests
-        run: ./gradlew :droid-mcp-core:test --no-daemon
+      - name: Unit tests (all modules, incl. the tool wire-contract snapshot)
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Public API check
+        run: ./gradlew apiCheck --no-daemon
 
       - name: Lint
         run: ./gradlew lint --no-daemon

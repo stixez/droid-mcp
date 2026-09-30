@@ -1,4 +1,7 @@
 [versions]
+classgraph = "4.8.196"
+bcv = "0.18.2"
+asm = "9.10.1"
 kotlin = "2.4.20"
 agp = "9.4.1"
 compileSdk = "36"
@@ -33,6 +36,12 @@ activity = "1.13.0"
 lifecycle = "2.11.0"
 
 [libraries]
+# API dump tooling (tools/abi-dump, build-time only)
+bcv = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version.ref = "bcv" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
+
 # AndroidX Core
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidx-biometric" }
@@ -98,6 +107,7 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 
 # Testing
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
 junit = { module = "junit:junit", version.ref = "junit" }
 junit5-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
 junit5-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
@@ -112,6 +122,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

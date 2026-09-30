@@ -14,6 +14,19 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.all {
+            it.useJUnitPlatform()
+            // ToolContractTest compares every tool's wire contract against this snapshot.
+            // Regenerate after an intended change: ./gradlew :droid-mcp-all:testDebugUnitTest -PupdateToolContract
+            it.systemProperty("droidmcp.contractFile", file("api/tool-contract.txt").absolutePath)
+            it.systemProperty("droidmcp.updateContract", project.hasProperty("updateToolContract").toString())
+            it.inputs.files(fileTree("api") { include("tool-contract.txt") })
+            if (project.hasProperty("updateToolContract")) it.outputs.upToDateWhen { false }
+        }
+    }
 }
 
 dependencies {
@@ -72,4 +85,13 @@ dependencies {
     // explicitly:
     //   implementation(":droid-mcp-shizuku")  // Tier 4
     //   implementation(":droid-mcp-root")     // Tier 5
+
+    // ToolContractTest: discovers and instantiates every tool, including the shell set.
+    testImplementation(project(":droid-mcp-shell-core"))
+    testImplementation(libs.classgraph)
+    testImplementation(libs.junit5.api)
+    testRuntimeOnly(libs.junit5.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.truth)
+    testImplementation(libs.mockk)
 }

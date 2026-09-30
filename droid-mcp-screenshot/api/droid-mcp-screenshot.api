@@ -1,0 +1,26 @@
+public final class io/droidmcp/screenshot/CaptureScreenTool : io/droidmcp/core/McpTool {
+	public static final field FRAME_POLL_MS J
+	public static final field FRAME_WAIT_MS J
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/screenshot/MediaProjectionHolder {
+	public static final field INSTANCE Lio/droidmcp/screenshot/MediaProjectionHolder;
+	public final fun clear ()V
+	public final fun getProjection ()Landroid/media/projection/MediaProjection;
+	public final fun set (Landroid/media/projection/MediaProjection;)V
+}
+
+public final class io/droidmcp/screenshot/ScreenshotTools {
+	public static final field INSTANCE Lio/droidmcp/screenshot/ScreenshotTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+

@@ -74,3 +74,7 @@ include(
     ":droid-mcp-all",
     ":sample-app",
 )
+
+// Build-time tooling (not published)
+include(":abi-dump")
+project(":abi-dump").projectDir = file("tools/abi-dump")

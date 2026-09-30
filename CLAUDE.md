@@ -12,7 +12,8 @@ Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, med
 
 - Every tool implements `McpTool` interface: `name`, `description`, `parameters`, `suspend fun execute()`
 - Every module has a provider object (e.g. `CalendarTools`) with `all(context)`, `requiredPermissions()`, `hasPermissions(context)`
-- Limit params: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`
+- Limit params: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`, declared with `minimum = 1.0, maximum = 100.0` so the schema advertises the clamp
+- Fixed-choice params declare `enumValues`; numeric clamps declare `minimum`/`maximum` — keep them identical to what `execute()` enforces
 - ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
 - File access: sandboxed via `PathValidator` — external storage only
 - Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
@@ -160,14 +161,16 @@ object MyTools {
 ```
 
 5. Add to `settings.gradle.kts`, `droid-mcp-all/build.gradle.kts`, `sample-app` ViewModel, and README
+6. Run `./gradlew :droid-mcp-{name}:apiDump` and `./gradlew :droid-mcp-all:testDebugUnitTest -PupdateToolContract`, then commit `api/` changes
 
 <!-- SECTION: testing -->
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 93 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Several tool modules (accessibility, ime, notification-*, shell-core, root, tls) also have JVM unit tests: `./gradlew testDebugUnitTest`
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 97 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 350 in total: `./gradlew testDebugUnitTest`
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
+- **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md
 - **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp`
 
 <!-- SECTION: security -->

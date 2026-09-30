@@ -1,0 +1,121 @@
+public abstract class io/droidmcp/notification/McpNotificationListenerServiceBase : android/service/notification/NotificationListenerService {
+	public static final field Companion Lio/droidmcp/notification/McpNotificationListenerServiceBase$Companion;
+	public fun <init> ()V
+	public fun onDestroy ()V
+	public fun onListenerConnected ()V
+	public fun onListenerDisconnected ()V
+	public fun onNotificationPosted (Landroid/service/notification/StatusBarNotification;)V
+	public fun onNotificationRemoved (Landroid/service/notification/StatusBarNotification;)V
+}
+
+public final class io/droidmcp/notification/McpNotificationListenerServiceBase$Companion {
+	public final fun cancelByKey (Ljava/lang/String;)Z
+}
+
+public final class io/droidmcp/notification/NotificationEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZIIJJZLjava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/lang/String;
+	public final fun component11 ()Z
+	public final fun component12 ()Z
+	public final fun component13 ()I
+	public final fun component14 ()I
+	public final fun component15 ()J
+	public final fun component16 ()J
+	public final fun component17 ()Z
+	public final fun component18 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZIIJJZLjava/util/List;)Lio/droidmcp/notification/NotificationEvent;
+	public static synthetic fun copy$default (Lio/droidmcp/notification/NotificationEvent;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZIIJJZLjava/util/List;ILjava/lang/Object;)Lio/droidmcp/notification/NotificationEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActionLabels ()Ljava/util/List;
+	public final fun getBigText ()Ljava/lang/String;
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getChannelId ()Ljava/lang/String;
+	public final fun getChannelImportance ()I
+	public final fun getGroupKey ()Ljava/lang/String;
+	public final fun getHasReplyAction ()Z
+	public final fun getKey ()Ljava/lang/String;
+	public final fun getLegacyPriority ()I
+	public final fun getPackageName ()Ljava/lang/String;
+	public final fun getPostedAt ()J
+	public final fun getSubText ()Ljava/lang/String;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getTickerText ()Ljava/lang/String;
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getWhen ()J
+	public fun hashCode ()I
+	public final fun isClearable ()Z
+	public final fun isOngoing ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/notification/NotificationListenerBus {
+	public static final field INSTANCE Lio/droidmcp/notification/NotificationListenerBus;
+	public final fun dismiss (Ljava/lang/String;)Z
+	public final fun getEvents ()Lkotlinx/coroutines/flow/SharedFlow;
+}
+
+public final class io/droidmcp/notification/NotificationListenerHolder {
+	public static final field INSTANCE Lio/droidmcp/notification/NotificationListenerHolder;
+	public final fun clear ()V
+	public final fun getComponentName ()Landroid/content/ComponentName;
+	public final fun set (Landroid/content/ComponentName;)V
+}
+
+public final class io/droidmcp/notification/NotificationStore {
+	public static final field INSTANCE Lio/droidmcp/notification/NotificationStore;
+	public final fun containsKey (Ljava/lang/String;)Z
+	public final fun findByKey (Ljava/lang/String;)Landroid/service/notification/StatusBarNotification;
+	public final fun findRepliable (Ljava/lang/String;)Lio/droidmcp/notification/RepliableNotification;
+	public final fun repliableSnapshot ()Ljava/util/List;
+	public final fun snapshot ()Ljava/util/List;
+}
+
+public final class io/droidmcp/notification/RepliableNotification {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLio/droidmcp/notification/ReplyAction;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()J
+	public final fun component6 ()Lio/droidmcp/notification/ReplyAction;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLio/droidmcp/notification/ReplyAction;)Lio/droidmcp/notification/RepliableNotification;
+	public static synthetic fun copy$default (Lio/droidmcp/notification/RepliableNotification;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLio/droidmcp/notification/ReplyAction;ILjava/lang/Object;)Lio/droidmcp/notification/RepliableNotification;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKey ()Ljava/lang/String;
+	public final fun getPackageName ()Ljava/lang/String;
+	public final fun getPostedAt ()J
+	public final fun getReplyAction ()Lio/droidmcp/notification/ReplyAction;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/notification/ReplyAction {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Landroid/app/RemoteInput;Landroid/app/PendingIntent;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()[Landroid/app/RemoteInput;
+	public final fun component5 ()Landroid/app/PendingIntent;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Landroid/app/RemoteInput;Landroid/app/PendingIntent;)Lio/droidmcp/notification/ReplyAction;
+	public static synthetic fun copy$default (Lio/droidmcp/notification/ReplyAction;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Landroid/app/RemoteInput;Landroid/app/PendingIntent;ILjava/lang/Object;)Lio/droidmcp/notification/ReplyAction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHintLabel ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getPendingIntent ()Landroid/app/PendingIntent;
+	public final fun getRemoteInputs ()[Landroid/app/RemoteInput;
+	public final fun getResultKey ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
