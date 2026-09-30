@@ -210,6 +210,13 @@ class ImageUriValidatorTest {
     }
 
     @Test
+    fun `a user-id prefixed authority can't sneak past the host-provider check`() {
+        val ctx = context(mapOf("com.host.app.fileprovider" to hostPackage))
+        assertDenied("content://0@com.host.app.fileprovider/root/data/data/com.host.app/db", "user id", ctx)
+        assertDenied("content://10@media/external/images/media/1", "user id", ctx)
+    }
+
+    @Test
     fun `content uri with an unknown authority is passed through`() {
         assertThat(validate("content://com.unknown.provider/img").isSuccess).isTrue()
     }

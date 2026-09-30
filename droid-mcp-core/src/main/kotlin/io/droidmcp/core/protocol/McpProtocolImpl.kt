@@ -18,9 +18,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import java.util.Collections
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.serialization.json.*
@@ -66,23 +65,23 @@ class McpProtocolImpl(
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * Running `tools/call`s keyed by (client label, JSON request id), so `notifications/cancelled`
-     * can stop the right one. The label scopes ids per client: one client can't cancel another's call.
+     * Running `tools/call`s keyed by (scope, JSON request id), so `notifications/cancelled` can stop
+     * the right one. The scope is the MCP session (the client label when there is none), so one
+     * session can't cancel another's call — even when both use the same token.
      */
     private val inFlight = ConcurrentHashMap<Pair<String?, String>, Job>()
 
-    /** Sessions whose client declared the `elicitation` capability at `initialize` (LRU-bounded). */
-    private val elicitationSessions: MutableSet<String> = Collections.newSetFromMap(
-        Collections.synchronizedMap(object : LinkedHashMap<String, Boolean>() {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?) = size > MAX_TRACKED_SESSIONS
-        }),
-    )
+    /**
+     * Sessions whose client declared the `elicitation` capability at `initialize`. Entries live
+     * exactly as long as the transport's session: it calls [endSession] on DELETE, eviction and stop.
+     */
+    private val elicitationSessions: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
-    /** A server-to-client request awaiting the client's response, which must come from [owner]. */
+    /** A server-to-client request awaiting the client's response, which must come from [owner]'s scope. */
     private class PendingRequest(val owner: String?, val response: CompletableDeferred<JsonObject>)
 
+    /** Keyed by random ids, so another client can't guess one it never received. */
     private val pending = ConcurrentHashMap<String, PendingRequest>()
-    private val serverRequestIds = AtomicLong()
 
     override suspend fun handleMessage(jsonRequest: String): String =
         handleMessage(jsonRequest, clientLabel = null)
@@ -106,6 +105,16 @@ class McpProtocolImpl(
         } catch (_: Exception) {
             return jsonRpcError(null, -32700, "Parse error")
         }
+        return handleParsed(element, clientLabel, sessionId, outbound)
+    }
+
+    /** As [handleMessage], for a body the transport already parsed (it needs `method` first). */
+    internal suspend fun handleParsed(
+        element: JsonElement,
+        clientLabel: String?,
+        sessionId: String?,
+        outbound: McpOutbound?,
+    ): String {
         if (element is JsonArray) {
             return jsonRpcError(null, -32600, "Batch requests are not supported")
         }
@@ -128,7 +137,7 @@ class McpProtocolImpl(
             if ("result" in request || "error" in request) {
                 val key = (id as? JsonPrimitive)?.contentOrNull
                 val waiting = key?.let { pending[it] }
-                if (waiting != null && waiting.owner == clientLabel) waiting.response.complete(request)
+                if (waiting != null && waiting.owner == (sessionId ?: clientLabel)) waiting.response.complete(request)
                 return ""
             }
             return jsonRpcError(id, -32600, "Invalid Request: missing method")
@@ -139,7 +148,7 @@ class McpProtocolImpl(
         if (rawId == null) {
             if (method == "notifications/cancelled") {
                 val requestId = ((request["params"] as? JsonObject)?.get("requestId") as? JsonPrimitive)
-                requestId?.let { inFlight[clientLabel to it.toString()]?.cancel(CancellationException("Cancelled by client")) }
+                requestId?.let { inFlight[(sessionId ?: clientLabel) to it.toString()]?.cancel(CancellationException("Cancelled by client")) }
             }
             return ""
         }
@@ -171,6 +180,8 @@ class McpProtocolImpl(
     /** Forget per-session state (the HTTP transport calls this when a session ends). */
     internal fun endSession(sessionId: String) {
         elicitationSessions.remove(sessionId)
+        // Unblock elicitations still waiting on this session; the tool sees a cancel.
+        pending.values.filter { it.owner == sessionId }.forEach { it.response.complete(JsonObject(emptyMap())) }
     }
 
     private fun handleInitialize(id: JsonElement?, params: JsonObject, sessionId: String?): String {
@@ -245,10 +256,10 @@ class McpProtocolImpl(
         } ?: emptyMap()
 
         val startedAt = System.nanoTime()
-        val key = clientLabel to id.toString()
+        val key = (sessionId ?: clientLabel) to id.toString()
         val toolResult = try {
             coroutineScope {
-                val call = async(callContext(params, clientLabel, sessionId, outbound)) {
+                val call = async(callContext(params, sessionId, outbound)) {
                     registry.executeTool(toolName, arguments, clientLabel)
                 }
                 inFlight[key] = call
@@ -302,7 +313,6 @@ class McpProtocolImpl(
     /** Progress and elicitation sinks for one call, when the transport can stream to the client. */
     private fun callContext(
         params: JsonObject,
-        clientLabel: String?,
         sessionId: String?,
         outbound: McpOutbound?,
     ): CoroutineContext {
@@ -313,7 +323,7 @@ class McpProtocolImpl(
             context += ProgressSink { update -> outbound.send(progressNotification(progressToken, update)) }
         }
         if (sessionId != null && sessionId in elicitationSessions) {
-            context += ElicitationSink { message, schema -> requestElicitation(outbound, clientLabel, message, schema) }
+            context += ElicitationSink { message, schema -> requestElicitation(outbound, sessionId, message, schema) }
         }
         return context
     }
@@ -332,13 +342,13 @@ class McpProtocolImpl(
 
     private suspend fun requestElicitation(
         outbound: McpOutbound,
-        clientLabel: String?,
+        owner: String,
         message: String,
         schema: Map<String, Any>,
     ): ElicitationResult {
-        val requestId = "droidmcp-${serverRequestIds.incrementAndGet()}"
+        val requestId = "droidmcp-${UUID.randomUUID()}"
         val response = CompletableDeferred<JsonObject>()
-        pending[requestId] = PendingRequest(clientLabel, response)
+        pending[requestId] = PendingRequest(owner, response)
         try {
             outbound.send(Json.encodeToString(JsonObject.serializer(), buildJsonObject {
                 put("jsonrpc", "2.0")
@@ -445,8 +455,6 @@ class McpProtocolImpl(
     private class InvalidParamsException(message: String) : Exception(message)
 
     companion object {
-        private const val MAX_TRACKED_SESSIONS = 1024
-
         /**
          * MCP protocol revisions this server speaks, newest first. `initialize` echoes the
          * client's version when listed here and otherwise offers the first entry; the HTTP

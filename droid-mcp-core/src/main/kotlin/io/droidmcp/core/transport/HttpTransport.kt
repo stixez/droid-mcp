@@ -28,8 +28,8 @@ import kotlinx.coroutines.selects.select
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import java.util.Collections
 import java.util.UUID
 
@@ -117,11 +117,17 @@ class HttpTransport(
     @Volatile private var nsdRegistration: NsdManager.RegistrationListener? = null
     private val protocol = McpProtocolImpl(registry, readOnly = readOnly, auditSink = auditSink)
 
-    /** Session id -> label of the client that created it (LRU-bounded). */
+    /**
+     * Session id -> label of the client that created it (LRU-bounded). An evicted session is
+     * also ended in the protocol, so per-session state there can't outlive it.
+     */
     private val sessions: MutableMap<String, String> = Collections.synchronizedMap(
         object : LinkedHashMap<String, String>(16, 0.75f, true) {
-            override fun removeEldestEntry(eldest: Map.Entry<String, String>?): Boolean =
-                size > MAX_SESSIONS
+            override fun removeEldestEntry(eldest: Map.Entry<String, String>?): Boolean {
+                val evict = size > MAX_SESSIONS
+                if (evict && eldest != null) protocol.endSession(eldest.key)
+                return evict
+            }
         }
     )
 
@@ -169,9 +175,9 @@ class HttpTransport(
                     }
                     val body = readBoundedBody(call) ?: return@post
 
-                    val method = runCatching {
-                        (Json.parseToJsonElement(body) as? JsonObject)?.get("method")?.jsonPrimitive?.contentOrNull
-                    }.getOrNull()
+                    // Parsed once here (the routing below needs `method`) and handed to the protocol.
+                    val parsed = runCatching { Json.parseToJsonElement(body) }.getOrNull()
+                    val method = ((parsed as? JsonObject)?.get("method") as? JsonPrimitive)?.contentOrNull
                     val isInitialize = method == "initialize"
                     val sessionId = call.request.header(SESSION_HEADER)
 
@@ -197,7 +203,11 @@ class HttpTransport(
                             call.response.header(SESSION_HEADER, effectiveSession)
                         }
                     }) { outbound ->
-                        protocol.handleMessage(body, clientLabel, effectiveSession, outbound)
+                        if (parsed != null) {
+                            protocol.handleParsed(parsed, clientLabel, effectiveSession, outbound)
+                        } else {
+                            protocol.handleMessage(body, clientLabel, effectiveSession, outbound) // -32700
+                        }
                     }
                 }
 
@@ -242,7 +252,6 @@ class HttpTransport(
         return false
     }
 
-    /** 400 when an `MCP-Protocol-Version` header names a revision this server doesn't speak. */
     /**
      * Runs [handle] and answers [call]. When [canStream], messages the protocol sends while the
      * call runs (progress, elicitation requests) switch the reply to an SSE stream that carries
@@ -317,6 +326,7 @@ class HttpTransport(
             ?.any { it.substringBefore(';').trim().equals("text/event-stream", ignoreCase = true) }
             ?: false
 
+    /** 400 when an `MCP-Protocol-Version` header names a revision this server doesn't speak. */
     private suspend fun checkProtocolVersion(call: ApplicationCall): Boolean {
         val version = call.request.header(PROTOCOL_VERSION_HEADER) ?: return true
         if (version in McpProtocolImpl.SUPPORTED_PROTOCOL_VERSIONS) return true
@@ -349,7 +359,10 @@ class HttpTransport(
         unregisterNsd()
         server?.stop(1000, 2000)
         server = null
-        sessions.clear()
+        synchronized(sessions) {
+            sessions.keys.forEach(protocol::endSession)
+            sessions.clear()
+        }
     }
 
     /** Whether the embedded server is currently running. */

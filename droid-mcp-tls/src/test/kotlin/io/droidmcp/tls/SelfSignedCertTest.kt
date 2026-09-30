@@ -6,6 +6,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.io.IOException
+import java.security.UnrecoverableKeyException
 import java.security.cert.X509Certificate
 import java.nio.file.Path
 
@@ -79,5 +80,11 @@ class SelfSignedCertTest {
         SelfSignedCert.loadOrCreate(file, alias = "one")
         val e = assertThrows<IllegalStateException> { SelfSignedCert.loadOrCreate(file, alias = "two") }
         assertThat(e.message).contains("two")
+    }
+
+    @Test
+    fun `Android's ambiguous mac error counts as corruption, not a wrong password`() {
+        assertThat(SelfSignedCert.isDefinitelyWrongPassword(IOException("mac invalid - wrong password or corrupted file"))).isFalse()
+        assertThat(SelfSignedCert.isDefinitelyWrongPassword(IOException("x", UnrecoverableKeyException("bad")))).isTrue()
     }
 }

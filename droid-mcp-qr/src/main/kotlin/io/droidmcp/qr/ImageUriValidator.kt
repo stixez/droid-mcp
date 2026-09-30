@@ -40,6 +40,9 @@ internal object ImageUriValidator {
             }
             ContentResolver.SCHEME_CONTENT -> {
                 val authority = parsed.authority ?: return deny("image_uri has no authority")
+                // "0@host.provider" is Android's user-id form: resolveContentProvider misses it,
+                // but ContentResolver strips the prefix and opens the host's own provider anyway.
+                if ('@' in authority) return deny("image_uri authority must not contain a user id")
                 val owner = runCatching {
                     context.packageManager.resolveContentProvider(authority, 0)?.packageName
                 }.getOrNull()

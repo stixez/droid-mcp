@@ -53,8 +53,8 @@ object SelfSignedCert {
      *   file; the security boundary is the pinned fingerprint, not this value)
      * @param httpsPort port the TLS server should bind
      * @param validityDays certificate lifetime
-     * @throws IOException if the keystore exists but [password] is wrong — regenerating would
-     *   silently change the pinned fingerprint, so this is surfaced instead.
+     * @throws IOException if the keystore exists and the JDK reports [password] as wrong (on
+     *   Android, where wrong password and corruption look the same, the keystore is regenerated).
      * @throws IllegalStateException if the keystore exists but holds no entry under [alias].
      */
     fun loadOrCreate(
@@ -79,23 +79,26 @@ object SelfSignedCert {
     }
 
     /**
-     * Loads [file]. Only genuine corruption (truncated/garbled file) or an expired certificate
-     * triggers regeneration; a wrong password or a missing alias is a host configuration error
-     * and is thrown, because regenerating would silently break every client pinning the old
-     * fingerprint.
+     * Loads [file]. Corruption (truncated/garbled file) or an expired certificate triggers
+     * regeneration. A missing alias, or a password the JDK definitely identifies as wrong, is a
+     * host configuration error and is thrown, since regenerating would change the fingerprint
+     * every client pins.
+     *
+     * Android's PKCS12 provider can't tell the two apart ("mac invalid - wrong password or
+     * corrupted file"), so there that case regenerates: a new fingerprint means clients re-pair,
+     * which is recoverable, while throwing would keep TLS down until someone deletes the file.
      */
+    /** Only the JDK's PKCS12 provider says so unambiguously, through an [UnrecoverableKeyException] cause. */
+    internal fun isDefinitelyWrongPassword(e: IOException): Boolean = e.cause is UnrecoverableKeyException
+
     private fun loadExisting(file: File, alias: String, password: CharArray, validityDays: Long): KeyStore {
         val keyStore = try {
             KeyStore.getInstance(KEYSTORE_TYPE).apply {
                 file.inputStream().use { load(it, password) }
             }
         } catch (e: IOException) {
-            // JDK signals a bad password via the cause; Android's BouncyCastle PKCS12 provider
-            // only via the message ("mac invalid - wrong password or corrupted file").
-            if (e.cause is UnrecoverableKeyException || e.message?.contains("password", ignoreCase = true) == true) {
-                throw e
-            }
-            Log.w(TAG, "TLS keystore at ${file.path} is corrupt; regenerating (fingerprint will change)", e)
+            if (isDefinitelyWrongPassword(e)) throw e
+            Log.w(TAG, "TLS keystore at ${file.path} is unreadable (corrupt, or wrong password); regenerating (fingerprint will change)", e)
             file.delete()
             return generateAndPersist(file, alias, password, validityDays)
         }

@@ -133,4 +133,34 @@ class HttpTransportStreamingTest {
         assertThat(result).contains("DECLINE")
         assertThat(result).doesNotContain("hacked")
     }
+
+    @Test
+    @Timeout(20, unit = TimeUnit.SECONDS)
+    fun `a second session on the same token can't answer the elicitation`() {
+        val initBody = """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"elicitation":{}}}}"""
+        val sessionA = http.send(post(initBody), HttpResponse.BodyHandlers.ofString()).headers().firstValue("Mcp-Session-Id").get()
+        val sessionB = http.send(post(initBody), HttpResponse.BodyHandlers.ofString()).headers().firstValue("Mcp-Session-Id").get()
+        assertThat(sessionB).isNotEqualTo(sessionA)
+
+        val call = http.send(
+            post("""{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"ask"}}""", sessionA, sse = true),
+            HttpResponse.BodyHandlers.ofLines(),
+        )
+        val data = call.body().iterator().asSequence().filter { it.startsWith("data: ") }.map { it.removePrefix("data: ") }.iterator()
+        val requestId = Json.parseToJsonElement(data.next()).jsonObject["id"]!!.jsonPrimitive.content
+        assertThat(requestId).doesNotMatch("droidmcp-[0-9]+")
+
+        // Same token (label "primary"), different session: must be ignored.
+        http.send(
+            post("""{"jsonrpc":"2.0","id":"$requestId","result":{"action":"accept","content":{"colour":"hacked"}}}""", sessionB),
+            HttpResponse.BodyHandlers.discarding(),
+        )
+        http.send(
+            post("""{"jsonrpc":"2.0","id":"$requestId","result":{"action":"decline"}}""", sessionA),
+            HttpResponse.BodyHandlers.discarding(),
+        )
+        val result = data.next()
+        assertThat(result).contains("DECLINE")
+        assertThat(result).doesNotContain("hacked")
+    }
 }
