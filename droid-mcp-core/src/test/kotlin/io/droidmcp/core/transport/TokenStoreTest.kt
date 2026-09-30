@@ -2,6 +2,7 @@ package io.droidmcp.core.transport
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class TokenStoreTest {
 
@@ -79,5 +80,16 @@ class TokenStoreTest {
         store.pair("b")
         val labels = store.pairedClients().map { it.label }
         assertThat(labels).containsExactly("a", "b").inOrder()
+    }
+
+    @Test
+    fun `blank seed token is rejected`() {
+        assertThrows<IllegalArgumentException> { TokenStore("") }
+        assertThrows<IllegalArgumentException> { TokenStore("   ") }
+    }
+
+    @Test
+    fun `empty presented token never verifies`() {
+        assertThat(TokenStore().verify("")).isNull()
     }
 }

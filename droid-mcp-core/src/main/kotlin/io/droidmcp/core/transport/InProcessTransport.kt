@@ -3,6 +3,7 @@ package io.droidmcp.core.transport
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.protocol.ToolSchemas
 import kotlinx.serialization.json.*
 
 /**
@@ -12,39 +13,28 @@ import kotlinx.serialization.json.*
  */
 class InProcessTransport(private val registry: ToolRegistry) {
 
-    /** The registered tools as live [McpTool] instances. */
-    fun listTools(): List<McpTool> = registry.listTools()
+    /** The enabled tools as live [McpTool] instances — tools the host gated off are excluded. */
+    fun listTools(): List<McpTool> = registry.listEnabledTools()
 
     /**
-     * The registered tools serialised to a JSON array, each entry carrying `name`,
-     * `description`, and a `parameters` JSON Schema (`type: object` with `properties`
-     * and a `required` list). For LLM runtimes that want the tool catalogue as a string.
+     * The enabled tools serialised to a JSON array, each entry carrying `name`, `description`,
+     * a `parameters` JSON Schema (`type: object` with `properties` and a `required` list), and
+     * `annotations` when any hint differs from the defaults. For LLM runtimes that want the tool
+     * catalogue as a string. Gated-off tools are excluded, matching `tools/list` over HTTP.
      */
     fun listToolsJson(): String {
-        val tools = registry.listTools().map { tool ->
+        val tools = registry.listEnabledTools().map { tool ->
             buildJsonObject {
                 put("name", tool.name)
                 put("description", tool.description)
-                putJsonObject("parameters") {
-                    put("type", "object")
-                    putJsonObject("properties") {
-                        tool.parameters.forEach { param ->
-                            putJsonObject(param.name) {
-                                param.toJsonSchema().forEach { (k, v) ->
-                                    put(k, JsonPrimitive(v.toString()))
-                                }
-                            }
-                        }
-                    }
-                    putJsonArray("required") {
-                        tool.parameters.filter { it.required }.forEach { add(it.name) }
-                    }
-                }
+                put("parameters", ToolSchemas.inputSchema(tool))
+                ToolSchemas.annotations(tool.annotations)?.let { put("annotations", it) }
             }
         }
         return Json.encodeToString(JsonArray.serializer(), JsonArray(tools))
     }
 
+    /** Invoke a tool; honours runtime gating and runs on `Dispatchers.IO` (see [ToolRegistry.executeTool]). */
     suspend fun callTool(name: String, params: Map<String, Any>): ToolResult =
         registry.executeTool(name, params)
 }

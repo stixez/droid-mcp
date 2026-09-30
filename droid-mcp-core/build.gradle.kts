@@ -37,7 +37,6 @@ dependencies {
     // HTTP transport (optional at runtime, needed at compile)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.server.sse)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.json)
 
@@ -47,4 +46,12 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.ktor.server.test.host) {
+        // test-host drags in its own JUnit platform/kotlin-test-junit, which clashes with junit5 above.
+        exclude(group = "org.junit.jupiter")
+        exclude(group = "org.junit.platform")
+        exclude(group = "junit")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit")
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-test-junit5")
+    }
 }

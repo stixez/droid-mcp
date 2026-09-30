@@ -53,4 +53,14 @@ class InProcessTransportTest {
         val result = transport.callTool("missing", emptyMap())
         assertThat(result.isSuccess).isFalse()
     }
+
+    @Test
+    fun `disabled tools are hidden from both listings`() {
+        val registry = ToolRegistry()
+        registry.register(echoTool)
+        registry.setToolEnabled("echo", false)
+        val transport = InProcessTransport(registry)
+        assertThat(transport.listTools()).isEmpty()
+        assertThat(transport.listToolsJson()).isEqualTo("[]")
+    }
 }

@@ -1,5 +1,11 @@
 package io.droidmcp.core
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -10,8 +16,15 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * This is the single source of truth the transports and [McpProtocol][io.droidmcp.core.protocol.McpProtocol]
  * read from for `tools/list` and `tools/call`.
+ *
+ * @property toolTimeoutMs Upper bound on a single [executeTool] call; a tool still running
+ *   after this is cancelled and reported as a `tool_timeout` error. Must be positive.
  */
-class ToolRegistry {
+class ToolRegistry(val toolTimeoutMs: Long = DEFAULT_TOOL_TIMEOUT_MS) {
+
+    init {
+        require(toolTimeoutMs > 0) { "toolTimeoutMs must be positive" }
+    }
 
     private val tools = ConcurrentHashMap<String, McpTool>()
 
@@ -74,9 +87,11 @@ class ToolRegistry {
     }
 
     /**
-     * Execute the named tool with [params]. Returns a `tool_disabled` error if the tool is
-     * gated off, an `Unknown tool` error if it isn't registered, and converts any exception
-     * thrown by [McpTool.execute] into a failed [ToolResult] — this method never throws.
+     * Execute the named tool with [params] on [Dispatchers.IO], bounded by [toolTimeoutMs].
+     * Returns a `tool_disabled` error if the tool is gated off, an `Unknown tool` error if it
+     * isn't registered, a `tool_timeout` error if it overran, and converts any exception thrown
+     * by [McpTool.execute] into a failed [ToolResult]. Coroutine cancellation of the *caller* is
+     * rethrown rather than swallowed, so a cancelled request stops its tool.
      */
     suspend fun executeTool(name: String, params: Map<String, Any>): ToolResult {
         if (name in disabled) {
@@ -85,9 +100,23 @@ class ToolRegistry {
         val tool = tools[name]
             ?: return ToolResult.error("Unknown tool: $name")
         return try {
-            tool.execute(params)
+            // withTimeout inside withContext(IO) so the deadline runs on a real-time clock even
+            // when the caller sits on a virtual-time test dispatcher.
+            withContext(Dispatchers.IO) {
+                withTimeoutOrNull(toolTimeoutMs) { tool.execute(params) }
+            } ?: ToolResult.error("tool_timeout", "Tool '$name' timed out after ${toolTimeoutMs}ms")
+        } catch (e: CancellationException) {
+            // Rethrow when the caller itself was cancelled; otherwise the tool leaked its own
+            // internal cancellation (e.g. an escaped TimeoutCancellationException) — report it.
+            currentCoroutineContext().ensureActive()
+            ToolResult.error("Tool '$name' failed: ${e.message}")
         } catch (e: Exception) {
             ToolResult.error("Tool '$name' failed: ${e.message}")
         }
+    }
+
+    companion object {
+        /** Default per-call ceiling: generous enough for TTS playback and camera capture. */
+        const val DEFAULT_TOOL_TIMEOUT_MS: Long = 5 * 60 * 1000L
     }
 }

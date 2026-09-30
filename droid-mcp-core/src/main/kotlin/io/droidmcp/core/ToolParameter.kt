@@ -25,6 +25,9 @@ enum class ParameterType(val jsonType: String) {
  * @property type JSON Schema type of the value.
  * @property required Whether the argument must be present. Surfaced in the enclosing schema's
  *   `required` array by the protocol layer (not by [toJsonSchema], which describes one property).
+ * @property itemsType Element type for [ParameterType.ARRAY] parameters, emitted as the schema's
+ *   `items`. When null an array still gets an unconstrained `"items": {}` — some clients
+ *   (Gemini/OpenAI-compatible bridges) reject array schemas with no `items` at all.
  */
 @Serializable
 data class ToolParameter(
@@ -32,14 +35,18 @@ data class ToolParameter(
     val description: String,
     val type: ParameterType,
     val required: Boolean = false,
+    val itemsType: ParameterType? = null,
 ) {
     /**
-     * The JSON Schema fragment for this one parameter — `{ "type": ..., "description": ... }`.
-     * Required-ness is intentionally omitted here; the protocol layer aggregates it into the
-     * parent object schema's `required` list.
+     * The JSON Schema fragment for this one parameter — `{ "type": ..., "description": ... }`,
+     * plus `items` for arrays (a nested map). Required-ness is intentionally omitted here; the
+     * protocol layer aggregates it into the parent object schema's `required` list.
      */
     fun toJsonSchema(): Map<String, Any> = buildMap {
         put("type", type.jsonType)
         put("description", description)
+        if (type == ParameterType.ARRAY) {
+            put("items", itemsType?.let { mapOf("type" to it.jsonType) } ?: emptyMap<String, Any>())
+        }
     }
 }

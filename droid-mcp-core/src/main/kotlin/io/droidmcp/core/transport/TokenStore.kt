@@ -26,6 +26,12 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class TokenStore(seedPrimary: String? = null) {
 
+    init {
+        require(seedPrimary == null || seedPrimary.isNotBlank()) {
+            "Bearer token must not be blank — an empty token would authenticate `Authorization: Bearer `"
+        }
+    }
+
     /**
      * A minted per-client credential.
      * @property label Opaque host-supplied identifier; the unit of revocation.
@@ -49,7 +55,8 @@ class TokenStore(seedPrimary: String? = null) {
      *   paired token, or `null` if the token is missing or unrecognized.
      */
     fun verify(provided: String?): String? {
-        val candidate = provided?.toByteArray(Charsets.UTF_8) ?: return null
+        if (provided.isNullOrEmpty()) return null
+        val candidate = provided.toByteArray(Charsets.UTF_8)
         if (constantTimeEquals(primary, candidate)) return PRIMARY_LABEL
         for (client in clients.values) {
             if (constantTimeEquals(client.token, candidate)) return client.label

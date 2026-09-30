@@ -7,13 +7,22 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 
 /**
  * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
- * Services `initialize`, `tools/list`, `tools/call`, `ping`, and `notifications/initialized`.
- * Malformed input yields a `-32700` parse error and an unknown method a `-32601`; the handler
- * never throws back to the transport.
+ * Services `initialize`, `tools/list`, `tools/call` and `ping`. Messages without an `id` are
+ * notifications: they are accepted silently and never answered (the transport replies 202).
+ *
+ * `initialize` negotiates the protocol version: the client's requested version is echoed when
+ * it is in [SUPPORTED_PROTOCOL_VERSIONS], otherwise the newest supported version is offered.
+ *
+ * Errors follow JSON-RPC 2.0: `-32700` only for unparseable JSON, `-32600` for a structurally
+ * invalid request (non-object, batch array, wrong `jsonrpc`, missing `method`), `-32601` for an
+ * unknown method, `-32602` for malformed params (keeping the request `id`), and `-32603` for an
+ * unexpected internal failure. Error responses always carry `id` (`null` when unknown). The
+ * handler never throws back to the transport.
  *
  * Honours [readOnly] mode (filters `tools/list` to read-only tools and rejects mutating
  * `tools/call`s with an `isError` content payload) and emits a [ToolCallAudit] to [auditSink]
@@ -43,28 +52,67 @@ class McpProtocolImpl(
         handleMessage(jsonRequest, clientLabel = null)
 
     override suspend fun handleMessage(jsonRequest: String, clientLabel: String?): String {
-        return try {
-            val request = json.parseToJsonElement(jsonRequest).jsonObject
-            val id = request["id"]
-            val method = request["method"]?.jsonPrimitive?.content
-            val params = request["params"]?.jsonObject ?: JsonObject(emptyMap())
+        val element = try {
+            json.parseToJsonElement(jsonRequest)
+        } catch (_: Exception) {
+            return jsonRpcError(null, -32700, "Parse error")
+        }
+        if (element is JsonArray) {
+            return jsonRpcError(null, -32600, "Batch requests are not supported")
+        }
+        val request = element as? JsonObject
+            ?: return jsonRpcError(null, -32600, "Invalid Request: expected a JSON object")
 
+        // A JSON-RPC id must be a string, number, or null; anything else is invalid.
+        val rawId = request["id"]
+        val id = rawId?.takeIf { it is JsonPrimitive }
+        if (rawId != null && id == null) {
+            return jsonRpcError(null, -32600, "Invalid Request: id must be a string or number")
+        }
+        if ((request["jsonrpc"] as? JsonPrimitive)?.contentOrNull != "2.0") {
+            return if (id == null) "" else jsonRpcError(id, -32600, "Invalid Request: jsonrpc must be \"2.0\"")
+        }
+        val method = (request["method"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        if (method == null) {
+            // A client-side response (result/error, no method) needs no reply.
+            if ("result" in request || "error" in request) return ""
+            return jsonRpcError(id, -32600, "Invalid Request: missing method")
+        }
+
+        // Notifications (no id) must never be answered — including unknown ones such as
+        // notifications/cancelled or notifications/roots/list_changed.
+        if (rawId == null) return ""
+
+        val rawParams = request["params"]
+        val params = when (rawParams) {
+            null, is JsonNull -> JsonObject(emptyMap())
+            is JsonObject -> rawParams
+            else -> return jsonRpcError(id, -32602, "Invalid params: expected an object")
+        }
+
+        return try {
             when (method) {
                 "initialize" -> handleInitialize(id, params)
                 "tools/list" -> handleToolsList(id)
                 "tools/call" -> handleToolsCall(id, params, clientLabel)
-                "notifications/initialized" -> ""
-                "ping" -> jsonRpcResponse(id, buildJsonObject { put("status", "ok") })
+                "ping" -> jsonRpcResponse(id, JsonObject(emptyMap()))
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
             }
-        } catch (e: Exception) {
-            jsonRpcError(null, -32700, "Parse error: ${e.message}")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: InvalidParamsException) {
+            jsonRpcError(id, -32602, "Invalid params: ${e.message}")
+        } catch (_: Exception) {
+            jsonRpcError(id, -32603, "Internal error")
         }
     }
 
     private fun handleInitialize(id: JsonElement?, params: JsonObject): String {
+        val requested = (params["protocolVersion"] as? JsonPrimitive)?.contentOrNull
+        val negotiated = requested?.takeIf { it in SUPPORTED_PROTOCOL_VERSIONS }
+            ?: SUPPORTED_PROTOCOL_VERSIONS.first()
         val result = buildJsonObject {
-            put("protocolVersion", "2024-11-05")
+            put("protocolVersion", negotiated)
             putJsonObject("capabilities") {
                 putJsonObject("tools") {
                     put("listChanged", false)
@@ -82,23 +130,10 @@ class McpProtocolImpl(
         val tools = visibleTools().map { tool ->
             buildJsonObject {
                 put("name", tool.name)
+                tool.annotations.title?.let { put("title", it) }
                 put("description", tool.description)
-                putJsonObject("inputSchema") {
-                    put("type", "object")
-                    putJsonObject("properties") {
-                        tool.parameters.forEach { param ->
-                            putJsonObject(param.name) {
-                                param.toJsonSchema().forEach { (k, v) ->
-                                    put(k, JsonPrimitive(v.toString()))
-                                }
-                            }
-                        }
-                    }
-                    putJsonArray("required") {
-                        tool.parameters.filter { it.required }.forEach { add(it.name) }
-                    }
-                }
-                annotationsJson(tool.annotations)?.let { put("annotations", it) }
+                put("inputSchema", ToolSchemas.inputSchema(tool))
+                ToolSchemas.annotations(tool.annotations)?.let { put("annotations", it) }
             }
         }
         val result = buildJsonObject {
@@ -112,28 +147,28 @@ class McpProtocolImpl(
         params: JsonObject,
         clientLabel: String?,
     ): String {
-        val toolName = params["name"]?.jsonPrimitive?.content
-            ?: return jsonRpcError(id, -32602, "Missing tool name")
+        val toolName = (params["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: throw InvalidParamsException("missing or non-string tool name")
+        val rawArguments = params["arguments"]
+        val argumentsObject = when (rawArguments) {
+            null, is JsonNull -> null
+            is JsonObject -> rawArguments
+            else -> throw InvalidParamsException("arguments must be an object")
+        }
+        val argumentsJson = argumentsObject?.toString()
+
         if (readOnly) {
-            val tool = registry.listTools().firstOrNull { it.name == toolName }
+            val tool = registry.getTool(toolName)
             if (tool != null && !tool.annotations.readOnlyHint) {
-                val content = buildJsonArray {
-                    addJsonObject {
-                        put("type", "text")
-                        put("text", "Tool '$toolName' is not available in read-only mode")
-                    }
-                }
-                return jsonRpcResponse(id, buildJsonObject {
-                    put("content", content)
-                    put("isError", true)
-                })
+                val message = "Tool '$toolName' is not available in read-only mode"
+                recordAudit(toolName, clientLabel, argumentsJson, ToolResult.error(message), 0)
+                return jsonRpcResponse(id, errorContent(message))
             }
         }
-        val argumentsJson = params["arguments"]?.jsonObject?.toString()
         // A JSON null value is dropped rather than kept as a null entry — tools read params via
         // `params["x"] as? Type`, which already treats a missing key the same as an explicit
         // null, and McpTool.execute's Map<String, Any> signature doesn't accept null values.
-        val arguments = params["arguments"]?.jsonObject?.let { args ->
+        val arguments = argumentsObject?.let { args ->
             args.entries.mapNotNull { (k, v) -> v.toNativeValue()?.let { k to it } }.toMap()
         } ?: emptyMap()
 
@@ -143,36 +178,34 @@ class McpProtocolImpl(
         recordAudit(toolName, clientLabel, argumentsJson, toolResult, durationMs)
 
         return if (toolResult.isSuccess) {
+            val structured = buildJsonObject {
+                toolResult.data?.forEach { (k, v) -> put(k, ToolSchemas.toJsonElement(v)) }
+            }
             val content = buildJsonArray {
                 addJsonObject {
                     put("type", "text")
-                    put("text", Json.encodeToString(JsonObject.serializer(),
-                        buildJsonObject {
-                            toolResult.data?.forEach { (k, v) ->
-                                put(k, anyToJsonElement(v))
-                            }
-                        }
-                    ))
+                    put("text", Json.encodeToString(JsonObject.serializer(), structured))
                 }
             }
-            val result = buildJsonObject {
+            jsonRpcResponse(id, buildJsonObject {
                 put("content", content)
+                // 2025-06-18+: the same payload as typed JSON; older clients ignore it.
+                put("structuredContent", structured)
                 put("isError", false)
-            }
-            jsonRpcResponse(id, result)
+            })
         } else {
-            val content = buildJsonArray {
-                addJsonObject {
-                    put("type", "text")
-                    put("text", toolResult.errorMessage ?: "Unknown error")
-                }
-            }
-            val result = buildJsonObject {
-                put("content", content)
-                put("isError", true)
-            }
-            jsonRpcResponse(id, result)
+            jsonRpcResponse(id, errorContent(toolResult.errorMessage ?: "Unknown error"))
         }
+    }
+
+    private fun errorContent(message: String): JsonObject = buildJsonObject {
+        putJsonArray("content") {
+            addJsonObject {
+                put("type", "text")
+                put("text", message)
+            }
+        }
+        put("isError", true)
     }
 
     private fun recordAudit(
@@ -200,49 +233,17 @@ class McpProtocolImpl(
         }
     }
 
-    private fun anyToJsonElement(value: Any?): JsonElement = when (value) {
-        null -> JsonNull
-        is JsonElement -> value
-        is String -> JsonPrimitive(value)
-        is Number -> JsonPrimitive(value)
-        is Boolean -> JsonPrimitive(value)
-        is Map<*, *> -> buildJsonObject {
-            value.forEach { (k, v) ->
-                if (k is String) put(k, anyToJsonElement(v))
-            }
-        }
-        is Iterable<*> -> buildJsonArray {
-            value.forEach { add(anyToJsonElement(it)) }
-        }
-        is Array<*> -> buildJsonArray {
-            value.forEach { add(anyToJsonElement(it)) }
-        }
-        else -> JsonPrimitive(value.toString())
-    }
-
-    private fun annotationsJson(a: ToolAnnotations): JsonObject? {
-        val default = ToolAnnotations()
-        if (a == default) return null
-        return buildJsonObject {
-            if (a.readOnlyHint != default.readOnlyHint) put("readOnlyHint", a.readOnlyHint)
-            if (a.destructiveHint != default.destructiveHint) put("destructiveHint", a.destructiveHint)
-            if (a.idempotentHint != default.idempotentHint) put("idempotentHint", a.idempotentHint)
-            if (a.openWorldHint != default.openWorldHint) put("openWorldHint", a.openWorldHint)
-            a.title?.let { put("title", it) }
-        }
-    }
-
     private fun jsonRpcResponse(id: JsonElement?, result: JsonObject): String =
         Json.encodeToString(JsonObject.serializer(), buildJsonObject {
             put("jsonrpc", "2.0")
-            id?.let { put("id", it) }
+            put("id", id ?: JsonNull)
             put("result", result)
         })
 
     private fun jsonRpcError(id: JsonElement?, code: Int, message: String): String =
         Json.encodeToString(JsonObject.serializer(), buildJsonObject {
             put("jsonrpc", "2.0")
-            id?.let { put("id", it) }
+            put("id", id ?: JsonNull)
             putJsonObject("error") {
                 put("code", code)
                 put("message", message)
@@ -271,5 +272,18 @@ class McpProtocolImpl(
         }
         is JsonArray -> this.map { it.toNativeValue() }
         is JsonObject -> this.entries.associate { (k, v) -> k to v.toNativeValue() }
+    }
+
+    /** Thrown by handlers for structurally bad params; mapped to a `-32602` with the request id. */
+    private class InvalidParamsException(message: String) : Exception(message)
+
+    companion object {
+        /**
+         * MCP protocol revisions this server speaks, newest first. `initialize` echoes the
+         * client's version when listed here and otherwise offers the first entry; the HTTP
+         * transport rejects an `MCP-Protocol-Version` header outside this list.
+         */
+        val SUPPORTED_PROTOCOL_VERSIONS: List<String> =
+            listOf("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
     }
 }
