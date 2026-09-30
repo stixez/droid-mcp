@@ -58,7 +58,7 @@ droid-mcp does **not** defend against:
 
 - **A malicious or compromised host app.** The host has in-process access to every tool by construction.
 - **A malicious LLM that has already cleared bearer auth.** Auth decides *who* can call, not *why*. Use read-only mode and per-tool gating to limit what a trusted but mistaken model can reach.
-- **Prompt injection through tool output.** Web pages, SMS, notifications, clipboard contents and screen text are untrusted, and can tell the model to call other tools. droid-mcp returns that content as data but can't stop a model from obeying it. Gate destructive tools, or require user confirmation for them in your app.
+- **Prompt injection through tool output.** Web pages, SMS, notifications, clipboard contents and screen text are untrusted, and can tell the model to call other tools. droid-mcp returns that content as data but can't stop a model from obeying it. Gate destructive tools, or have the user approve them with `Builder.confirmToolCalls { request -> showDialog(request) }`. By default it asks for every tool marked `destructiveHint`, on both transports, and a decline or no answer means the tool never runs.
 - **Physical device access.**
 - **Supply-chain integrity of third-party deps** (Shizuku, libsu, Room, BouncyCastle) beyond pinning their versions.
 

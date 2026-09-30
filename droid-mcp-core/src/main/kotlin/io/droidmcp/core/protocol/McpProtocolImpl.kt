@@ -197,7 +197,7 @@ class McpProtocolImpl(
         val key = clientLabel to id.toString()
         val toolResult = try {
             coroutineScope {
-                val call = async { registry.executeTool(toolName, arguments) }
+                val call = async { registry.executeTool(toolName, arguments, clientLabel) }
                 inFlight[key] = call
                 try {
                     call.await()

@@ -102,6 +102,8 @@ class DroidMcp private constructor(
         private var tls: TlsConfig? = null
         private var allowedOrigins: Set<String> = emptySet()
         private var toolTimeoutMs: Long = ToolRegistry.DEFAULT_TOOL_TIMEOUT_MS
+        private var confirmer: ToolCallConfirmer? = null
+        private var requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint }
 
         /** Add a single tool to the registry. */
         fun addTool(tool: McpTool) = apply { tools.add(tool) }
@@ -124,6 +126,20 @@ class DroidMcp private constructor(
          * [DroidMcp.tlsFingerprint]. No effect unless the HTTP server is enabled.
          */
         fun enableTls(config: TlsConfig) = apply { this.tls = config }
+
+        /**
+         * Ask the host before running tools that match [requiresConfirmation] (by default every
+         * tool with [ToolAnnotations.destructiveHint]) — on both transports. [confirmer] typically
+         * shows a dialog; a decline, a missing answer within the tool timeout, or an exception
+         * returns a `tool_call_declined` error and the tool never runs.
+         */
+        fun confirmToolCalls(
+            requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint },
+            confirmer: ToolCallConfirmer,
+        ) = apply {
+            this.requiresConfirmation = requiresConfirmation
+            this.confirmer = confirmer
+        }
 
         /**
          * Cap every tool call (both transports) at [millis]; an overrunning tool is cancelled
@@ -173,7 +189,7 @@ class DroidMcp private constructor(
 
         /** Assemble the [DroidMcp] instance: build the registry, wire transports, return it (does not start the server). */
         fun build(): DroidMcp {
-            val registry = ToolRegistry(toolTimeoutMs)
+            val registry = ToolRegistry(toolTimeoutMs, confirmer, requiresConfirmation)
             registry.registerAll(tools)
             val inProcess = InProcessTransport(registry)
             val http = httpPort?.let {
