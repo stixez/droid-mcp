@@ -177,14 +177,14 @@ object MyTools {
 - HTTP transport rejects foreign `Origin` headers (403; allowlist via `enableHttpServer(allowedOrigins=)`), non-JSON bodies (415), bodies > 4 MB (413) and unknown `MCP-Protocol-Version` (400). Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. `GET /mcp` is 405 (no server push). Protocol negotiates 2025-11-25 / 2025-06-18 / 2025-03-26 / 2024-11-05.
 - HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
 - Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
-- mDNS (`_mcp._tcp`) broadcasts version/auth/readonly via TXT records; does NOT broadcast the bearer token.
-- File tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator`
+- mDNS (`_mcp._tcp`) broadcasts version/auth/readonly/tls via TXT records; does NOT broadcast the bearer token. `/health` requires auth.
+- File and ML Kit tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator` (canonical path); QR `image_uri` via `ImageUriValidator`
 - SMS `send_message` validates phone number format before sending
-- HTTP transport: local network only, optional Bearer token auth
+- HTTP transport binds all interfaces on its port (no host restriction) — auth and Origin checks are the boundary, not the network; tokens passed in must be ≥ 16 chars
 - MCP protocol: malformed JSON returns -32700 parse error (no crash)
 - All numeric params clamped to safe ranges
 - `ToolRegistry` uses `ConcurrentHashMap` for thread safety
-- Settings read tools register without write permission; write tools require `canWrite()`
+- Settings: `set_brightness` registers only when `Settings.System.canWrite()`; `toggle_wifi` only with `CHANGE_WIFI_STATE`; `get_settings` and `set_volume` always register
 - `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.; `send_intent`/`open_deep_link` data URIs limited to http(s), geo, tel, mailto, sms(to), mms(to), market
 - `fetch_webpage`/`web_search` block private, loopback and link-local addresses (SSRF) unless `allowPrivateNetwork = true`
 - `run_shell` allowlist matches argv token-by-token and rejects interpreter entries; optional `ShellPolicy` denies sensitive setting keys/permissions
@@ -207,7 +207,7 @@ Some modules require permissions that are granted via system Settings, not runti
 | ime | Input Method enabled + selected (host service must extend `DroidMcpInputMethodService`) | All tools | Settings > System > Languages & input > On-screen keyboard, plus the IME picker |
 | overlay | `SYSTEM_ALERT_WINDOW` | `OverlayController.show()` | Settings > Apps > Special access > Display over other apps |
 | shizuku | Shizuku service running + permission granted | All shell-core tools (install/uninstall, force-stop, secure-settings, permissions, screencap, run_shell with host allowlist, etc.) | Install Shizuku app, activate via wireless debugging (Android 11+) or ADB, grant runtime permission. See [docs/SHIZUKU.md](docs/SHIZUKU.md). |
-| root | Device rooted + superuser manager grants root to host app | Same shell-core tools as shizuku, routed via `su`. Strictly more powerful: writes `/system`, freezes apps via `pm hide`, reads `/data/data/<pkg>`. | Root the device via Magisk / KernelSU / SuperSU; first `Shell.cmd(...)` triggers the manager's permission prompt. See [docs/ROOT.md](docs/ROOT.md). |
-| screenshot | MediaProjection | `capture_screen` | `MediaProjectionManager.createScreenCaptureIntent()` |
+| root | Device rooted + superuser manager grants root to host app | Same shell-core tools as shizuku, routed via `su`. Strictly more powerful: writes `/system`, freezes apps via `pm hide`, reads `/data/data/<pkg>`. | Root the device via Magisk / KernelSU / SuperSU; the first root shell triggers the manager's permission prompt. See [docs/ROOT.md](docs/ROOT.md). |
+| screenshot | MediaProjection | `capture_screen` | `MediaProjectionManager.createScreenCaptureIntent()`; on API 34+ call `getMediaProjection()` from a running `mediaProjection` foreground service, then `MediaProjectionHolder.set()` |
 | dnd | DND Access | `set_dnd_mode` | Settings > DND access |
 | ringtone | WRITE_SETTINGS | `set_ringtone` | Settings > Modify system settings |

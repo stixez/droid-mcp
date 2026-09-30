@@ -1,20 +1,20 @@
 # Migrating 0.x → 1.0
 
-**Short version: nothing breaks.** droid-mcp has held a zero-breaking-changes stance since 0.4.0 (see [VERSIONING.md](VERSIONING.md)). Every release from 0.5.0 through the 1.0 hardening sequence is purely additive. Upgrading is a version-bump in your Gradle coordinates.
+**Short version:** 0.4.0 → 0.10.x is a version bump with nothing to change. 0.11.0 fixes a batch of bugs and security gaps, and some of those fixes change behavior clients can observe. Read [0.11.0](#0110) before you upgrade.
 
-This document exists to make that promise auditable: it lists everything that changed across the 0.x line so you can confirm none of it affects you.
+This document lists everything that changed across the 0.x line, so you can check whether any of it affects you.
 
 ## If you're on 0.4.0
 
-You depend on the original tool modules (calendar, contacts, sms, files, device, …). All of them are unchanged: same tool names, same parameters, same result keys, same human-prose error envelope. No action needed beyond bumping the version.
+You depend on the original tool modules (calendar, contacts, sms, files, device, …). Through 0.10.x their tool names, parameters, result keys and prose error envelope are unchanged. For 0.11.0, see below.
 
 New surface you *may* opt into (none required):
 
-- **Tier 1 — `droid-mcp-notifications-reply`** (0.5.0): reply to / dismiss / invoke actions on notifications.
-- **Tier 2 — `droid-mcp-accessibility`** (0.6.0): read/click/type/swipe any app.
-- **Tier 3 — `droid-mcp-ime`** (0.6.0): type into any focused field.
+- **`droid-mcp-notifications-reply`** (0.5.0): reply to / dismiss / invoke actions on notifications.
+- **`droid-mcp-accessibility`** (0.6.0): read/click/type/swipe any app.
+- **`droid-mcp-ime`** (0.6.0): type into any focused field.
 - **Consumer-alignment** (0.7.0): `droid-mcp-notification-watch`, `droid-mcp-overlay`, accessibility composition tools, `PermissionStatus`, short-form error codes.
-- **Tier 4 — `droid-mcp-shizuku`** (0.8.0) and **Tier 5 — `droid-mcp-root`** (0.9.0): shell-UID / root-UID admin tools, opt-in (excluded from `:droid-mcp-all`).
+- **`droid-mcp-shizuku`** (0.8.0) and **`droid-mcp-root`** (0.9.0): shell-UID / root-UID admin tools, opt-in (excluded from `:droid-mcp-all`).
 - **Hardening** (0.10.0): per-tool gating, token rotation, per-client pairing, audit hook, TLS, foreground service.
 
 ## 0.10.0 specifics
@@ -34,6 +34,43 @@ New opt-in modules pull third-party dependencies, so they stay out of `:droid-mc
 | `droid-mcp-audit` | Room + KSP | Add the KSP plugin in your build if you depend on it. |
 | `droid-mcp-tls` | BouncyCastle | Add the `META-INF/versions/9/OSGI-INF/MANIFEST.MF` packaging exclude (see [SECURITY.md](SECURITY.md)). |
 | `droid-mcp-server-service` | androidx.core | Declare your concrete service `android:foregroundServiceType="specialUse"`. |
+
+## 0.11.0
+
+A correctness and security sweep. Tool names didn't change and nothing was removed. Two tools were added: `cancel_vibration` and `poll_notification_watch`. Each change below is a bug fix, but you'll notice it if your client depended on the old behavior.
+
+### HTTP transport
+- Every request after `initialize` must carry the `Mcp-Session-Id` it was issued. Requests without it get 400, and requests with another client's session get 404.
+- Requests with an `Origin` header outside `enableHttpServer(allowedOrigins = …)` get 403. Native clients send no `Origin` and are unaffected. Browser clients such as MCP Inspector need their origin allowlisted.
+- `POST /mcp` requires `Content-Type: application/json` (otherwise 415) and a body of at most 4 MB (otherwise 413).
+- `GET /mcp` returns 405. The SSE stream is gone: the server never pushed anything on it.
+- `Authorization` must use the `Bearer` scheme (matched case-insensitively), and a bare token is rejected. `enableHttpServer(token = …)` now requires at least 16 characters.
+- `initialize` negotiates `protocolVersion` (2025-11-25, 2025-06-18, 2025-03-26 or 2024-11-05) instead of always answering 2024-11-05.
+- Notifications (messages without an `id`) are never answered. Errors use the correct JSON-RPC codes (-32600, -32602, -32603) and always carry `id`.
+
+### Tool results
+- `set_node_text`: `text` is now only the replacement value. To select a node by its current content, use the new `match_text`. Previously `text` was also the selector, so the tool only matched fields that already contained the new text.
+- `get_sim_info`: `slot_index` is now the physical SIM slot; before, it held the subscription ID. The subscription ID moves to the new `subscription_id` key. Unknown values are `-1` instead of `0`.
+- `check_biometric_availability`: `hardware_type` reports authenticator classes (`biometric_strong`, `biometric_weak`, `none`, `update_required`, `unknown`) instead of guessed sensor names.
+- `take_screenshot_via_a11y` now defaults to JPEG, downscaled to 1280 px. `take_photo`'s `image_data` is downscaled the same way, while the gallery file stays full resolution.
+- `open_deep_link` and `send_intent` accept only http(s), geo, tel, mailto, sms/smsto, mms/mmsto and market URIs, so app-specific schemes such as `spotify:` are rejected. `send_intent` drops PICK, GET_CONTENT, OPEN_DOCUMENT and CREATE_DOCUMENT, whose results were always discarded.
+- `get_text_around_cursor` refuses password fields.
+
+### Tools that used to claim success when nothing happened now return errors
+- `send_message` waits for the carrier result and reports `status` as `sent`, `failed` or `timeout`.
+- `print_content` needs an Activity. Pass one with `PrintTools.all(context) { currentActivity }`.
+- When the host is in the background and lacks the overlay permission, Android 10+ silently drops activity launches. The affected tools now return an error instead of claiming success:
+  - The intent tools return the code `background_activity_launch_blocked`.
+  - `create_alarm`, `create_timer`, `launch_app`, `toggle_wifi` and `set_brightness` return a prose error, because these 0.4.0 tools keep their original error envelope.
+- `set_dnd_mode` reads the mode back and reports `actual_mode`. On Android 15+ it only controls the app's own implicit rule.
+
+### Shell (Shizuku / root)
+- `ShellAllowlist` entries match argv token by token, so `"am start"` no longer matches `am startservice`. Entries that start with an interpreter (`sh`, `toybox`, `su`, `app_process`, `env`, …) throw.
+- `install_apk` requires an absolute path ending in `.apk`.
+- Root opens one `su` session per call. Some superuser managers log each session.
+
+### Build
+- Consumers need `compileSdk` 36+, AGP 8.9.1+ and Kotlin 2.3+.
 
 ## What 1.0 freezes
 

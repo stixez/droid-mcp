@@ -18,14 +18,16 @@ These are the contracts a consumer can rely on. After **1.0**, none of them chan
 - `ToolResult`, `ToolParameter`, `ParameterType`, `ToolAnnotations` shapes.
 - `DroidMcp.Builder` method names and defaults.
 - **Per-tool wire contract:** each tool's name, its parameter names, and its result-map keys. Renaming any of these is a breaking change.
-- Module Gradle coordinates (`io.droidmcp:droid-mcp-<name>`).
+- Module Gradle coordinates (`com.github.stixez.droid-mcp:droid-mcp-<name>` on JitPack).
 - The MCP protocol behavior (`initialize` / `tools/list` / `tools/call`, error codes, JSON-RPC envelope).
 
 Internal classes (`McpProtocolImpl` internals, transport plumbing, parsing helpers) are **not** part of the contract and may change in any release.
 
 ## Pre-1.0 stance
 
-Although semver permits breaking changes in any pre-1.0 release, droid-mcp deliberately keeps breakage at **zero** from 0.4.0 onward. Android's system APIs (ContentResolver, Calendar, Contacts, …) are extremely stable, so tool wire shapes don't need to churn. The only things that could break consumers are *our* renames/merges/removals — and we don't do them. Cleanup items are demoted to "only if there's a concrete reason," never "because it's tidy."
+Semver allows breaking changes in any pre-1.0 release. droid-mcp still avoids them: from 0.4.0 on, no tool, parameter or result key has been renamed or removed, and cleanup alone is never a reason to rename.
+
+The exception is a bug fix whose correct behavior differs from the broken one. 0.11.0 has several: for example, `slot_index` now holds the SIM slot as documented, and `set_node_text` no longer uses its replacement text as a selector. Each one is listed in [MIGRATION-0-TO-1.md](MIGRATION-0-TO-1.md#0110).
 
 One consequence: the 0.5.0–0.9.0 tool surface never reached a public GitHub release (it sat on a branch). Tools introduced there could adopt short-form error codes from the start; only **0.4.0** tools keep their original human-prose error envelope forever.
 
@@ -41,7 +43,7 @@ Typealiases kept purely for source compatibility (e.g. `playback.NotificationLis
 
 ## Distribution and tags
 
-- Releases are published via **JitPack**, keyed off signed git tags (`vMAJOR.MINOR.PATCH`). Maven Central is deferred to post-1.0 and is demand-driven; if it happens, it's a one-line coordinate change for consumers, not a breaking migration.
+- Releases are published via **JitPack**, keyed off git tags (`vMAJOR.MINOR.PATCH`). Maven Central is deferred to post-1.0 and is demand-driven; if it happens, it's a one-line coordinate change for consumers, not a breaking migration.
 - Each GitHub Release's notes are auto-generated from the tag's commit history (`generate_release_notes` in `release.yml`). A maintainer-facing `CHANGELOG.md` is kept locally (gitignored, not published) for drafting those notes and tracking fix rationale across a release.
 
 ## Support window
