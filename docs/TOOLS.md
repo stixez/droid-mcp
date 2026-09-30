@@ -365,7 +365,7 @@ Hosts can also collect `NotificationListenerBus.events` (`SharedFlow<Notificatio
 | `tap` | Tap at screen coordinates | `x` (required), `y` (required) |
 | `long_press` | Long-press at screen coordinates | `x` (required), `y` (required), `duration_ms` (100-5000, default 800) |
 | `find_and_tap` | Find a node and click it (returns `node_not_found` if absent) | `match` (required), `match_kind` (text/desc/id/class, default text), `case_insensitive` (default true) |
-| `scroll_to_find` | Swipe until `match` appears. `down` reveals content below. | `match` (required), `direction` (down/up/left/right, default down), `max_scrolls` (1-20, default 5) |
+| `scroll_to_find` | Scroll the container that can move in `direction` (its own scroll action, or a swipe inside it) until `match` appears. `down` reveals content below. About 1 s per scroll. | `match` (required), `direction` (down/up/left/right, default down), `max_scrolls` (1-20, default 5) |
 
 The selector is `text` (a substring of text or content description), `view_id`, `class_name` or `package_name` (exact matches). At least one is required.
 

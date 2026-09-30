@@ -129,7 +129,8 @@ public final class io/droidmcp/accessibility/ScrollNodeTool : io/droidmcp/core/M
 }
 
 public final class io/droidmcp/accessibility/ScrollToFindTool : io/droidmcp/core/McpTool {
-	public static final field SETTLE_DELAY_MS J
+	public static final field POLL_MS J
+	public static final field SETTLE_TIMEOUT_MS J
 	public fun <init> (Landroid/content/Context;)V
 	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;

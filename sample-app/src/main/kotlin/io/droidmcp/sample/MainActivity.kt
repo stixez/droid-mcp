@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,6 +78,14 @@ class MainActivity : ComponentActivity() {
             ComponentName(this, McpNotificationListenerService::class.java)
         )
 
+        // The ViewModel stops the server when it's cleared, i.e. when this activity finishes.
+        // Back at the root would finish it (and an MCP client's global_action "back" would kill
+        // the server it's talking to), so keep the task alive in the background instead.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                moveTaskToBack(true)
+            }
+        })
         setContent {
             DroidMcpTheme {
                 val vm: MainViewModel = viewModel()

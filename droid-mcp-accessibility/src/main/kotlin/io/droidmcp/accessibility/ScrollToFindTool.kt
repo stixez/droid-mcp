@@ -5,6 +5,8 @@ package io.droidmcp.accessibility
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.graphics.Path
+import android.graphics.Rect
+import android.view.accessibility.AccessibilityNodeInfo
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -29,9 +31,10 @@ import kotlinx.coroutines.delay
  * `match` is a case-insensitive substring against text + content-description.
  *
  * Params: required `match`; optional `direction` (default `down`), `max_scrolls`
- * (clamped 1–20, default 5). After each swipe the tool waits ~300ms for the
- * scroll to settle, then re-checks the tree — including after the final swipe,
- * so up to `max_scrolls` swipes and `max_scrolls + 1` checks are performed.
+ * (clamped 1–20, default 5). Each step scrolls the container that can move in
+ * `direction` (semantic scroll action, or a swipe inside it as a fallback), then
+ * re-checks the tree every 150 ms for up to 1 s while it catches up — including
+ * after the final scroll.
  *
  * On success returns `found = true`, `scrolls` (Int iterations performed before
  * the hit), and `node` (the matched node projection, shaped like
@@ -62,30 +65,25 @@ class ScrollToFindTool(private val context: Context) : McpTool {
         }
         val maxScrolls = (params["max_scrolls"] as? Number)?.toInt()?.coerceIn(1, 20) ?: 5
 
-        val metrics = context.resources.displayMetrics
-        val width = metrics.widthPixels.toFloat()
-        val height = metrics.heightPixels.toFloat()
+        // Swipe inside the largest scrollable container on screen: a list that doesn't cover the
+        // screen center (e.g. below a header) never sees a full-screen center swipe. Falls back
+        // to the whole screen when nothing reports itself scrollable.
+        val area = scrollTargetBounds(direction) ?: run {
+            val metrics = context.resources.displayMetrics
+            Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
+        }
 
         // Reading-direction → finger-physics swipe path.
-        val (startX, startY, endX, endY) = swipeCoordsFor(direction, width, height)
+        val (startX, startY, endX, endY) = swipeCoordsFor(
+            direction, area.width().toFloat(), area.height().toFloat(), area.left.toFloat(), area.top.toFloat(),
+        )
 
         // maxScrolls swipes means maxScrolls + 1 tree checks: one before any
         // swipe, one after each swipe (including the last).
         for (iteration in 0..maxScrolls) {
-            // Check current screen first — match may already be visible on iteration 0.
-            // A null root (bound service, no active window) counts as "not found".
-            val foundNode = NodeQuery.withRoot { root ->
-                var hit: Map<String, Any?>? = null
-                NodeQuery.walk(root) { node, depth ->
-                    if (NodeQuery.matches(node, match, null, null, null)) {
-                        hit = NodeQuery.toMap(node, depth)
-                        false // stop walking — we have our match
-                    } else {
-                        true
-                    }
-                }
-                hit
-            }
+            // The accessibility tree trails the scroll (Compose/semantics updates plus event
+            // delivery), so after a scroll keep re-checking for a while instead of once.
+            val foundNode = if (iteration == 0) findMatch(match) else awaitMatch(match)
             if (foundNode != null) {
                 return ToolResult.success(mapOf(
                     "found" to true,
@@ -95,7 +93,10 @@ class ScrollToFindTool(private val context: Context) : McpTool {
             }
             if (iteration == maxScrolls) break
 
-            // Not found; dispatch one swipe and try again.
+            // Not found; scroll once. Prefer asking the right container to scroll itself (what
+            // screen readers do — page-sized, independent of layout and of where the list sits
+            // on screen); fall back to a swipe inside it.
+            if (semanticScroll(direction)) continue
             val path = Path().apply {
                 moveTo(startX, startY)
                 lineTo(endX, endY)
@@ -106,16 +107,101 @@ class ScrollToFindTool(private val context: Context) : McpTool {
             if (!swiped) {
                 return ToolResult.error("gesture_failed", "scroll swipe ${iteration + 1} was cancelled")
             }
-            // Let fling/inertia settle and the a11y tree refresh before re-checking.
-            delay(SETTLE_DELAY_MS)
         }
 
         return ToolResult.error("scroll_exhausted", "no match after $maxScrolls scrolls")
     }
 
+    /**
+     * The first node matching [match] in the active window, as a result map; null if none.
+     *
+     * With [refreshScrollables], scrollable containers are re-fetched (`refresh()`) before their
+     * children are read. The service's node cache otherwise keeps serving a container's
+     * pre-scroll child list for the rest of the call, so newly scrolled-in items stay invisible
+     * until the next tool call. `walk` visits a node before reading its children, so the refresh
+     * lands exactly where the stale data is. One IPC per scrollable; works on every API level.
+     */
+    private fun findMatch(match: String, refreshScrollables: Boolean = false): Map<String, Any?>? = NodeQuery.withRoot { root ->
+        var hit: Map<String, Any?>? = null
+        NodeQuery.walk(root) { node, depth ->
+            if (refreshScrollables && node.isScrollable) node.refresh()
+            if (NodeQuery.matches(node, match, null, null, null)) {
+                hit = NodeQuery.toMap(node, depth)
+                false // stop walking — we have our match
+            } else {
+                true
+            }
+        }
+        hit
+    }
+
+    /** Re-checks for [match] every [POLL_MS] until [SETTLE_TIMEOUT_MS] passes (a null root counts as not found). */
+    private suspend fun awaitMatch(match: String): Map<String, Any?>? {
+        val deadline = System.currentTimeMillis() + SETTLE_TIMEOUT_MS
+        while (true) {
+            delay(POLL_MS)
+            findMatch(match, refreshScrollables = true)?.let { return it }
+            if (System.currentTimeMillis() >= deadline) return null
+        }
+    }
+
+    /**
+     * Scrolls the best container for [direction] with the matching directional action
+     * (`ACTION_SCROLL_DOWN` / `UP` / `LEFT` / `RIGHT`). False when nothing on screen can scroll
+     * that way (the caller then swipes).
+     */
+    private fun semanticScroll(direction: String): Boolean {
+        val action = directionalAction(direction)
+        val target = scrollTargetBounds(direction) ?: return false
+        return NodeQuery.withRoot { root ->
+            val node = NodeQuery.findOne(root, { supportsAction(it, action) && boundsOf(it) == target })
+                ?: return@withRoot false
+            try {
+                node.performAction(action.id)
+            } finally {
+                node.recycle()
+            }
+        } ?: false
+    }
+
+    /**
+     * Bounds of the largest node that can scroll in [direction]; on a tie the innermost wins.
+     * A tab pager and the vertical list inside it often share bounds — only the list supports
+     * scrolling down, so it's chosen for down/up and the pager for left/right.
+     */
+    private fun scrollTargetBounds(direction: String): Rect? = NodeQuery.withRoot { root ->
+        val action = directionalAction(direction)
+        var best: Rect? = null
+        NodeQuery.walk(root) { node, _ ->
+            if (supportsAction(node, action)) {
+                val r = boundsOf(node)
+                val area = r.width().toLong() * r.height()
+                val bestArea = best?.let { it.width().toLong() * it.height() } ?: -1L
+                if (!r.isEmpty && area >= bestArea) best = r // >= : later (deeper) nodes win ties
+            }
+            true
+        }
+        best
+    }
+
+    private fun directionalAction(direction: String): AccessibilityNodeInfo.AccessibilityAction = when (direction) {
+        "down" -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN
+        "up" -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP
+        "right" -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_RIGHT
+        else -> AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_LEFT
+    }
+
+    private fun supportsAction(node: AccessibilityNodeInfo, action: AccessibilityNodeInfo.AccessibilityAction): Boolean =
+        node.actionList.any { it.id == action.id }
+
+    private fun boundsOf(node: AccessibilityNodeInfo): Rect = Rect().also(node::getBoundsInScreen)
+
     private companion object {
-        /** Pause after each swipe so scrolling settles before the tree re-check. */
-        const val SETTLE_DELAY_MS = 300L
+        /** How long to keep re-checking after a scroll before scrolling again. */
+        const val SETTLE_TIMEOUT_MS = 1_000L
+
+        /** Interval between re-checks while the tree catches up with a scroll. */
+        const val POLL_MS = 150L
     }
 }
 
@@ -145,21 +231,25 @@ internal data class SwipeCoords(
  *   - `right` → finger sweeps LEFT → content shifts left → reveals what was to the right
  *   - `left`  → finger sweeps RIGHT → content shifts right → reveals what was to the left
  *
- * Uses 35% offsets around the screen center for a substantial scroll distance.
+ * Uses 35% offsets around the area's center for a substantial scroll distance.
  *
  * @param direction One of `down` / `up` / `left` / `right` (already validated
  *   by the caller; any other value throws).
- * @param width Screen width in pixels.
- * @param height Screen height in pixels.
+ * @param width Width of the area to swipe in (the screen, or a scrollable container), in pixels.
+ * @param height Height of that area.
+ * @param left Screen x of the area's left edge (0 for the whole screen).
+ * @param top Screen y of the area's top edge.
  * @return The [SwipeCoords] for the stroke that reveals content in [direction].
  */
 internal fun swipeCoordsFor(
     direction: String,
     width: Float,
     height: Float,
+    left: Float = 0f,
+    top: Float = 0f,
 ): SwipeCoords {
-    val cx = width / 2f
-    val cy = height / 2f
+    val cx = left + width / 2f
+    val cy = top + height / 2f
     val dy = height * 0.35f
     val dx = width * 0.35f
     return when (direction) {

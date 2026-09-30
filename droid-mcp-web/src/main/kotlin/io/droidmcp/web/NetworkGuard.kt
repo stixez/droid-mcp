@@ -21,11 +21,12 @@ import java.util.concurrent.TimeUnit
  * (IPv4-mapped / -compatible, NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, Teredo `2001::/32`) are
  * judged by the embedded IPv4.
  *
- * Enforced in two layers, both of which run again for every redirect hop:
- *  - [GuardedDns] filters hostname resolution *before* any socket is opened.
- *  - [GuardInterceptor] (a network interceptor) re-checks IP-literal hosts — which OkHttp never
- *    passes through [Dns] — and the address actually connected to, before any request bytes are
- *    sent.
+ * Enforced before any socket opens, on every redirect hop:
+ *  - [GuardedDns] filters hostname resolution.
+ *  - [RedirectGuard] (an application interceptor) rejects IP-literal hosts — which OkHttp never
+ *    passes through [Dns] — and follows redirects itself so each hop is checked first.
+ * [GuardInterceptor] (a network interceptor) re-checks the address actually connected to as a
+ * second layer.
  *
  * Caveat: when the device routes traffic through an HTTP proxy, the *proxy* resolves the target
  * hostname, so only IP-literal targets can be checked in that configuration.
@@ -40,9 +41,53 @@ internal object NetworkGuard {
             .callTimeout(30, TimeUnit.SECONDS)
         if (!allowPrivateNetwork) {
             builder.dns(GuardedDns)
+            // OkHttp's own redirect following would connect to each hop before any check could
+            // run on an IP-literal target; RedirectGuard follows them itself, checking first.
+            builder.followRedirects(false).followSslRedirects(false)
+            builder.addInterceptor(RedirectGuard)
             builder.addNetworkInterceptor(GuardInterceptor)
         }
         return builder.build()
+    }
+
+    /** Maximum redirect hops [RedirectGuard] follows (OkHttp's own limit is 20). */
+    internal const val MAX_REDIRECTS = 5
+
+    /**
+     * Application interceptor — runs before any connection is opened. Rejects IP-literal targets
+     * that [isBlocked] (hostnames are covered by [GuardedDns]) and follows redirects itself, so
+     * every hop is checked *before* connecting. Checking only after connecting (a network
+     * interceptor) would still open a TCP connection to the private address, and the different
+     * errors for open and closed ports would let a caller scan the LAN.
+     */
+    internal object RedirectGuard : Interceptor {
+        override fun intercept(chain: Interceptor.Chain): Response {
+            var request = chain.request()
+            var redirects = 0
+            while (true) {
+                checkTarget(request.url.scheme, request.url.host)
+                val response = chain.proceed(request)
+                if (!response.isRedirect) return response
+                val location = response.header("Location")
+                    ?: return response
+                val next = response.request.url.resolve(location)
+                    ?: throw IOException("Redirect to an invalid URL: $location")
+                response.close()
+                if (++redirects > MAX_REDIRECTS) throw IOException("Too many redirects (over $MAX_REDIRECTS)")
+                val keepsMethod = response.code == 307 || response.code == 308
+                request = request.newBuilder()
+                    .url(next)
+                    .apply { if (!keepsMethod) method("GET", null) }
+                    .build()
+            }
+        }
+
+        private fun checkTarget(scheme: String, host: String) {
+            if (scheme != "http" && scheme != "https") throw IOException("Blocked: redirect to a non-http(s) URL")
+            literalAddress(host)?.let { literal ->
+                if (isBlocked(literal)) throw IOException("Blocked: $host is a private/loopback/link-local address")
+            }
+        }
     }
 
     /** True if [address] is not a public unicast address (see the class KDoc for the ranges). */
@@ -122,16 +167,17 @@ internal object NetworkGuard {
             return chain.proceed(chain.request())
         }
 
-        /** Parses [host] as an IP literal without any DNS lookup; null for hostnames. */
-        private fun literalAddress(host: String): InetAddress? {
-            val isV4 = host.matches(Regex("""\d{1,3}(\.\d{1,3}){3}"""))
-            val isV6 = host.contains(':')
-            if (!isV4 && !isV6) return null
-            return try {
-                InetAddress.getByName(host) // literal → no resolution
-            } catch (_: Exception) {
-                null
-            }
+    }
+
+    /** Parses [host] as an IP literal without any DNS lookup; null for hostnames. */
+    private fun literalAddress(host: String): InetAddress? {
+        val isV4 = host.matches(Regex("""\d{1,3}(\.\d{1,3}){3}"""))
+        val isV6 = host.contains(':')
+        if (!isV4 && !isV6) return null
+        return try {
+            InetAddress.getByName(host) // literal → no resolution
+        } catch (_: Exception) {
+            null
         }
     }
 }

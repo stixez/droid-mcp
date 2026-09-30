@@ -26,6 +26,7 @@ public abstract class io/droidmcp/ime/DroidMcpInputMethodService : android/input
 	public fun <init> ()V
 	public final fun connection ()Landroid/view/inputmethod/InputConnection;
 	public final fun editorInfo ()Landroid/view/inputmethod/EditorInfo;
+	public final fun hasFocusedEditor ()Z
 	public final fun hasInputConnection ()Z
 	public fun onCreate ()V
 	public fun onCreateInputView ()Landroid/view/View;

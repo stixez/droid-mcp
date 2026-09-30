@@ -32,7 +32,7 @@ import io.droidmcp.core.ToolResult
 class FindAndTapTool(private val context: Context) : McpTool {
 
     override val name = "find_and_tap"
-    override val description = "Find a node by text / contentDescription / view-id / class and ACTION_CLICK it in one call. Composition of find_node + click_node. Errors with `node_not_found` when the match doesn't appear."
+    override val description = "Find a node by text / contentDescription / view-id / class and ACTION_CLICK it (or its nearest clickable ancestor) in one call. Composition of find_node + click_node. Errors with `node_not_found` when the match doesn't appear."
     override val parameters = listOf(
         ToolParameter("match", "The value to match against (matched per `match_kind`).", ParameterType.STRING, required = true),
         ToolParameter("match_kind", "What to match against: 'text' (text + contentDescription substring, default), 'desc' (contentDescription substring), 'id' (exact view-id resource name), 'class' (exact node class name like android.widget.Button).", ParameterType.STRING, required = false, enumValues = listOf("text", "desc", "id", "class")),
@@ -57,7 +57,7 @@ class FindAndTapTool(private val context: Context) : McpTool {
         val result = NodeQuery.withRoot { root ->
             val node = NodeQuery.findOne(root, predicate) ?: return@withRoot ToolResult.error("node_not_found", null)
             try {
-                val ok = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                val ok = NodeQuery.performOnSelfOrCapableAncestor(node, AccessibilityNodeInfo.ACTION_CLICK)
                 if (ok) {
                     ToolResult.success(mapOf(
                         "success" to true,

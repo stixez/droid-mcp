@@ -114,7 +114,7 @@ private fun perform(
             if (requireEditable && !node.isEditable) {
                 return@withRoot ToolResult.error("node_not_editable", null)
             }
-            val ok = if (arguments != null) node.performAction(action, arguments) else node.performAction(action)
+            val ok = NodeQuery.performOnSelfOrCapableAncestor(node, action, arguments)
             if (ok) {
                 ToolResult.success(mapOf(
                     "success" to true,
@@ -149,7 +149,7 @@ private fun actionName(action: Int): String = when (action) {
  */
 class ClickNodeTool(private val context: Context) : McpTool {
     override val name = "click_node"
-    override val description = "Perform ACTION_CLICK on a node matched by the selector."
+    override val description = "Perform ACTION_CLICK on a node matched by the selector (or its nearest clickable ancestor, e.g. the row or tab around a label)."
     override val parameters = nodeSelectorParams()
     override val annotations = ToolAnnotations(destructiveHint = true)
     override suspend fun execute(params: Map<String, Any>): ToolResult =
@@ -224,7 +224,7 @@ class SetNodeTextTool(private val context: Context) : McpTool {
  */
 class ScrollNodeTool(private val context: Context) : McpTool {
     override val name = "scroll_node"
-    override val description = "Scroll a scrollable node forward or backward."
+    override val description = "Scroll forward or backward — the matched node, or the nearest scrollable container around it (e.g. match an item label to scroll its list)."
     override val parameters = nodeSelectorParams() + ToolParameter(
         "direction", "'forward' (default) or 'backward'.", ParameterType.STRING, required = false, enumValues = listOf("forward", "backward"),
     )

@@ -63,4 +63,8 @@ object ImeTools {
 }
 
 internal fun imeNotActiveError(): String =
-    "droid-mcp IME is not the active keyboard. The user must switch to it via the IME picker (or via accessibility's global_action) before this tool can run."
+    if (InputMethodServiceHolder.service != null) {
+        "No text field is focused: the droid-mcp IME is active but has no editor. Focus a text field first (e.g. with find_and_tap)."
+    } else {
+        "droid-mcp IME is not the active keyboard. The user must switch to it via the IME picker (or via accessibility's global_action) before this tool can run."
+    }

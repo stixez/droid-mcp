@@ -7,6 +7,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
 import android.graphics.ImageFormat
@@ -24,6 +25,7 @@ import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.reportProgress
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -35,6 +37,12 @@ import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
+/** How long to wait for the camera's first recorded frame before giving up. */
+private const val FIRST_FRAME_TIMEOUT_MS = 3_000L
+
+/** Extra time allowed after the requested duration for the encoder to write its first sample. */
+private const val ENCODER_GRACE_MS = 3_000L
 
 /**
  * Records an H.264/MP4 video (video only — no audio track) for `duration_sec` seconds (clamped 1–60,
@@ -163,15 +171,38 @@ class CaptureVideoTool(private val context: Context) : McpTool {
                 addTarget(recorderSurface)
             }.build()
 
-            session!!.setRepeatingRequest(captureRequest, null, handler)
+            // MediaRecorder.stop() throws if no frame was recorded, and a camera that was just
+            // reopened can take over a second to deliver one. Count the duration from the first
+            // completed frame instead of from start().
+            val firstFrame = CompletableDeferred<Unit>()
+            val frameCallback = object : CameraCaptureSession.CaptureCallback() {
+                override fun onCaptureCompleted(s: CameraCaptureSession, r: CaptureRequest, result: TotalCaptureResult) {
+                    firstFrame.complete(Unit)
+                }
+            }
             mediaRecorder.start()
+            session!!.setRepeatingRequest(captureRequest, frameCallback, handler)
+            withTimeoutOrNull(FIRST_FRAME_TIMEOUT_MS) { firstFrame.await() }
+                ?: return@withContext ToolResult.error("Camera delivered no frames within ${FIRST_FRAME_TIMEOUT_MS / 1000}s; try again")
+            val output: File = tempFile
+            val sizeAtFirstFrame = output.length()
 
             for (second in 1..durationSec) {
                 delay(1000L)
                 reportProgress(second.toDouble(), durationSec.toDouble(), "Recording")
             }
 
-            mediaRecorder.stop()
+            // The encoder can lag the camera (slow software encoders need over a second to emit
+            // their first sample). Stopping before any sample reached the file makes stop() throw,
+            // so give it a bounded grace period to write something first.
+            withTimeoutOrNull(ENCODER_GRACE_MS) {
+                while (output.length() <= sizeAtFirstFrame) delay(100)
+            }
+            try {
+                mediaRecorder.stop()
+            } catch (e: RuntimeException) {
+                return@withContext ToolResult.error("Recording produced no video data (${e.message}); try again")
+            }
             mediaRecorder.release()
             mediaRecorder = null // prevent double-release in finally
 

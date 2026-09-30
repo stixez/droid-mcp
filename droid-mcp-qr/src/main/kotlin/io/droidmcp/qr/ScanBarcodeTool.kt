@@ -30,7 +30,7 @@ import kotlin.coroutines.resumeWithException
 class ScanBarcodeTool(private val context: Context) : McpTool {
 
     override val name = "scan_barcode"
-    override val description = "Scan a barcode from an image file URI. Supports EAN-13, UPC-A, CODE-128, etc."
+    override val description = "Scan a 1D barcode (EAN-13, EAN-8, UPC-A, UPC-E, Code-128, Code-39, …) from an image file URI. For QR codes use scan_qr_code."
     override val parameters = listOf(
         ToolParameter("image_uri", "file:// (external storage only) or content:// URI of the image containing the barcode", ParameterType.STRING, required = true),
     )

@@ -12,6 +12,8 @@ import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
+import okhttp3.Protocol
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.IOException
@@ -154,6 +156,68 @@ class NetworkGuardTest {
             assertThrows<UnknownHostException>("$host should be rejected") { dns.lookup(host) }
         }
         assertThat(dns.lookup("8.8.8.8").map { it.hostAddress }).containsExactly("8.8.8.8")
+    }
+
+    // ---- RedirectGuard (application interceptor: checks before connecting) -----------------------
+
+    private fun response(request: Request, code: Int, location: String? = null): Response =
+        Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(code)
+            .message("x")
+            .apply { location?.let { header("Location", it) } }
+            .body("".toResponseBody())
+            .build()
+
+    /** A chain whose proceed() answers each URL from [answers] (code, Location) and records calls. */
+    private fun redirectChain(start: String, answers: Map<String, Pair<Int, String?>>, seen: MutableList<String>): Interceptor.Chain {
+        val first = Request.Builder().url(start).build()
+        return mockk {
+            every { request() } returns first
+            every { proceed(any()) } answers {
+                val req = firstArg<Request>()
+                seen += req.url.toString()
+                val (code, loc) = answers[req.url.toString()] ?: (200 to null)
+                response(req, code, loc)
+            }
+        }
+    }
+
+    @Test
+    fun `blocked IP literals are refused before any connection`() {
+        listOf("http://127.0.0.1:8080/", "http://10.0.0.1/", "http://[2002:c0a8:101::1]/", "http://169.254.169.254/latest").forEach { url ->
+            val seen = mutableListOf<String>()
+            val e = assertThrows<IOException>(url) { NetworkGuard.RedirectGuard.intercept(redirectChain(url, emptyMap(), seen)) }
+            assertThat(e.message).startsWith("Blocked:")
+            assertThat(seen).isEmpty() // proceed() — i.e. connecting — never happened
+        }
+    }
+
+    @Test
+    fun `redirect to a private address is refused before that hop connects`() {
+        val seen = mutableListOf<String>()
+        val chain = redirectChain("https://public.example/", mapOf("https://public.example/" to (302 to "http://192.168.1.1/admin")), seen)
+        val e = assertThrows<IOException> { NetworkGuard.RedirectGuard.intercept(chain) }
+        assertThat(e.message).startsWith("Blocked:")
+        assertThat(seen).containsExactly("https://public.example/")
+    }
+
+    @Test
+    fun `public redirects are followed, non-http and endless chains are not`() {
+        val seen = mutableListOf<String>()
+        val ok = NetworkGuard.RedirectGuard.intercept(
+            redirectChain("https://a.example/", mapOf("https://a.example/" to (301 to "/next")), seen),
+        )
+        assertThat(ok.code).isEqualTo(200)
+        assertThat(seen).containsExactly("https://a.example/", "https://a.example/next").inOrder()
+
+        assertThrows<IOException> {
+            NetworkGuard.RedirectGuard.intercept(redirectChain("https://a.example/", mapOf("https://a.example/" to (302 to "ftp://a.example/x")), mutableListOf()))
+        }
+        val loop = (0..NetworkGuard.MAX_REDIRECTS + 1).associate { "https://a.example/$it" to (302 to "/${it + 1}") }
+        val e = assertThrows<IOException> { NetworkGuard.RedirectGuard.intercept(redirectChain("https://a.example/0", loop, mutableListOf())) }
+        assertThat(e.message).contains("Too many redirects")
     }
 
     private fun chainFor(url: String, route: Route? = null): Interceptor.Chain {
