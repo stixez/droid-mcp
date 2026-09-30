@@ -67,6 +67,7 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 ### Shell (Shizuku / root)
 - `ShellAllowlist` entries match argv token by token, so `"am start"` no longer matches `am startservice`. Entries that start with an interpreter (`sh`, `toybox`, `su`, `app_process`, `env`, …) throw.
 - `install_apk` requires an absolute path ending in `.apk`.
+- The shell providers default to `ShellPolicy.RECOMMENDED`. `put_*_setting` refuses accessibility, notification-listener, IME, ADB and developer-option keys, and `grant_permission` refuses development permissions such as `WRITE_SECURE_SETTINGS`. Pass `ShellPolicy.PERMISSIVE` to restore the old behavior.
 - Root opens one `su` session per call. Some superuser managers log each session.
 
 ### Build

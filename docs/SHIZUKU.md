@@ -74,7 +74,7 @@ Register the tools:
 
 ```kotlin
 val mcp = DroidMcp.builder()
-    .addTools(ShizukuTools.all(context, ShellPolicy.RECOMMENDED))
+    .addTools(ShizukuTools.all(context))   // ShellPolicy.RECOMMENDED by default
     // ...
     .build()
 ```
@@ -86,7 +86,7 @@ val mcp = DroidMcp.builder()
 - `ShizukuTools.isShizukuReady()` returns `true` when the binder answers a ping and this app has been granted permission.
 - `ShizukuTools.permissionStatus(context)` returns `Granted`, or `NotGranted` with a message for one of three cases: not installed, installed but not running, or running but not granted. In the first two cases it also carries the `installOrOpenIntent` intent.
 
-If Shizuku is not ready, every shell tool returns `shell_unavailable: Shizuku`. This covers both "service not running" and "permission not granted", so use `permissionStatus()` to tell them apart. If the Shizuku service dies during a call, the call also returns `shell_unavailable`.
+If the Shizuku service isn't running, every shell tool returns `shell_unavailable`. If it's running but this app hasn't been granted permission, they return `shell_permission_denied`. If the Shizuku service dies during a call, the call also returns `shell_unavailable`.
 
 ## Shell tools
 
@@ -116,9 +116,9 @@ Error codes:
 
 | Code | Meaning |
 |---|---|
-| `shell_unavailable` | The backend is not ready, or it went away during the call |
+| `shell_unavailable` | The backend isn't running or reachable (Shizuku stopped, root not checked yet), or it went away during the call |
 | `shell_spawn_failed` | The process could not be run, or it hit the backend timeout |
-| `shell_permission_denied` | The backend refused the call at run time |
+| `shell_permission_denied` | Access isn't granted (Shizuku permission, or root on an unrooted or denied device) |
 | `denied_by_policy` | Blocked by `ShellPolicy`. Nothing was spawned. |
 | `run_shell_not_enabled` | The command does not match the `run_shell` allowlist |
 
@@ -134,7 +134,7 @@ Anyone who can reach these tools gets the backend's UID: `shell` here, `root` fo
 
 The host has these controls. The model cannot change any of them.
 
-- **`ShellPolicy`.** Pass it to `ShizukuTools.all(context, policy)`, `RootTools.all(context, policy)` or `ShellTools.all(context, backend, policy)`. It denies specific setting keys (in every namespace, case-insensitive) and specific permissions for `grant_permission` (exact match). `revoke_permission` is not affected. The default, `ShellPolicy.PERMISSIVE`, denies nothing. `ShellPolicy.RECOMMENDED` denies the keys in `RECOMMENDED_DENIED_SETTING_KEYS` and the permissions in `RECOMMENDED_DENIED_PERMISSIONS`: accessibility, notification-listener, IME, ADB, developer-options and package-verifier settings, plus `WRITE_SECURE_SETTINGS`, `READ_LOGS`, `DUMP`, `PACKAGE_USAGE_STATS`, `INTERACT_ACROSS_USERS`, `SET_PROCESS_LIMIT` and `CHANGE_CONFIGURATION`. The policy does not cover the package-manager tools.
+- **`ShellPolicy`.** Pass it to `ShizukuTools.all(context, policy)`, `RootTools.all(context, policy)` or `ShellTools.all(context, backend, policy)`. It denies specific setting keys (in every namespace, case-insensitive) and specific permissions for `grant_permission` (exact match). `revoke_permission` is not affected. The default, `ShellPolicy.RECOMMENDED`, denies the keys in `RECOMMENDED_DENIED_SETTING_KEYS` and the permissions in `RECOMMENDED_DENIED_PERMISSIONS`: accessibility, notification-listener, IME, ADB, developer-options and package-verifier settings, plus `WRITE_SECURE_SETTINGS`, `READ_LOGS`, `DUMP`, `PACKAGE_USAGE_STATS`, `INTERACT_ACROSS_USERS`, `SET_PROCESS_LIMIT` and `CHANGE_CONFIGURATION`. Pass `ShellPolicy.PERMISSIVE` to deny nothing. The policy does not cover the package-manager tools.
 - **Register less.** Filter the list from `all()` by name, gate tools at runtime with `DroidMcp.setToolEnabled` / `setDisabledTools`, or serve over HTTP with `readOnly = true`.
 - **`run_shell` allowlist.** `run_shell` refuses every command until the host calls `ShellAllowlist.set(setOf(...))`. The allowlist is process-global.
   - Entries match the request's argv token by token, as a prefix. `"pm list"` matches `pm list packages`, but not `pmx` or `pm listx`.

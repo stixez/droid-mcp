@@ -5,13 +5,14 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.hardware.display.DisplayManager
 import android.media.Image
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.DisplayMetrics
-import android.view.WindowManager
+import android.view.Display
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -68,10 +69,13 @@ class CaptureScreenTool(private val context: Context) : McpTool {
         }
         val quality = (params["quality"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 90
 
-        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        // DisplayManager works from any Context; WindowManager.defaultDisplay from the
+        // application context trips StrictMode's IncorrectContextUseViolation on API 30+.
+        val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
+            ?: return ToolResult.error("Default display not available")
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
-        windowManager.defaultDisplay.getRealMetrics(metrics)
+        display.getRealMetrics(metrics)
 
         return try {
             val capture = MediaProjectionHolder.captureFor(metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)

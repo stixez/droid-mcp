@@ -23,6 +23,15 @@ interface ShellBackend {
     fun isAvailable(): Boolean
 
     /**
+     * Why the backend can't run commands right now, or null when it can. Lets tools
+     * tell "not running / not checked" ([ShellException.NotAvailable] →
+     * `shell_unavailable`) apart from "access denied" ([ShellException.PermissionDenied]
+     * → `shell_permission_denied`). The default only knows [isAvailable].
+     */
+    fun availabilityProblem(): ShellException? =
+        if (isAvailable()) null else ShellException.NotAvailable(name)
+
+    /**
      * Run [command] with [args] as a shell process. Returns stdout/stderr/exit.
      * Implementations should NOT throw on non-zero exit codes — surface them
      * via [ShellResult.exitCode] so tools can decide whether that's an error.

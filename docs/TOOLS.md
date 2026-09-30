@@ -453,7 +453,7 @@ Needs `SYSTEM_ALERT_WINDOW` ("Display over other apps"). Uses `TYPE_APPLICATION_
 |------|-------------|------------|
 | `run_shell` | Run a command. Refused unless the host allowlisted it with `ShellAllowlist.set(...)`. | `command` (required), `args` (array; argv form, no shell splitting), `max_stdout_bytes` (1024-65536, default 8192; applies to stderr too) |
 
-Allowlist entries match argv token by token. Entries that start with an interpreter or exec wrapper (`sh`, `su`, `toybox`, `env`, …) throw. In string form, `command` is split on whitespace, so use `args` for anything with spaces or quotes. `ShizukuTools.all` and `RootTools.all` accept a `ShellPolicy`. `ShellPolicy.RECOMMENDED` denies sensitive setting keys and permission grants. The default is `PERMISSIVE`.
+Allowlist entries match argv token by token. Entries that start with an interpreter or exec wrapper (`sh`, `su`, `toybox`, `env`, …) throw. In string form, `command` is split on whitespace, so use `args` for anything with spaces or quotes. `ShizukuTools.all` and `RootTools.all` accept a `ShellPolicy`. The default, `ShellPolicy.RECOMMENDED`, denies sensitive setting keys and permission grants; `PERMISSIVE` denies nothing.
 
 Needs Shizuku running and the host granted its permission. See [SHIZUKU.md](SHIZUKU.md).
 

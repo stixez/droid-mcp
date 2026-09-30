@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
  */
 class GrantPermissionTool(
     private val shell: ShellBackend,
-    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+    private val policy: ShellPolicy = ShellPolicy.RECOMMENDED,
 ) : McpTool {
     override val name = "grant_permission"
     override val description = "Grant a runtime permission to an app via `pm grant`, bypassing the user prompt. Idempotent. Permission must be one the app declared in its manifest."

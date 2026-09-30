@@ -7,17 +7,16 @@ import io.droidmcp.core.ToolResult
  * [ShellTools.all] (and the `ShizukuTools` / `RootTools` providers); the LLM
  * cannot change it.
  *
- * The default ([PERMISSIVE]) denies nothing — identical to pre-0.10 behaviour.
  * The dedicated tools are powerful even without `run_shell`: `put_secure_setting`
  * can enable an accessibility service or notification listener, switch the
  * default IME or turn on ADB; `grant_permission` can grant development
- * permissions such as `WRITE_SECURE_SETTINGS`. Hosts exposing these tools to a
- * model they don't fully trust should deny at least the keys in
- * [RECOMMENDED_DENIED_SETTING_KEYS] and the permissions in
- * [RECOMMENDED_DENIED_PERMISSIONS]:
+ * permissions such as `WRITE_SECURE_SETTINGS`. So the default everywhere is
+ * [RECOMMENDED], which denies the keys in [RECOMMENDED_DENIED_SETTING_KEYS] and
+ * the permissions in [RECOMMENDED_DENIED_PERMISSIONS]. A host that really needs
+ * those writes opts out explicitly:
  *
  * ```kotlin
- * ShizukuTools.all(context, ShellPolicy.RECOMMENDED)
+ * ShizukuTools.all(context, ShellPolicy.PERMISSIVE)
  * ```
  *
  * Denied calls return a `denied_by_policy` error without spawning anything.
@@ -40,7 +39,7 @@ data class ShellPolicy(
     fun isPermissionDenied(permission: String): Boolean = permission in deniedPermissions
 
     companion object {
-        /** Denies nothing — the default. */
+        /** Denies nothing. Opt-in only; the default is [RECOMMENDED]. */
         val PERMISSIVE = ShellPolicy()
 
         /**

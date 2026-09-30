@@ -165,7 +165,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 90 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Several tool modules (accessibility, ime, notification-*, shell-core, root, tls) also have JVM unit tests: `./gradlew testDebugUnitTest`
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 93 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Several tool modules (accessibility, ime, notification-*, shell-core, root, tls) also have JVM unit tests: `./gradlew testDebugUnitTest`
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp`
@@ -187,7 +187,7 @@ object MyTools {
 - Settings: `set_brightness` registers only when `Settings.System.canWrite()`; `toggle_wifi` only with `CHANGE_WIFI_STATE`; `get_settings` and `set_volume` always register
 - `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.; `send_intent`/`open_deep_link` data URIs limited to http(s), geo, tel, mailto, sms(to), mms(to), market
 - `fetch_webpage`/`web_search` block private, loopback and link-local addresses (SSRF) unless `allowPrivateNetwork = true`
-- `run_shell` allowlist matches argv token-by-token and rejects interpreter entries; optional `ShellPolicy` denies sensitive setting keys/permissions
+- `run_shell` allowlist matches argv token-by-token and rejects interpreter entries; `ShellPolicy.RECOMMENDED` (the default) denies sensitive setting keys/permissions; `PERMISSIVE` is opt-in
 - `get_text_around_cursor` refuses password fields
 - `set_wallpaper` validates file path against external storage root (same sandboxing as file tools)
 - `set_ringtone` only accepts `content://` URIs — rejects `file://` and other schemes

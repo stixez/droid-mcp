@@ -25,13 +25,13 @@ RootTools.requestAccess { granted ->
 }
 
 val mcp = DroidMcp.builder()
-    .addTools(RootTools.all(context, ShellPolicy.RECOMMENDED))
+    .addTools(RootTools.all(context))   // ShellPolicy.RECOMMENDED by default
     // ...
     .build()
 ```
 
 - `requestAccess` calls `Shell.getShell { }` without blocking, which makes the superuser manager show its prompt. The callback receives `true` when the resulting shell is a root shell. You can call it more than once.
-- Until `requestAccess` has run, libsu has not checked for root. In that state `isRootAvailable()` is `false` and every tool returns `shell_unavailable: Root (libsu)`.
+- Until `requestAccess` has run, libsu has not checked for root. In that state `isRootAvailable()` is `false` and every tool returns `shell_unavailable`.
 - The sample app wires this to the **Grant Access** chip on the "Root" category and re-runs `MainViewModel.initialize()` when root is granted.
 
 **Leave libsu's default builder alone.** `requestAccess` uses libsu's default `Shell.Builder`. If your host calls `Shell.setDefaultBuilder(...)` with non-root flags first, the prompt never appears and the tools stay unavailable.
@@ -41,7 +41,7 @@ val mcp = DroidMcp.builder()
 - `RootTools.isRootAvailable()` returns `true` only when `Shell.isAppGrantedRoot() == true`.
 - `RootTools.permissionStatus(context)` returns `Granted`, or `NotGranted` for one of two cases: "not checked yet" (`requestAccess` was never called) or "denied" (the grant can be changed in the superuser manager).
 
-When root is not available, whether because the device isn't rooted, the prompt was denied, or `requestAccess` was never called, every tool returns `shell_unavailable: Root (libsu)`.
+If `requestAccess` was never called, tools return `shell_unavailable`. If the device isn't rooted or the prompt was denied, they return `shell_permission_denied`.
 
 ## Root backend limits
 
@@ -88,4 +88,4 @@ val mcp = DroidMcp.builder()
     .build()
 ```
 
-The sample app does this differently. It always registers `ShizukuTools.all(context)`, then registers `RootTools.all(context)` too if root is already granted. Because the last registration wins, the shell tools use root whenever root is available.
+The sample app does the same with the providers: `RootTools.all(context)` when root is already granted, otherwise `ShizukuTools.all(context)`.

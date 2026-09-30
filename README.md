@@ -318,7 +318,7 @@ Background use: Android 10+ blocks activity launches from the background, so too
 | **Bounded execution** | Tool calls always run on `Dispatchers.IO` with a per-call timeout (`toolTimeout()`, default 5 min); a cancelled request cancels its tool. |
 | **SSRF guard** | `fetch_webpage` / `web_search` refuse private, loopback and link-local addresses (re-checked on every redirect) unless `allowPrivateNetwork = true`. |
 | **Intent allowlists** | `send_intent` accepts a safe action list; `send_intent` / `open_deep_link` data URIs are limited to http(s), geo, tel, mailto, sms/mms, market. |
-| **Read-only mode** | `enableHttpServer(readOnly = true)` filters destructive tools from `tools/list` and rejects `tools/call` for non-read-only tools. |
+| **Read-only mode** | `enableHttpServer(readOnly = true)` lists and accepts only tools that don't change anything. It still allows privacy-sensitive reads (SMS, contacts, screenshots); turn those off one by one with `setToolEnabled`. |
 | **Tool annotations** | Tools advertise MCP `readOnlyHint` / `destructiveHint` / `idempotentHint` so clients can decide what to expose. |
 | **No telemetry** | droid-mcp's own code makes no analytics or phone-home calls; `web` tools go online only when called. Google ML Kit (used by `mlkit` and `qr`) sends usage metrics to Google under its own terms. |
 

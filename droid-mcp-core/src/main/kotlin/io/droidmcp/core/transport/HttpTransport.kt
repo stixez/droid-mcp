@@ -47,7 +47,9 @@ import java.util.UUID
  *
  * @param registry Tools to serve.
  * @param port Plaintext port; overridden by [TlsConfig.httpsPort] when [tls] is set.
- * @param bearerToken Fixed primary token; a random one is generated when null and [requireAuth] is true.
+ * @param bearerToken Fixed primary token (at least [MIN_TOKEN_LENGTH] characters); a random one is
+ *   generated when null and [requireAuth] is true.
+ * @throws IllegalArgumentException if [bearerToken] is shorter than [MIN_TOKEN_LENGTH].
  * @param requireAuth Require a `Bearer` token on every request. When false the server is open.
  * @param readOnly Serve only read-only tools.
  * @param context Android context for mDNS registration; mDNS is skipped when null.
@@ -68,6 +70,12 @@ class HttpTransport(
     private val tls: TlsConfig? = null,
     private val allowedOrigins: Set<String> = emptySet(),
 ) {
+    init {
+        require(bearerToken == null || bearerToken.length >= MIN_TOKEN_LENGTH) {
+            "bearerToken must be at least $MIN_TOKEN_LENGTH characters"
+        }
+    }
+
     /**
      * Bearer-token authority. `null` when [requireAuth] is false (open server).
      * Seeded with the caller-supplied token if any, otherwise a random primary.
@@ -192,7 +200,7 @@ class HttpTransport(
                 }
 
                 delete {
-                    if (!checkOrigin(call)) return@delete
+                    if (!checkOrigin(call) || !checkProtocolVersion(call)) return@delete
                     val clientLabel = authenticate(call) ?: return@delete
 
                     val sessionId = call.request.header(SESSION_HEADER)

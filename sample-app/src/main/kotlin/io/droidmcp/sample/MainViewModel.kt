@@ -176,16 +176,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(NotificationWatchTools.all(context))
         tools.addAll(AccessibilityTools.all(context))
         tools.addAll(ImeTools.all(context))
-        tools.addAll(ShizukuTools.all(context))
-        // Root tools share the same names as Shizuku tools and would overwrite.
-        // The sample app demonstrates registering both so users can see the
-        // two permission flows; in practice, a host should pick one OR write
-        // a fallback wrapper.
-        if (RootTools.isRootAvailable()) {
-            // Last write wins — when root is granted, route the shell tools
-            // through libsu instead of Shizuku.
-            tools.addAll(RootTools.all(context))
-        }
+        // Shizuku and root expose the same 17 tool names, so register exactly one set:
+        // root when it's granted, otherwise Shizuku (which reports shell_unavailable /
+        // shell_permission_denied until it's set up).
+        tools.addAll(if (RootTools.isRootAvailable()) RootTools.all(context) else ShizukuTools.all(context))
         // OverlayTools.all is intentionally empty — overlay is host-API only.
         tools.addAll(ScreenshotTools.all(context))
         tools.addAll(DndTools.all(context))

@@ -52,7 +52,7 @@ private suspend fun putSetting(
  */
 class PutSecureSettingTool(
     private val shell: ShellBackend,
-    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+    private val policy: ShellPolicy = ShellPolicy.RECOMMENDED,
 ) : McpTool {
     override val name = "put_secure_setting"
     override val description = "Write a Settings.Secure value via `settings put secure`. Examples: location-mode, accessibility-enabled toggles. Most apps cannot write these without privileged shell access. Idempotent."
@@ -78,7 +78,7 @@ class PutSecureSettingTool(
  */
 class PutGlobalSettingTool(
     private val shell: ShellBackend,
-    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+    private val policy: ShellPolicy = ShellPolicy.RECOMMENDED,
 ) : McpTool {
     override val name = "put_global_setting"
     override val description = "Write a Settings.Global value via `settings put global`. Examples: airplane_mode_on, wifi_on. Idempotent."
@@ -104,7 +104,7 @@ class PutGlobalSettingTool(
  */
 class PutSystemSettingTool(
     private val shell: ShellBackend,
-    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+    private val policy: ShellPolicy = ShellPolicy.RECOMMENDED,
 ) : McpTool {
     override val name = "put_system_setting"
     override val description = "Write a Settings.System value via `settings put system`. Examples: screen_brightness, screen_off_timeout. Idempotent."

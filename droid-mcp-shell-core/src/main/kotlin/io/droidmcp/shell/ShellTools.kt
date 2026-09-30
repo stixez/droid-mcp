@@ -18,12 +18,12 @@ object ShellTools {
      * The full shell-tool set (17 tools), wired against [shell].
      *
      * @param policy optional host denylist applied to the settings-write and
-     *   `grant_permission` tools. Defaults to [ShellPolicy.PERMISSIVE] (denies nothing).
+     *   `grant_permission` tools. Defaults to [ShellPolicy.RECOMMENDED]; pass [ShellPolicy.PERMISSIVE] to deny nothing.
      */
     fun all(
         context: Context,
         shell: ShellBackend,
-        policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+        policy: ShellPolicy = ShellPolicy.RECOMMENDED,
     ): List<McpTool> = listOf(
         // PM
         InstallApkTool(shell),

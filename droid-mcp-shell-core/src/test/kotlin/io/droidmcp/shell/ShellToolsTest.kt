@@ -27,6 +27,17 @@ class ShellToolsTest {
     }
 
     @Test
+    fun `shell tools error with shell_permission_denied when access was refused`() = runTest {
+        val shell = object : ShellBackend by FakeShellBackend() {
+            override fun isAvailable() = false
+            override fun availabilityProblem() = ShellException.PermissionDenied("not granted")
+        }
+        val result = ForceStopAppTool(shell).execute(mapOf("package_name" to "com.x"))
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).contains("shell_permission_denied")
+    }
+
+    @Test
     fun `force_stop_app validates package name`() = runTest {
         val shell = FakeShellBackend()
         val result = ForceStopAppTool(shell).execute(mapOf("package_name" to "not a valid pkg!"))

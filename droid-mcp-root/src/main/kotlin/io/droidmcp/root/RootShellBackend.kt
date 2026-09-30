@@ -77,6 +77,16 @@ class RootShellBackend(
 
     override fun isAvailable(): Boolean = Shell.isAppGrantedRoot() == true
 
+    override fun availabilityProblem(): ShellException? = when (Shell.isAppGrantedRoot()) {
+        null -> ShellException.NotAvailable(
+            "Root access not yet checked. Call RootTools.requestAccess() from an Activity to trigger the su prompt."
+        )
+        false -> ShellException.PermissionDenied(
+            "Root not granted: the device isn't rooted, or the superuser manager denied this app."
+        )
+        true -> null
+    }
+
     override suspend fun exec(command: String, args: List<String>): ShellResult = withContext(Dispatchers.IO) {
         ensureRootGranted()
         val run = runInDedicatedShell(buildCommandLine(command, args) + " </dev/null")
@@ -232,15 +242,7 @@ class RootShellBackend(
     }
 
     private fun ensureRootGranted() {
-        when (Shell.isAppGrantedRoot()) {
-            null -> throw ShellException.NotAvailable(
-                "Root access not yet checked. Call RootTools.requestAccess() from an Activity to trigger the su prompt."
-            )
-            false -> throw ShellException.PermissionDenied(
-                "Root access denied by the superuser manager (Magisk / KernelSU / SuperSU)."
-            )
-            true -> Unit
-        }
+        availabilityProblem()?.let { throw it }
     }
 
     private fun buildCommandLine(command: String, args: List<String>): String = buildString {

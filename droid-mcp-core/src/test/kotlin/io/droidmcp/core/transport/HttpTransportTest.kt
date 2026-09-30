@@ -21,6 +21,7 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 /** Route-level behaviour of [HttpTransport]: auth, origin, sessions, limits. */
 class HttpTransportTest {
@@ -124,6 +125,16 @@ class HttpTransportTest {
     }
 
     @Test
+    fun `DELETE with an unsupported protocol version header is 400`() = mcpTest {
+        val response = client.delete("/mcp") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header("Mcp-Session-Id", "whatever")
+            header("MCP-Protocol-Version", "1999-01-01")
+        }
+        assertThat(response.status).isEqualTo(HttpStatusCode.BadRequest)
+    }
+
+    @Test
     fun `requests after initialize require a session`() = mcpTest {
         val response = client.rpc("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""")
         assertThat(response.status).isEqualTo(HttpStatusCode.BadRequest)
@@ -181,5 +192,12 @@ class HttpTransportTest {
     fun `GET mcp is 405`() = mcpTest {
         val response = client.get("/mcp") { header(HttpHeaders.Authorization, "Bearer $token") }
         assertThat(response.status).isEqualTo(HttpStatusCode.MethodNotAllowed)
+    }
+
+    @Test
+    fun `constructor rejects a short bearer token`() {
+        assertThrows<IllegalArgumentException> {
+            HttpTransport(registry = ToolRegistry(), bearerToken = "short")
+        }
     }
 }

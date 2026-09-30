@@ -26,10 +26,10 @@ object ShizukuTools {
      * The shell-core tool set wired against the Shizuku backend.
      *
      * @param policy optional host denylist for settings keys / grantable permissions
-     *   (see [ShellPolicy]). Defaults to [ShellPolicy.PERMISSIVE]; pass
-     *   [ShellPolicy.RECOMMENDED] unless the model is fully trusted.
+     *   (see [ShellPolicy]). Defaults to [ShellPolicy.RECOMMENDED]; pass
+     *   [ShellPolicy.PERMISSIVE] only if the model is fully trusted.
      */
-    fun all(context: Context, policy: ShellPolicy = ShellPolicy.PERMISSIVE): List<McpTool> =
+    fun all(context: Context, policy: ShellPolicy = ShellPolicy.RECOMMENDED): List<McpTool> =
         ShellTools.all(context, backend, policy)
 
     /**

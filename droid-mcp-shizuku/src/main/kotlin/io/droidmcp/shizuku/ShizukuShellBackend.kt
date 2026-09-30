@@ -66,10 +66,16 @@ class ShizukuShellBackend(
 
     override val name: String = "Shizuku"
 
-    override fun isAvailable(): Boolean = runCatching {
-        Shizuku.pingBinder() &&
-            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-    }.getOrDefault(false)
+    override fun isAvailable(): Boolean = availabilityProblem() == null
+
+    override fun availabilityProblem(): ShellException? = runCatching {
+        when {
+            !Shizuku.pingBinder() -> ShellException.NotAvailable("Shizuku is not running")
+            Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED ->
+                ShellException.PermissionDenied("Shizuku permission not granted to this app")
+            else -> null
+        }
+    }.getOrElse { ShellException.NotAvailable("Shizuku is not reachable: ${it.message}") }
 
     override suspend fun exec(command: String, args: List<String>): ShellResult =
         execCapped(command, args, stdoutCap = maxOutputBytes)
