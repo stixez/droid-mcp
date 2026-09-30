@@ -7,6 +7,7 @@ import android.os.Build
 import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DROID_MCP_VERSION
 import io.droidmcp.core.ToolRegistry
+import io.droidmcp.core.protocol.McpOutbound
 import io.droidmcp.core.protocol.McpProtocolImpl
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -17,7 +18,13 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readBuffer
+import io.ktor.utils.io.writeStringUtf8
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.selects.select
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -43,7 +50,9 @@ import java.util.UUID
  * - every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client
  *   (400 when missing, 404 when unknown or owned by another client).
  *
- * The server never pushes server-initiated messages, so `GET /mcp` answers 405 as the spec allows.
+ * A `tools/call` that reports progress or asks for elicitation answers with an SSE stream (when the
+ * client accepts `text/event-stream`); every other reply is plain JSON. There is no standalone
+ * server stream, so `GET /mcp` answers 405 as the spec allows.
  *
  * @param registry Tools to serve.
  * @param port Plaintext port; overridden by [TlsConfig.httpsPort] when [tls] is set.
@@ -177,22 +186,23 @@ class HttpTransport(
                         }
                     }
 
-                    val response = protocol.handleMessage(body, clientLabel)
+                    // Minted up front so capabilities declared at initialize attach to it; only
+                    // registered (and returned) if initialize succeeds.
+                    val effectiveSession = if (isInitialize) UUID.randomUUID().toString() else sessionId
+                    val canStream = method == "tools/call" && acceptsEventStream(call)
 
-                    if (isInitialize && response.isNotEmpty() && isSuccessResponse(response)) {
-                        val newSessionId = UUID.randomUUID().toString()
-                        sessions[newSessionId] = clientLabel
-                        call.response.header(SESSION_HEADER, newSessionId)
-                    }
-
-                    if (response.isNotEmpty()) {
-                        call.respondText(response, ContentType.Application.Json)
-                    } else {
-                        call.respond(HttpStatusCode.Accepted)
+                    respondToMessage(call, canStream, afterResult = { response ->
+                        if (isInitialize && effectiveSession != null && response.isNotEmpty() && isSuccessResponse(response)) {
+                            sessions[effectiveSession] = clientLabel
+                            call.response.header(SESSION_HEADER, effectiveSession)
+                        }
+                    }) { outbound ->
+                        protocol.handleMessage(body, clientLabel, effectiveSession, outbound)
                     }
                 }
 
-                // No server-initiated messages are ever sent, so there is no SSE stream to open.
+                // Server messages only ever travel on a tools/call's own response stream, so there is
+                // no standalone GET stream to open.
                 get {
                     if (!checkOrigin(call)) return@get
                     call.response.header(HttpHeaders.Allow, "POST, DELETE")
@@ -207,6 +217,7 @@ class HttpTransport(
                     val removed = sessionId != null && synchronized(sessions) {
                         if (sessions[sessionId] == clientLabel) sessions.remove(sessionId) != null else false
                     }
+                    if (removed) protocol.endSession(sessionId)
                     call.respond(if (removed) HttpStatusCode.OK else HttpStatusCode.NotFound)
                 }
             }
@@ -232,6 +243,80 @@ class HttpTransport(
     }
 
     /** 400 when an `MCP-Protocol-Version` header names a revision this server doesn't speak. */
+    /**
+     * Runs [handle] and answers [call]. When [canStream], messages the protocol sends while the
+     * call runs (progress, elicitation requests) switch the reply to an SSE stream that carries
+     * them followed by the final response; a call that sends nothing still gets plain JSON, so
+     * clients that never ask for progress see no difference. [afterResult] runs before any
+     * header is written (JSON path only).
+     */
+    private suspend fun respondToMessage(
+        call: ApplicationCall,
+        canStream: Boolean,
+        afterResult: (String) -> Unit,
+        handle: suspend (McpOutbound?) -> String,
+    ) = coroutineScope {
+        if (!canStream) {
+            val response = handle(null)
+            afterResult(response)
+            respondJson(call, response)
+            return@coroutineScope
+        }
+        val events = Channel<String>(Channel.UNLIMITED)
+        val result = async { handle(McpOutbound { events.send(it) }) }
+        // select is biased to its first clause, and a fast tool can queue events *and* finish
+        // before we look — so prefer events, and re-check the queue before settling on JSON.
+        val firstEvent = select {
+            events.onReceive { it }
+            result.onAwait { null }
+        } ?: events.tryReceive().getOrNull()
+        if (firstEvent == null) {
+            val response = result.await()
+            afterResult(response)
+            respondJson(call, response)
+            return@coroutineScope
+        }
+        call.response.header(HttpHeaders.CacheControl, "no-cache")
+        call.respondBytesWriter(ContentType.Text.EventStream) {
+            writeSseEvent(firstEvent)
+            while (true) {
+                val next = select {
+                    events.onReceive { it }
+                    result.onAwait { null }
+                }
+                if (next != null) {
+                    writeSseEvent(next)
+                    continue
+                }
+                // Drain anything sent just before the result, then close with the response.
+                while (true) writeSseEvent(events.tryReceive().getOrNull() ?: break)
+                val response = result.await()
+                if (response.isNotEmpty()) writeSseEvent(response)
+                break
+            }
+        }
+    }
+
+    private suspend fun respondJson(call: ApplicationCall, response: String) {
+        if (response.isNotEmpty()) {
+            call.respondText(response, ContentType.Application.Json)
+        } else {
+            call.respond(HttpStatusCode.Accepted)
+        }
+    }
+
+    private suspend fun ByteWriteChannel.writeSseEvent(json: String) {
+        writeStringUtf8("event: message\ndata: $json\n\n")
+        flush()
+    }
+
+    /** Streamable HTTP clients list both types in `Accept`; stream only when they allow SSE. */
+    private fun acceptsEventStream(call: ApplicationCall): Boolean =
+        call.request.header(HttpHeaders.Accept)
+            ?.split(',')
+            ?.any { it.substringBefore(';').trim().equals("text/event-stream", ignoreCase = true) }
+            ?: false
+
     private suspend fun checkProtocolVersion(call: ApplicationCall): Boolean {
         val version = call.request.header(PROTOCOL_VERSION_HEADER) ?: return true
         if (version in McpProtocolImpl.SUPPORTED_PROTOCOL_VERSIONS) return true

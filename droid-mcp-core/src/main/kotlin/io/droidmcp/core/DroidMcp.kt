@@ -34,6 +34,13 @@ class DroidMcp private constructor(
     suspend fun callTool(name: String, params: Map<String, Any>): ToolResult =
         inProcessTransport.callTool(name, params)
 
+    /** Like [callTool], delivering the tool's [reportProgress] updates to [onProgress]. */
+    suspend fun callTool(
+        name: String,
+        params: Map<String, Any>,
+        onProgress: suspend (ProgressUpdate) -> Unit,
+    ): ToolResult = inProcessTransport.callTool(name, params, onProgress)
+
     /** Start the HTTP server. Throws if the server was not enabled via [Builder.enableHttpServer]. */
     fun startServer() {
         httpTransport?.start() ?: error("HTTP server not enabled. Use enableHttpServer() in builder.")

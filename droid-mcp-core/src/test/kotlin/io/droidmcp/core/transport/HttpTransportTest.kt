@@ -20,6 +20,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.droidmcp.core.reportProgress
+import io.droidmcp.core.elicit
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -35,8 +40,32 @@ class HttpTransportTest {
         override suspend fun execute(params: Map<String, Any>) = ToolResult.success(mapOf("echo" to params["message"]))
     }
 
+    private val progressTool = object : McpTool {
+        override val name = "slow"
+        override val description = "reports progress"
+        override val parameters = emptyList<ToolParameter>()
+        override suspend fun execute(params: Map<String, Any>): ToolResult {
+            reportProgress(1.0, 2.0, "half")
+            reportProgress(2.0, 2.0)
+            return ToolResult.success(mapOf("done" to true))
+        }
+    }
+
+    private val askTool = object : McpTool {
+        override val name = "ask"
+        override val description = "asks the user"
+        override val parameters = emptyList<ToolParameter>()
+        override suspend fun execute(params: Map<String, Any>): ToolResult {
+            val answer = elicit(
+                "Pick a colour",
+                mapOf("type" to "object", "properties" to mapOf("colour" to mapOf("type" to "string"))),
+            ) ?: return ToolResult.success(mapOf("action" to "unsupported"))
+            return ToolResult.success(mapOf("action" to answer.action.name, "colour" to answer.content["colour"]))
+        }
+    }
+
     private fun transport(allowedOrigins: Set<String> = emptySet()) = HttpTransport(
-        registry = ToolRegistry().apply { register(echoTool) },
+        registry = ToolRegistry().apply { register(echoTool); register(progressTool); register(askTool) },
         bearerToken = token,
         allowedOrigins = allowedOrigins,
     )
@@ -199,5 +228,55 @@ class HttpTransportTest {
         assertThrows<IllegalArgumentException> {
             HttpTransport(registry = ToolRegistry(), bearerToken = "short")
         }
+    }
+
+    private val sseAccept: io.ktor.client.request.HttpRequestBuilder.() -> Unit =
+        { header(HttpHeaders.Accept, "application/json, text/event-stream") }
+
+    @Test
+    fun `progress upgrades a tools-call reply to an SSE stream ending with the result`() = mcpTest {
+        val session = client.initialize()
+        val response = client.rpc(
+            """{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"slow","_meta":{"progressToken":"p1"}}}""",
+            session = session,
+            configure = sseAccept,
+        )
+        assertThat(response.contentType()?.withoutParameters()).isEqualTo(ContentType.Text.EventStream)
+        val events = response.bodyAsText().lines().filter { it.startsWith("data: ") }.map { it.removePrefix("data: ") }
+        assertThat(events).hasSize(3)
+        assertThat(events[0]).contains("notifications/progress")
+        assertThat(events[0]).contains("\"progressToken\":\"p1\"")
+        assertThat(events[0]).contains("\"message\":\"half\"")
+        assertThat(events[2]).contains("\"id\":7")
+        assertThat(events[2]).contains("done")
+    }
+
+    @Test
+    fun `without SSE in Accept or without a progress token the reply stays plain JSON`() = mcpTest {
+        val session = client.initialize()
+        val noAccept = client.rpc(
+            """{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"slow","_meta":{"progressToken":"p1"}}}""",
+            session = session,
+        )
+        assertThat(noAccept.contentType()?.withoutParameters()).isEqualTo(ContentType.Application.Json)
+        assertThat(noAccept.bodyAsText()).doesNotContain("notifications/progress")
+
+        val noToken = client.rpc(
+            """{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"slow"}}""",
+            session = session,
+            configure = sseAccept,
+        )
+        assertThat(noToken.contentType()?.withoutParameters()).isEqualTo(ContentType.Application.Json)
+    }
+
+    @Test
+    fun `elicit returns null for a client without the capability`() = mcpTest {
+        val session = client.initialize()
+        val response = client.rpc(
+            """{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"ask"}}""",
+            session = session,
+            configure = sseAccept,
+        )
+        assertThat(response.bodyAsText()).contains("unsupported")
     }
 }

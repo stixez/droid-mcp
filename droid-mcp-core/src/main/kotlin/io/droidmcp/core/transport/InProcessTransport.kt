@@ -1,9 +1,12 @@
 package io.droidmcp.core.transport
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ProgressSink
+import io.droidmcp.core.ProgressUpdate
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.protocol.ToolSchemas
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
 /**
@@ -39,4 +42,11 @@ class InProcessTransport(private val registry: ToolRegistry) {
     /** Invoke a tool; honours runtime gating and runs on `Dispatchers.IO` (see [ToolRegistry.executeTool]). */
     suspend fun callTool(name: String, params: Map<String, Any>): ToolResult =
         registry.executeTool(name, params)
+
+    /** Like [callTool], delivering the tool's [reportProgress][io.droidmcp.core.reportProgress] updates to [onProgress]. */
+    suspend fun callTool(
+        name: String,
+        params: Map<String, Any>,
+        onProgress: suspend (ProgressUpdate) -> Unit,
+    ): ToolResult = withContext(ProgressSink(onProgress)) { registry.executeTool(name, params) }
 }
