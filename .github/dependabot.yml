@@ -13,6 +13,18 @@ updates:
       # All minor/patch bumps land in one weekly PR; each major bump gets its own PR.
       gradle-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # These need compileSdk 37 in every app that uses droid-mcp; the SDK stays on 36 so
+      # consumers aren't forced up. Remove once the project moves to compileSdk 37.
+      - dependency-name: "androidx.core:*"
+        versions: [">= 1.19"]
+      - dependency-name: "com.squareup.okhttp3:*"
+        versions: [">= 5"]
+      # JUnit 6 needs Java 17 bytecode; modules target Java 11 so consumers don't have to.
+      - dependency-name: "org.junit.jupiter:*"
+        versions: [">= 6"]
+      - dependency-name: "org.junit.platform:*"
+        versions: [">= 6"]
 
   - package-ecosystem: github-actions
     directory: /
