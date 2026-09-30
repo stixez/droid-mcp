@@ -35,6 +35,7 @@ fun MainScreen(
     onRequestSpecialPermission: (String) -> Unit = {},
     onToggleReadOnly: (Boolean) -> Unit = {},
     onToggleTls: (Boolean) -> Unit = {},
+    onToggleStrictShellPolicy: (Boolean) -> Unit = {},
     onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
     onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
     onClearAuditLog: () -> Unit = {},
@@ -154,6 +155,33 @@ fun MainScreen(
                             if (state.serverRunning) "Stop the server to change"
                             else if (state.tlsEnabled) "Self-signed, served on :8443 — pin the fingerprint"
                             else "Plaintext HTTP on :8080",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // Shell policy toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.strictShellPolicy,
+                        onCheckedChange = onToggleStrictShellPolicy,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Strict shell policy",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.strictShellPolicy) "Shizuku/root tools deny risky settings keys and grants"
+                            else "Permissive — Shizuku/root tools may write any key or grant",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -371,7 +399,11 @@ fun MainScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { page ->
             when (page) {
-                0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
+                0 -> ToolsPage(
+                    onCallTool = onCallTool,
+                    onRequestSpecialPermission = onRequestSpecialPermission,
+                    lastWatchId = state.lastWatchId,
+                )
                 1 -> GatingPage(
                     tools = state.tools,
                     disabledTools = state.disabledTools,

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.*
@@ -16,6 +17,8 @@ private data class ToolButton(
     val label: String,
     val tool: String,
     val params: Map<String, Any> = emptyMap(),
+    /** False renders the chip disabled — e.g. poll/unwatch before any watch exists. */
+    val enabled: Boolean = true,
 )
 
 private data class ToolCategory(
@@ -29,7 +32,18 @@ private data class ToolCategory(
 fun ToolsPage(
     onCallTool: (String, Map<String, Any>) -> Unit,
     onRequestSpecialPermission: (String) -> Unit = {},
+    /** watch_id from the last successful watch_notifications call; null until one is made. */
+    lastWatchId: String? = null,
 ) {
+    val ownPackage = LocalContext.current.packageName
+    // DUMP is in ShellPolicy.RECOMMENDED_DENIED_PERMISSIONS: strict policy answers
+    // denied_by_policy without spawning pm; permissive lets pm run, which then fails
+    // harmlessly because this app never requests DUMP.
+    val policyProbe = ToolButton(
+        "Grant DUMP (policy probe)",
+        "grant_permission",
+        mapOf("package_name" to ownPackage, "permission" to "android.permission.DUMP"),
+    )
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
     val categories = listOf(
@@ -115,6 +129,9 @@ fun ToolsPage(
         ToolCategory("Vibration", listOf(
             ToolButton("Vibrate", "vibrate", mapOf("duration_ms" to 200)),
             ToolButton("Pattern", "vibrate_pattern", mapOf("timings" to listOf(0L, 100L, 100L, 200L))),
+            // repeat = 0 loops until cancel_vibration (auto-stops after 60 s).
+            ToolButton("Loop", "vibrate_pattern", mapOf("timings" to listOf(0L, 300L, 300L), "repeat" to 0)),
+            ToolButton("Cancel", "cancel_vibration"),
         )),
         ToolCategory("Flashlight", listOf(
             ToolButton("On", "toggle_flashlight", mapOf("enabled" to true)),
@@ -140,7 +157,7 @@ fun ToolsPage(
         )),
         ToolCategory("Camera", listOf(
             ToolButton("Photo", "take_photo"),
-            ToolButton("Video", "capture_video", mapOf("duration" to 5)),
+            ToolButton("Video", "capture_video", mapOf("duration_sec" to 5)),
             ToolButton("Capabilities", "get_camera_capabilities"),
         )),
         ToolCategory("Audio", listOf(
@@ -175,7 +192,18 @@ fun ToolsPage(
         ToolCategory("Notification Watch", listOf(
             ToolButton("Watch WhatsApp", "watch_notifications", mapOf("package_name" to "com.whatsapp", "ttl_seconds" to 600)),
             ToolButton("List Watches", "list_notification_watches"),
-            ToolButton("Unwatch (stub)", "unwatch_notifications", mapOf("watch_id" to "stub-id")),
+            ToolButton(
+                if (lastWatchId != null) "Poll Last Watch" else "Poll (watch first)",
+                "poll_notification_watch",
+                mapOf("watch_id" to (lastWatchId ?: "")),
+                enabled = lastWatchId != null,
+            ),
+            ToolButton(
+                if (lastWatchId != null) "Unwatch Last" else "Unwatch (watch first)",
+                "unwatch_notifications",
+                mapOf("watch_id" to (lastWatchId ?: "")),
+                enabled = lastWatchId != null,
+            ),
         ), specialPermission = "notification_listener"),
         ToolCategory("Accessibility", listOf(
             ToolButton("Active Window", "get_active_window_info"),
@@ -183,7 +211,7 @@ fun ToolsPage(
             ToolButton("Home", "global_action", mapOf("action" to "home")),
             ToolButton("Back", "global_action", mapOf("action" to "back")),
             ToolButton("Recents", "global_action", mapOf("action" to "recents")),
-            ToolButton("A11y Screenshot", "take_screenshot_via_a11y", mapOf("format" to "jpeg", "quality" to 80)),
+            ToolButton("A11y Screenshot", "take_screenshot_via_a11y", mapOf("format" to "jpeg", "quality" to 80, "max_dimension" to 1080)),
             ToolButton("Tap (200,400)", "tap", mapOf("x" to 200, "y" to 400)),
             ToolButton("Find Settings", "find_and_tap", mapOf("match" to "Settings")),
             ToolButton("Scroll Down", "scroll_to_find", mapOf("match" to "About", "direction" to "down")),
@@ -202,13 +230,15 @@ fun ToolsPage(
             ToolButton("Force-stop YouTube", "force_stop_app", mapOf("package_name" to "com.google.android.youtube")),
             ToolButton("List Calc Perms", "list_app_permissions", mapOf("package_name" to "com.android.calculator2")),
             ToolButton("Put 'mock_loc' on", "put_secure_setting", mapOf("key" to "mock_location", "value" to "1")),
+            policyProbe,
         ), specialPermission = "shizuku"),
         ToolCategory("Root", listOf(
-            // Same tool names as Shizuku — host's choice of backend at registration.
-            // When root is granted the sample-app last-write-wins routes these via libsu.
+            // Same tool names as Shizuku — the ViewModel registers exactly one backend:
+            // root (libsu) when it's granted, otherwise Shizuku.
             ToolButton("Top Window", "get_top_window"),
             ToolButton("Quiet Screenshot", "capture_screen_quiet"),
             ToolButton("Force-stop YouTube", "force_stop_app", mapOf("package_name" to "com.google.android.youtube")),
+            policyProbe,
         ), specialPermission = "root"),
         ToolCategory("Screenshot", listOf(
             ToolButton("Capture", "capture_screen"),
@@ -323,6 +353,7 @@ private fun ToolCategoryCard(
                 category.tools.forEach { btn ->
                     AssistChip(
                         onClick = { onCallTool(btn.tool, btn.params) },
+                        enabled = btn.enabled,
                         label = {
                             Text(
                                 btn.label,

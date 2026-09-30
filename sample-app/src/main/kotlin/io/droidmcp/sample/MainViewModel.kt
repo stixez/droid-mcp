@@ -62,6 +62,7 @@ import io.droidmcp.overlay.OverlayTools
 import io.droidmcp.playback.PlaybackTools
 import io.droidmcp.root.RootTools
 import io.droidmcp.shizuku.ShizukuTools
+import io.droidmcp.shell.ShellPolicy
 import io.droidmcp.screenshot.ScreenshotTools
 import io.droidmcp.dnd.DndTools
 import io.droidmcp.keyguard.KeyguardTools
@@ -101,6 +102,14 @@ data class MainState(
     val tlsEnabled: Boolean = false,
     /** SHA-256 fingerprint of the self-signed cert to pin client-side; null when plaintext. */
     val tlsFingerprint: String? = null,
+    /**
+     * Shell tools (Shizuku / root) use [ShellPolicy.RECOMMENDED] when true — denying
+     * settings keys like `adb_enabled` and grants like `WRITE_SECURE_SETTINGS` — and
+     * [ShellPolicy.PERMISSIVE] when false.
+     */
+    val strictShellPolicy: Boolean = true,
+    /** watch_id from the last successful watch_notifications call, for the poll/unwatch buttons. */
+    val lastWatchId: String? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -128,7 +137,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** A rebuild requested while the server was running; applied by [stopServer]. */
+    private var reinitPending = false
+
     fun initialize() {
+        // Rebuilding swaps McpServerHolder.server, but the running service keeps the instance it
+        // started with — the UI's gating and test calls would then target a different server.
+        if (_state.value.serverRunning) {
+            reinitPending = true
+            return
+        }
         val tools = mutableListOf<McpTool>()
 
         // Always available (no permissions needed)
@@ -179,7 +197,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Shizuku and root expose the same 17 tool names, so register exactly one set:
         // root when it's granted, otherwise Shizuku (which reports shell_unavailable /
         // shell_permission_denied until it's set up).
-        tools.addAll(if (RootTools.isRootAvailable()) RootTools.all(context) else ShizukuTools.all(context))
+        // The policy is fixed per tool instance, so changing it means re-running initialize().
+        val shellPolicy = if (_state.value.strictShellPolicy) ShellPolicy.RECOMMENDED else ShellPolicy.PERMISSIVE
+        tools.addAll(
+            if (RootTools.isRootAvailable()) RootTools.all(context, shellPolicy)
+            else ShizukuTools.all(context, shellPolicy)
+        )
         // OverlayTools.all is intentionally empty — overlay is host-API only.
         tools.addAll(ScreenshotTools.all(context))
         tools.addAll(DndTools.all(context))
@@ -216,9 +239,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _state.value = _state.value.copy(
                 logs = listOf(log) + _state.value.logs,
                 loading = false,
+                lastWatchId = trackWatchId(name, params, result, _state.value.lastWatchId),
             )
         }
     }
+
+    /** Remember the newest watch_id so the Tools tab can poll/unwatch it; forget it once gone. */
+    private fun trackWatchId(name: String, params: Map<String, Any>, result: ToolResult, current: String?): String? =
+        when {
+            name == "watch_notifications" && result.isSuccess ->
+                result.data?.get("watch_id")?.toString() ?: current
+            name == "unwatch_notifications" && params["watch_id"] == current -> null
+            name == "poll_notification_watch" && !result.isSuccess &&
+                params["watch_id"] == current && result.errorMessage?.contains("watch_not_found") == true -> null
+            else -> current
+        }
 
     fun startServer() {
         // Run the server inside a foreground service so it survives screen-off /
@@ -259,6 +294,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             serverToken = null,
             pairingQr = null,
         )
+        if (reinitPending) {
+            reinitPending = false
+            initialize()
+        }
     }
 
     fun setReadOnly(value: Boolean) {
@@ -287,6 +326,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             rebuildDroidMcp()
             _state.value = _state.value.copy(tlsFingerprint = droidMcp?.tlsFingerprint)
         }
+    }
+
+    /**
+     * Switch the Shizuku/root tools between [ShellPolicy.RECOMMENDED] (strict) and
+     * [ShellPolicy.PERMISSIVE]. The policy is baked into the tool instances, so this
+     * re-runs [initialize] to rebuild the tool list and server (gating is re-applied
+     * there). Like [setTls], only allowed while the server is stopped.
+     */
+    fun setStrictShellPolicy(value: Boolean) {
+        if (_state.value.serverRunning) return
+        _state.value = _state.value.copy(strictShellPolicy = value)
+        initialize()
     }
 
     /**
