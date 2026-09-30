@@ -1,5 +1,7 @@
 import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.dsl.Lint
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.ScopedArtifacts
 import javax.inject.Inject
@@ -16,6 +18,12 @@ plugins {
 }
 
 subprojects {
+    plugins.withId("com.android.application") {
+        extensions.configure<ApplicationExtension> {
+            lint { droidMcpLintDefaults(project) }
+        }
+    }
+
     plugins.withId("com.android.library") {
         apply(plugin = "maven-publish")
         apply(plugin = "org.jetbrains.dokka")
@@ -31,6 +39,7 @@ subprojects {
                     withSourcesJar()
                 }
             }
+            lint { droidMcpLintDefaults(project) }
         }
 
         // ---- Public API guard: apiDump / apiCheck (see docs/VERSIONING.md) ----
@@ -105,6 +114,32 @@ dependencies {
     subprojects
         .filter { it.name != "sample-app" && it.name != "droid-mcp-all" && it.name != "abi-dump" }
         .forEach { dokka(it) }
+}
+
+/**
+ * Shared Android lint policy for every module (libraries + sample-app). Lint is a blocking CI
+ * gate: any issue not recorded in the module's `lint-baseline.xml` fails the build. After fixing
+ * baselined issues (or when a new one is intentionally accepted), regenerate with
+ * `./gradlew updateLintBaseline` and commit the diff.
+ */
+fun Lint.droidMcpLintDefaults(project: Project) {
+    baseline = project.file("lint-baseline.xml")
+    abortOnError = true
+    warningsAsErrors = false
+    // Each module lints only its own sources; sample-app must not re-lint all 54 libraries.
+    checkDependencies = false
+    htmlReport = true
+    xmlReport = true
+    // Version-freshness checks depend on what upstream has published *today*, so they'd break a
+    // green build whenever a new release ships. Dependabot (.github/dependabot.yml) owns this.
+    disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
+    if (project.path == ":droid-mcp-core") {
+        // Lint's androidx ExperimentalDetector crashes on McpProtocolImpl.kt under K2 UAST
+        // ("Unexpected owner function: null", AGP 9.4.1 / Kotlin 2.4). Core uses no androidx
+        // @RequiresOptIn APIs (the Kotlin compiler still enforces kotlin.RequiresOptIn), so the
+        // two lint-only checks are safe to drop here. Re-enable when lint is fixed.
+        disable += setOf("UnsafeOptInUsageError", "UnsafeOptInUsageWarning")
+    }
 }
 
 /** Runs tools/abi-dump over a variant's compiled classes to produce a BCV-format `.api` file. */

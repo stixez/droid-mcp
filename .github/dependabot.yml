@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Gradle: gradle/libs.versions.toml, build scripts and the wrapper.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+    groups:
+      # All minor/patch bumps land in one weekly PR; each major bump gets its own PR.
+      gradle-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # gradle/actions v6+ moves caching into a proprietary component under separate
+      # Gradle Terms of Use (https://blog.gradle.org/github-actions-for-gradle-v6).
+      # Adopting it is a licensing decision, so don't auto-propose it; remove this to opt in.
+      - dependency-name: gradle/actions*
+        versions: [">= 6"]
