@@ -1,4 +1,5 @@
 public final class io/droidmcp/location/GetCurrentLocationTool : io/droidmcp/core/McpTool {
+	public static final field FRESH_FIX_TIMEOUT_MS J
 	public fun <init> (Landroid/content/Context;)V
 	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;

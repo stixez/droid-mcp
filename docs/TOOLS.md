@@ -97,10 +97,10 @@ Needs `READ_MEDIA_IMAGES` and `READ_MEDIA_VIDEO` on API 33+, and `READ_EXTERNAL_
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `get_current_location` | Freshest last-known cached fix across enabled providers. Does not request a new fix. | `accuracy` (fine/coarse, default coarse; sets provider preference) |
+| `get_current_location` | Freshest cached fix across enabled providers, or a fresh fix (up to 10 s) when nothing is cached. `source` says which. | `accuracy` (fine/coarse, default coarse; sets provider preference) |
 | `get_location_address` | Reverse-geocode coordinates to an address | `latitude` (required), `longitude` (required) |
 
-`get_current_location` needs `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION`, and returns an error when no cached fix exists. `get_location_address` uses the platform `Geocoder`, which needs network access but no location permission.
+`get_current_location` needs `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION`, and returns an error when no provider produces a fix within 10 s. `get_location_address` uses the platform `Geocoder`, which needs network access but no location permission.
 
 ## Health
 

@@ -55,6 +55,7 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 - `take_screenshot_via_a11y` now defaults to JPEG, downscaled to 1280 px. `take_photo`'s `image_data` is downscaled the same way, while the gallery file stays full resolution.
 - `open_deep_link` and `send_intent` accept only http(s), geo, tel, mailto, sms/smsto, mms/mmsto and market URIs, so app-specific schemes such as `spotify:` are rejected. `send_intent` drops PICK, GET_CONTENT, OPEN_DOCUMENT and CREATE_DOCUMENT, whose results were always discarded.
 - `get_text_around_cursor` refuses password fields.
+- `get_current_location` requests a fresh fix (up to 10 s) when nothing is cached, instead of failing; new `source` key (`cache`/`fresh`).
 - Image tools (`take_screenshot_via_a11y`, `capture_screen_quiet`, `take_photo` with `return_data`, `generate_qr_code`) return the picture as an MCP `image` content block. Over HTTP the base64 key (`image_base64`, `image_data`, `qr_image`) no longer appears in the JSON text or `structuredContent`. In-process results are unchanged.
 - `notifications/cancelled` now stops the caller's in-flight `tools/call`. The cancelled request gets no response (HTTP 202).
 
