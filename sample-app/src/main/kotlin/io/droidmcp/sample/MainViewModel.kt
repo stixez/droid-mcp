@@ -193,7 +193,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tools.addAll(WallpaperTools.all(context))
         tools.addAll(RingtoneTools.all(context))
         tools.addAll(UsbTools.all(context))
-        tools.addAll(PrintTools.all(context))
+        tools.addAll(PrintTools.all(context) { CurrentActivityHolder.current() })
         tools.addAll(MlKitTools.all(context))
 
         droidMcp = newServer(tools)

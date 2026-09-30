@@ -102,6 +102,17 @@
         </service>
 
         <!--
+            Holds the MediaProjection token for capture_screen. Android 14+ only hands
+            out a projection to an app running a mediaProjection-type foreground service,
+            so MainActivity forwards the consent result here instead of calling
+            getMediaProjection() itself.
+        -->
+        <service
+            android:name=".ScreenCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!--
             ShizukuProvider — required by the Shizuku client API to bridge the
             host app with the Shizuku service. The library provides the class;
             the host declares it with its own applicationId-scoped authority.

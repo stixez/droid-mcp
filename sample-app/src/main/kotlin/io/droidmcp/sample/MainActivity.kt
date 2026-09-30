@@ -31,7 +31,6 @@ import io.droidmcp.shizuku.ShizukuTools
 import rikka.shizuku.Shizuku
 import io.droidmcp.sample.ui.MainScreen
 import io.droidmcp.sample.ui.theme.DroidMcpTheme
-import io.droidmcp.screenshot.MediaProjectionHolder
 
 class MainActivity : ComponentActivity() {
 
@@ -44,10 +43,13 @@ class MainActivity : ComponentActivity() {
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            val projection = projectionManager.getMediaProjection(result.resultCode, result.data!!)
-            MediaProjectionHolder.set(projection)
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK && data != null) {
+            // Don't call getMediaProjection() here: on Android 14+ (targetSdk 34+) it throws
+            // SecurityException unless a mediaProjection foreground service is already
+            // running. ScreenCaptureService enters the foreground first, then obtains the
+            // projection and hands it to MediaProjectionHolder.
+            ScreenCaptureService.start(this, result.resultCode, data)
         }
     }
 
@@ -201,6 +203,17 @@ class MainActivity : ComponentActivity() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("droid-mcp audit", json))
         Toast.makeText(this, "Audit log copied (${json.length} chars)", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // print_content needs an Activity to launch the system print UI from.
+        CurrentActivityHolder.set(this)
+    }
+
+    override fun onPause() {
+        CurrentActivityHolder.clear(this)
+        super.onPause()
     }
 
     override fun onDestroy() {
