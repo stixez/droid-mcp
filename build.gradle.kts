@@ -128,8 +128,7 @@ fun Lint.droidMcpLintDefaults(project: Project) {
     warningsAsErrors = false
     // Each module lints only its own sources; sample-app must not re-lint all 54 libraries.
     checkDependencies = false
-    htmlReport = true
-    xmlReport = true
+    // HTML and XML reports are always generated on AGP 9.
     // Version-freshness checks depend on what upstream has published *today*, so they'd break a
     // green build whenever a new release ships. Dependabot (.github/dependabot.yml) owns this.
     disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")

@@ -39,6 +39,11 @@ dependencies {
         exclude(group = "io.netty", module = "netty-transport-native-epoll")
         exclude(group = "io.netty", module = "netty-transport-native-kqueue")
     }
+    // The native jars above also carried the pure-Java Epoll/KQueue classes, which Ktor's Netty engine
+    // touches at startup (KQueue.isAvailable() / Epoll.isAvailable()). Without them start() throws
+    // NoClassDefFoundError; with them the checks return false and Netty uses NIO, as on Android.
+    runtimeOnly(libs.netty.transport.classes.epoll)
+    runtimeOnly(libs.netty.transport.classes.kqueue)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.json)
 
