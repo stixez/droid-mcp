@@ -3,15 +3,15 @@ package io.droidmcp.calendar
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
- * Searches calendar events whose `TITLE` or `DESCRIPTION` matches `query` (SQL `LIKE`
- * substring), via `ContentResolver` on `CalendarContract.Events`, newest first. Requires
- * `READ_CALENDAR`. Output: `events` (list of {id, title, start, end, location, description}
- * with times formatted `yyyy-MM-dd HH:mm`), `count`, and the echoed `query`, capped at
- * `limit` (1–100, default 10).
+ * Searches calendar events whose `TITLE` or `DESCRIPTION` contains `query` (SQL `LIKE`
+ * substring; `%`, `_` and `\` in `query` match literally), via `ContentResolver` on
+ * `CalendarContract.Events`, newest first. Requires `READ_CALENDAR`. Output: `events` (list of
+ * {id, title, start, end, location, description, all_day} with times formatted
+ * `yyyy-MM-dd HH:mm` — device timezone for timed events, UTC for all-day events, which the
+ * provider stores at UTC-midnight boundaries), `count`, and the echoed `query`, capped at
+ * `limit` (1–100, default 10). Recurring events appear once (their base row), not per occurrence.
  */
 class SearchEventsTool(private val context: Context) : McpTool {
 
@@ -35,15 +35,17 @@ class SearchEventsTool(private val context: Context) : McpTool {
             CalendarContract.Events.DTEND,
             CalendarContract.Events.EVENT_LOCATION,
             CalendarContract.Events.DESCRIPTION,
+            CalendarContract.Events.ALL_DAY,
         )
 
-        val selection = "(${CalendarContract.Events.TITLE} LIKE ? OR ${CalendarContract.Events.DESCRIPTION} LIKE ?) " +
+        val selection = "(${CalendarContract.Events.TITLE} LIKE ? ESCAPE '\\' OR " +
+            "${CalendarContract.Events.DESCRIPTION} LIKE ? ESCAPE '\\') " +
             "AND ${CalendarContract.Events.DELETED} != 1"
-        val selectionArgs = arrayOf("%$query%", "%$query%")
+        val pattern = "%${CalendarUtils.escapeLike(query)}%"
+        val selectionArgs = arrayOf(pattern, pattern)
         val sortOrder = "${CalendarContract.Events.DTSTART} DESC"
 
         val events = mutableListOf<Map<String, Any?>>()
-        val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         context.contentResolver.query(
             CalendarContract.Events.CONTENT_URI, projection, selection, selectionArgs, sortOrder
@@ -52,14 +54,16 @@ class SearchEventsTool(private val context: Context) : McpTool {
             while (cursor.moveToNext() && count < limit) {
                 val dtStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART))
                 val dtEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND))
+                val allDay = cursor.getInt(cursor.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)) == 1
                 events.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events._ID)),
                     "title" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.TITLE)),
-                    "start" to timeFormat.format(Date(dtStart)),
+                    "start" to CalendarUtils.formatTime(dtStart, allDay),
                     // Recurring events store DURATION instead of DTEND, which reads back as 0.
-                    "end" to (if (dtEnd > 0) timeFormat.format(Date(dtEnd)) else null),
+                    "end" to (if (dtEnd > 0) CalendarUtils.formatTime(dtEnd, allDay) else null),
                     "location" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)),
                     "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
+                    "all_day" to allDay,
                 ))
                 count++
             }

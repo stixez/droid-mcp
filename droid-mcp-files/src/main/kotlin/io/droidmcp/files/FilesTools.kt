@@ -9,6 +9,12 @@ import io.droidmcp.core.PermissionHelper
 /**
  * Provider for the sandboxed file tools ([BrowseFilesTool], [ReadFileTool],
  * [SearchFilesTool]). All paths are confined to external storage by [PathValidator].
+ *
+ * Scoped-storage limitation: on API 30+ the File API only exposes this app's own files and
+ * shared media; non-media files (documents, archives, APKs) created by *other* apps are
+ * invisible. This module declares no media permissions and does not request
+ * `MANAGE_EXTERNAL_STORAGE` — a host that needs full shared-storage access must declare and
+ * obtain it itself.
  */
 object FilesTools {
 

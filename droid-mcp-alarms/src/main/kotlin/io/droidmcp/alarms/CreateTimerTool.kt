@@ -14,6 +14,10 @@ import io.droidmcp.core.ToolResult
  * (with `EXTRA_SKIP_UI`, so no UI is shown). Takes a positive `seconds` duration and an optional
  * `message` label.
  *
+ * On Android 10+ the intent can only be delivered while the host app is in the foreground or
+ * holds `SYSTEM_ALERT_WINDOW`; otherwise the platform silently blocks the launch, so the tool
+ * returns an error up front (see [AlarmsUtils.canStartActivity]).
+ *
  * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest).
  *
  * Result keys: `success`, `seconds`, `message`.
@@ -40,6 +44,12 @@ class CreateTimerTool(private val context: Context) : McpTool {
             putExtra(AlarmClock.EXTRA_LENGTH, seconds)
             putExtra(AlarmClock.EXTRA_SKIP_UI, true)
             if (message != null) putExtra(AlarmClock.EXTRA_MESSAGE, message)
+        }
+
+        // On API 29+ a background startActivity is silently dropped — fail loudly instead of
+        // reporting success for an alarm that was never set.
+        if (!AlarmsUtils.canStartActivity(context)) {
+            return ToolResult.error(AlarmsUtils.BACKGROUND_LAUNCH_ERROR)
         }
 
         return try {

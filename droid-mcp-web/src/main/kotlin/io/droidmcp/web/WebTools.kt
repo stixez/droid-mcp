@@ -10,10 +10,17 @@ import io.droidmcp.core.McpTool
  */
 object WebTools {
 
-    /** All web tools (these take no [context], but the param matches the provider convention). */
-    fun all(context: Context): List<McpTool> = listOf(
-        WebSearchTool(),
-        FetchWebpageTool(),
+    /**
+     * All web tools (these take no [context], but the param matches the provider convention).
+     *
+     * @param allowPrivateNetwork opt-in to let the tools reach loopback / LAN / link-local
+     *   addresses. Default false: the SSRF guard ([NetworkGuard]) blocks them, including via
+     *   redirects.
+     */
+    @JvmOverloads
+    fun all(context: Context, allowPrivateNetwork: Boolean = false): List<McpTool> = listOf(
+        WebSearchTool(allowPrivateNetwork),
+        FetchWebpageTool(allowPrivateNetwork),
     )
 
     /** Permissions required: `INTERNET` (an install-time permission, always granted). */

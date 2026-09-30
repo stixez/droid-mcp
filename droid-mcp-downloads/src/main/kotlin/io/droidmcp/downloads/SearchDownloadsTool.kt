@@ -16,26 +16,32 @@ import java.util.Locale
  * Searches the public Downloads directory (top level only, files excluding directories)
  * for filenames containing a case-insensitive substring, sorted newest-first.
  * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ *
+ * Scoped-storage limitation: on API 30+ the File API only sees files this app created plus
+ * media files (images/video/audio, when the host holds the matching media permission). Non-media
+ * files saved by *other* apps (PDFs, APKs, archives downloaded by a browser, …) are invisible
+ * and simply don't appear in the results — there is no permission this module requests that
+ * changes that (only `MANAGE_EXTERNAL_STORAGE`, granted by the user in Settings, lifts it).
  * Output: `files` (each `{name, size_bytes, last_modified, extension}`) capped at the
  * `limit` param, plus `count` and `query`.
  */
 class SearchDownloadsTool(private val context: Context) : McpTool {
 
     override val name = "search_downloads"
-    override val description = "Search files in the Downloads directory by filename"
+    override val description = "Search files in the Downloads directory by filename. On Android 11+ scoped storage hides non-media files created by other apps."
     override val parameters = listOf(
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()
             ?: return ToolResult.error("query is required")
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
+        // SimpleDateFormat isn't thread-safe; tool calls can run concurrently, so one per call.
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
         if (!downloadsDir.exists() || !downloadsDir.canRead()) {

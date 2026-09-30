@@ -15,10 +15,12 @@ import kotlin.coroutines.resume
 /**
  * Reads the `TYPE_STEP_COUNTER` sensor and returns the cumulative step total since the last
  * reboot (not a per-day count). Registers a one-shot listener with a 3 s timeout. Requires
- * `ACTIVITY_RECOGNITION` on Android 10+ (API 29+) — note `execute()` does NOT itself verify
- * the permission, so a missing grant surfaces as a sensor timeout rather than a permission
- * error. Output: `steps_since_reboot`, `timestamp`, `note`. Returns [ToolResult.error] when
- * no step-counter sensor exists or the sensor does not report within 3 s.
+ * `ACTIVITY_RECOGNITION` on Android 10+ (API 29+); `execute()` checks
+ * [HealthTools.hasPermissions] first and returns an explicit permission error rather than
+ * letting a missing grant surface as a sensor timeout. Output: `steps_since_reboot`,
+ * `timestamp`, `note`. Returns [ToolResult.error] when the permission is missing, no
+ * step-counter sensor exists, the listener can't be registered, or the sensor does not report
+ * within 3 s.
  */
 class GetStepCountTool(private val context: Context) : McpTool {
 
@@ -33,6 +35,12 @@ class GetStepCountTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
+        if (!HealthTools.hasPermissions(context)) {
+            return ToolResult.error(
+                "ACTIVITY_RECOGNITION permission not granted. It is required on Android 10+ to read the step counter."
+            )
+        }
+
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
         val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
@@ -41,18 +49,29 @@ class GetStepCountTool(private val context: Context) : McpTool {
                 "Step tracking is not available."
             )
 
+        var registered = true
         val steps = withTimeoutOrNull(3000) {
-            suspendCancellableCoroutine<Float> { cont ->
+            suspendCancellableCoroutine<Float?> { cont ->
                 val listener = object : SensorEventListener {
                     override fun onSensorChanged(event: SensorEvent) {
                         sensorManager.unregisterListener(this)
-                        cont.resume(event.values[0])
+                        if (cont.isActive) cont.resume(event.values[0])
                     }
                     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
                 }
-                sensorManager.registerListener(listener, stepSensor, SensorManager.SENSOR_DELAY_UI)
+                if (!sensorManager.registerListener(listener, stepSensor, SensorManager.SENSOR_DELAY_UI)) {
+                    // Registration refused (sensor unavailable / permission revoked mid-call):
+                    // fail now instead of waiting out the timeout.
+                    registered = false
+                    cont.resume(null)
+                    return@suspendCancellableCoroutine
+                }
                 cont.invokeOnCancellation { sensorManager.unregisterListener(listener) }
             }
+        }
+
+        if (!registered) {
+            return ToolResult.error("Failed to register a listener on the step counter sensor.")
         }
 
         if (steps == null) {

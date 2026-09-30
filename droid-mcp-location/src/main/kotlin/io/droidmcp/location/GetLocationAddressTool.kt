@@ -1,6 +1,7 @@
 package io.droidmcp.location
 
 import android.content.Context
+import android.location.Address
 import android.location.Geocoder
 import android.os.Build
 import io.droidmcp.core.*
@@ -12,7 +13,8 @@ import kotlin.coroutines.resume
 /**
  * Reverse-geocodes a `latitude`/`longitude` pair to a postal address via the platform
  * [android.location.Geocoder] (needs network access; no location permission). On API 33+
- * uses the async callback API with a 5 s timeout; below that the deprecated blocking call.
+ * uses the async callback API with a 5 s timeout (backend errors reported via
+ * `GeocodeListener.onError` resolve immediately); below that the deprecated blocking call.
  * Output: `latitude`, `longitude`, `formatted_address`, `street`, `city`, `district`,
  * `state`, `country`, `country_code`, `postal_code`. Returns [ToolResult.error] for
  * out-of-range coordinates, when no Geocoder backend is present, on timeout, or when no
@@ -47,13 +49,23 @@ class GetLocationAddressTool(private val context: Context) : McpTool {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 withTimeoutOrNull(5000) {
                     suspendCancellableCoroutine { cont ->
-                        geocoder.getFromLocation(latitude, longitude, 1) { addresses ->
-                            if (addresses.isEmpty()) {
-                                cont.resume(ToolResult.error("No address found for coordinates ($latitude, $longitude)"))
-                            } else {
-                                cont.resume(buildAddressMap(addresses[0], latitude, longitude).let { ToolResult.success(it) })
+                        geocoder.getFromLocation(latitude, longitude, 1, object : Geocoder.GeocodeListener {
+                            override fun onGeocode(addresses: MutableList<Address>) {
+                                if (!cont.isActive) return
+                                if (addresses.isEmpty()) {
+                                    cont.resume(ToolResult.error("No address found for coordinates ($latitude, $longitude)"))
+                                } else {
+                                    cont.resume(ToolResult.success(buildAddressMap(addresses[0], latitude, longitude)))
+                                }
                             }
-                        }
+
+                            // Without this override a backend failure (no network, service error)
+                            // never calls back, and the caller waits out the full timeout.
+                            override fun onError(errorMessage: String?) {
+                                if (!cont.isActive) return
+                                cont.resume(ToolResult.error("Geocoder failed: ${errorMessage ?: "unknown error"}"))
+                            }
+                        })
                     }
                 } ?: ToolResult.error("Geocoding timed out")
             } else {
@@ -70,7 +82,7 @@ class GetLocationAddressTool(private val context: Context) : McpTool {
         }
     }
 
-    private fun buildAddressMap(addr: android.location.Address, latitude: Double, longitude: Double): Map<String, Any?> {
+    private fun buildAddressMap(addr: Address, latitude: Double, longitude: Double): Map<String, Any?> {
         val lines = (0..addr.maxAddressLineIndex).map { addr.getAddressLine(it) }
         return mapOf(
             "latitude" to latitude,

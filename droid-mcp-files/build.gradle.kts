@@ -23,4 +23,5 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-core"))
+    implementation(libs.kotlinx.coroutines.core)
 }

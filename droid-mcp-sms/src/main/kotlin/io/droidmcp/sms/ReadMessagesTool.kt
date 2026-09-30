@@ -8,9 +8,12 @@ import java.util.*
 
 /**
  * Reads SMS from the inbox or sent box via `ContentResolver` on `Telephony.Sms`, optionally
- * filtered by `address` (LIKE substring) and `since` (`yyyy-MM-dd`, kept only if it parses),
- * newest first. Requires `READ_SMS`. Output: `messages` (list of {id, address, body, date
- * formatted `yyyy-MM-dd HH:mm`, read}), `count`, and the resolved `box`. `box` is 'inbox'
+ * filtered by `address` and `since` (strict `yyyy-MM-dd`; an unparseable value is an error),
+ * newest first. `address` matches a raw case-insensitive substring, a digits-only substring after
+ * normalizing formatting (`+1 (555) 010-9999` → `+15550109999`), or `PhoneNumberUtils.compare`
+ * (tolerates national vs international prefixes); it is applied in the cursor loop. Requires
+ * `READ_SMS`. Output: `messages` (list of {id, address, body, date formatted
+ * `yyyy-MM-dd HH:mm`, read}), `count`, and the resolved `box`. `box` is 'inbox'
  * (default) or 'sent'; `limit` clamps to 1–100 (default 10).
  */
 class ReadMessagesTool(private val context: Context) : McpTool {
@@ -30,7 +33,7 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         if (box !in setOf("inbox", "sent")) {
             return ToolResult.error("Invalid box '$box'. Use: inbox, sent")
         }
-        val address = params["address"]?.toString()
+        val address = params["address"]?.toString()?.takeIf { it.isNotBlank() }
         val since = params["since"]?.toString()
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
@@ -42,19 +45,14 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         val selectionParts = mutableListOf<String>()
         val selectionArgs = mutableListOf<String>()
 
-        if (address != null) {
-            selectionParts.add("${Telephony.Sms.ADDRESS} LIKE ?")
-            selectionArgs.add("%$address%")
-        }
+        // Address filtering happens in the cursor loop (see SmsUtils.addressMatches) rather than
+        // with SQL LIKE: stored addresses vary in formatting and country prefix ("+1 555-0109"
+        // vs "5550109"), which a substring LIKE can't reconcile.
         if (since != null) {
             // Previously a bad `since` was silently swallowed, dropping the filter entirely
             // while the caller believed messages were date-filtered — now it's an error.
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            val sinceMillis = try {
-                dateFormat.parse(since)?.time
-            } catch (e: Exception) {
-                null
-            } ?: return ToolResult.error("Invalid since date '$since'. Use format: YYYY-MM-DD")
+            val sinceMillis = SmsUtils.parseDate(since)?.time
+                ?: return ToolResult.error("Invalid since date '$since'. Use format: YYYY-MM-DD")
             selectionParts.add("${Telephony.Sms.DATE} >= ?")
             selectionArgs.add(sinceMillis.toString())
         }
@@ -66,9 +64,22 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         val messages = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
-        context.contentResolver.query(uri, null, selection, args, sortOrder)?.use { cursor ->
+        val projection = arrayOf(
+            Telephony.Sms._ID,
+            Telephony.Sms.ADDRESS,
+            Telephony.Sms.BODY,
+            Telephony.Sms.DATE,
+            Telephony.Sms.READ,
+        )
+
+        context.contentResolver.query(uri, projection, selection, args, sortOrder)?.use { cursor ->
             var count = 0
             while (cursor.moveToNext() && count < limit) {
+                if (address != null &&
+                    !SmsUtils.addressMatches(cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)), address)
+                ) {
+                    continue
+                }
                 val date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
                 messages.add(mapOf(
                     "id" to cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)),

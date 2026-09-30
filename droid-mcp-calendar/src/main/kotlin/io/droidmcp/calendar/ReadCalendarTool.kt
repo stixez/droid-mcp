@@ -1,29 +1,33 @@
 package io.droidmcp.calendar
 
+import android.content.ContentUris
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
-import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Reads calendar events in a date range via `ContentResolver` on `CalendarContract.Events`,
- * filtered by `DTSTART` between `start_date` and end-of-`end_date` (soft-deleted rows excluded
- * via `DELETED != 1`). Requires `READ_CALENDAR`.
+ * Reads calendar events in a date range via `ContentResolver` on `CalendarContract.Instances`,
+ * so **recurring events are expanded** into their individual occurrences and multi-day events
+ * that began before `start_date` but are still running are included. An instance is returned
+ * when it *overlaps* the window `[start_date 00:00, end_date + 1 day 00:00)`. (The provider drops
+ * a soft-deleted event's instance rows itself, so no `DELETED` filter is needed — `Instances`
+ * doesn't expose that column.) Requires `READ_CALENDAR`.
  *
- * Queries `Events` directly rather than `CalendarContract.Instances`, so **recurring events are
- * not expanded** — a repeating event's individual occurrences won't appear here, only its
- * single base row (whose own `DTSTART` may or may not fall in range). A recurring event stores
- * `DURATION` instead of `DTEND`, which reads back as `0` — `end` is reported as `null` in that
- * case rather than the epoch-derived `"1970-01-01 00:00"`.
+ * Timed events are windowed and formatted in the device timezone. All-day events are stored by
+ * the provider at UTC-midnight boundaries, so they are windowed against the same calendar dates
+ * in UTC and their `start`/`end` are formatted in UTC — an all-day event on 2024-05-01 reads back
+ * as `2024-05-01 00:00` – `2024-05-02 00:00` regardless of the device's offset.
  *
  * Output: `events` (list of {id, title, start, end, location, description, all_day} with times
- * formatted `yyyy-MM-dd HH:mm`) and `count`, capped at `limit` (1–100, default 10).
+ * formatted `yyyy-MM-dd HH:mm`; `id` is the underlying event id, so all occurrences of a
+ * recurring event share it) and `count`, sorted by instance start and capped at `limit`
+ * (1–100, default 10). `start_date`/`end_date` are strict `yyyy-MM-dd`.
  */
 class ReadCalendarTool(private val context: Context) : McpTool {
 
     override val name = "read_calendar"
-    override val description = "Read calendar events for a given date or date range. Returns title, start/end time, location, and description."
+    override val description = "Read calendar events for a given date or date range, including occurrences of recurring events and multi-day events overlapping the range. Returns title, start/end time, location, and description."
     override val parameters = listOf(
         ToolParameter("start_date", "Start date in YYYY-MM-DD format", ParameterType.STRING, required = true),
         ToolParameter("end_date", "End date in YYYY-MM-DD format. Defaults to start_date.", ParameterType.STRING),
@@ -32,66 +36,81 @@ class ReadCalendarTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val startDate = params["start_date"]?.toString()
             ?: return ToolResult.error("start_date is required")
         val endDate = params["end_date"]?.toString() ?: startDate
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
-        val startMillis = try {
-            dateFormat.parse(startDate)?.time ?: return ToolResult.error("Invalid start_date format")
-        } catch (e: Exception) {
-            return ToolResult.error("Invalid start_date: ${e.message}")
+        val localStart = CalendarUtils.parseStrict("yyyy-MM-dd", startDate)
+            ?: return ToolResult.error("Invalid start_date '$startDate'. Use format: YYYY-MM-DD")
+        val localEndDay = CalendarUtils.parseStrict("yyyy-MM-dd", endDate)
+            ?: return ToolResult.error("Invalid end_date '$endDate'. Use format: YYYY-MM-DD")
+        val utcStart = CalendarUtils.parseStrict("yyyy-MM-dd", startDate, CalendarUtils.UTC)!!
+        val utcEndDay = CalendarUtils.parseStrict("yyyy-MM-dd", endDate, CalendarUtils.UTC)!!
+        if (localEndDay.before(localStart)) {
+            return ToolResult.error("end_date must not be before start_date")
         }
-        val endMillis = try {
-            val parsed = dateFormat.parse(endDate) ?: return ToolResult.error("Invalid end_date format")
-            // Calendar.add (not a raw +86_400_000) so a DST transition landing inside this
-            // window doesn't shift the boundary by an hour.
-            val cal = Calendar.getInstance()
-            cal.time = parsed
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-            cal.timeInMillis
-        } catch (e: Exception) {
-            return ToolResult.error("Invalid end_date: ${e.message}")
-        }
+
+        // Calendar.add (not a raw +86_400_000) so a DST transition landing inside this
+        // window doesn't shift the boundary by an hour.
+        val localWindowStart = localStart.time
+        val localWindowEnd = Calendar.getInstance().apply {
+            time = localEndDay
+            add(Calendar.DAY_OF_MONTH, 1)
+        }.timeInMillis
+        val utcWindowStart = utcStart.time
+        val utcWindowEnd = utcEndDay.time + DAY_MILLIS
+
+        // Query a window wide enough to cover both the local and the UTC interpretation (UTC
+        // offsets span -12h..+14h), then filter precisely per row below.
+        val queryBegin = minOf(localWindowStart, utcWindowStart) - DAY_MILLIS
+        val queryEnd = maxOf(localWindowEnd, utcWindowEnd) + DAY_MILLIS
+        val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().also {
+            ContentUris.appendId(it, queryBegin)
+            ContentUris.appendId(it, queryEnd)
+        }.build()
 
         val projection = arrayOf(
-            CalendarContract.Events._ID,
-            CalendarContract.Events.TITLE,
-            CalendarContract.Events.DTSTART,
-            CalendarContract.Events.DTEND,
-            CalendarContract.Events.EVENT_LOCATION,
-            CalendarContract.Events.DESCRIPTION,
-            CalendarContract.Events.ALL_DAY,
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.EVENT_LOCATION,
+            CalendarContract.Instances.DESCRIPTION,
+            CalendarContract.Instances.ALL_DAY,
         )
-
-        val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} < ? " +
-            "AND ${CalendarContract.Events.DELETED} != 1"
-        val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString())
-        val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
+        val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
 
         val events = mutableListOf<Map<String, Any?>>()
-        val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
-        context.contentResolver.query(
-            CalendarContract.Events.CONTENT_URI, projection, selection, selectionArgs, sortOrder
-        )?.use { cursor ->
-            var count = 0
-            while (cursor.moveToNext() && count < limit) {
-                val dtStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART))
-                val dtEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND))
+        context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
+            val idIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_ID)
+            val titleIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
+            val beginIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
+            val endIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.END)
+            val locIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_LOCATION)
+            val descIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.DESCRIPTION)
+            val allDayIdx = cursor.getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY)
+            while (cursor.moveToNext() && events.size < limit) {
+                val begin = cursor.getLong(beginIdx)
+                val end = cursor.getLong(endIdx)
+                val allDay = cursor.getInt(allDayIdx) == 1
+                val (winStart, winEnd) = if (allDay) {
+                    utcWindowStart to utcWindowEnd
+                } else {
+                    localWindowStart to localWindowEnd
+                }
+                // Overlap test; a zero-length instance counts as occupying its start instant.
+                if (begin >= winEnd || maxOf(end, begin + 1) <= winStart) continue
                 events.add(mapOf(
-                    "id" to cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events._ID)),
-                    "title" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.TITLE)),
-                    "start" to timeFormat.format(Date(dtStart)),
-                    // Recurring events store DURATION instead of DTEND, which reads back as 0 —
-                    // format that as null rather than the misleading "1970-01-01 00:00".
-                    "end" to (if (dtEnd > 0) timeFormat.format(Date(dtEnd)) else null),
-                    "location" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)),
-                    "description" to cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)),
-                    "all_day" to (cursor.getInt(cursor.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)) == 1),
+                    "id" to cursor.getLong(idIdx),
+                    "title" to cursor.getString(titleIdx),
+                    "start" to CalendarUtils.formatTime(begin, allDay),
+                    "end" to (if (end > 0) CalendarUtils.formatTime(end, allDay) else null),
+                    "location" to cursor.getString(locIdx),
+                    "description" to cursor.getString(descIdx),
+                    "all_day" to allDay,
                 ))
-                count++
             }
         }
 
@@ -99,5 +118,9 @@ class ReadCalendarTool(private val context: Context) : McpTool {
             "events" to events,
             "count" to events.size,
         ))
+    }
+
+    private companion object {
+        const val DAY_MILLIS = 86_400_000L
     }
 }

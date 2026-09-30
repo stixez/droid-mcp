@@ -9,14 +9,16 @@ import java.util.*
 /**
  * Lists the immediate contents of a directory, sandboxed to external storage via
  * [PathValidator] (defaults to `/sdcard`). Directories sort first, then by name.
- * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+.
+ * Requires `READ_EXTERNAL_STORAGE` on API ≤32; uses File API access on API 33+. Under scoped
+ * storage (API 30+) the listing omits non-media files created by other apps — they are simply
+ * invisible to this app's File API view, with no error.
  * Output: `path`, `entries` (each `{name, path, size_bytes, last_modified, is_directory}`,
  * `size_bytes` is null for directories) capped at the `limit` param, and `count`.
  */
 class BrowseFilesTool(private val context: Context) : McpTool {
 
     override val name = "browse_files"
-    override val description = "List files and directories at the given path. Returns file name, size, last modified date, and whether each entry is a directory."
+    override val description = "List files and directories at the given path. Returns file name, size, last modified date, and whether each entry is a directory. On Android 11+ non-media files created by other apps are not visible."
     override val parameters = listOf(
         ToolParameter("path", "Directory path to browse. Default: /sdcard", ParameterType.STRING),
         ToolParameter("limit", "Max number of entries to return. Default 10.", ParameterType.INTEGER),
@@ -32,7 +34,7 @@ class BrowseFilesTool(private val context: Context) : McpTool {
         val dir = File(path)
         if (!dir.exists()) return ToolResult.error("Path does not exist: $path")
         if (!dir.isDirectory) return ToolResult.error("Path is not a directory: $path")
-        if (!dir.canRead()) return ToolResult.error("Cannot read directory: $path — check READ_EXTERNAL_STORAGE or READ_MEDIA_* permissions")
+        if (!dir.canRead()) return ToolResult.error("Cannot read directory: $path — check READ_EXTERNAL_STORAGE (API ≤32); on Android 11+ scoped storage also hides other apps' non-media files")
 
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
         val entries = dir.listFiles()

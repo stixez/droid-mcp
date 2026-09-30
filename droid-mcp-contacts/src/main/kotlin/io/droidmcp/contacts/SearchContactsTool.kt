@@ -5,8 +5,9 @@ import android.provider.ContactsContract
 import io.droidmcp.core.*
 
 /**
- * Searches contacts whose `DISPLAY_NAME_PRIMARY` matches `query` (SQL `LIKE` substring),
- * then attaches each match's phone numbers and email addresses via sub-queries. Requires
+ * Searches contacts whose `DISPLAY_NAME_PRIMARY` matches `query` (SQL `LIKE` substring;
+ * `%`, `_` and `\` in `query` match literally), then attaches every match's phone numbers and
+ * email addresses with a single `ContactsContract.Data` query (`CONTACT_ID IN (...)`). Requires
  * `READ_CONTACTS`. Output: `contacts` (list of {id, name, phones (list of strings), emails
  * (list of strings)}), `count`, and the echoed `query`, capped at `limit` (1–100, default 10).
  */
@@ -28,33 +29,69 @@ class SearchContactsTool(private val context: Context) : McpTool {
         val projection = arrayOf(
             ContactsContract.Contacts._ID,
             ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
-            ContactsContract.Contacts.HAS_PHONE_NUMBER,
         )
 
-        val selection = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} LIKE ?"
-        val selectionArgs = arrayOf("%$query%")
+        val selection = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} LIKE ? ESCAPE '\\'"
+        val selectionArgs = arrayOf("%${escapeLike(query)}%")
         val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC"
 
-        val contacts = mutableListOf<Map<String, Any?>>()
+        // Pass 1: collect up to `limit` matching contacts (id + name), preserving sort order.
+        val matches = LinkedHashMap<Long, String?>()
         context.contentResolver.query(
             ContactsContract.Contacts.CONTENT_URI, projection, selection, selectionArgs, sortOrder
         )?.use { cursor ->
-            var count = 0
-            while (cursor.moveToNext() && count < limit) {
-                val contactId = cursor.getLong(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
-                val name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY))
-                val hasPhone = cursor.getInt(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0
-                val phones = if (hasPhone) getPhoneNumbers(contactId) else emptyList()
-                val emails = getEmails(contactId)
-
-                contacts.add(mapOf(
-                    "id" to contactId,
-                    "name" to name,
-                    "phones" to phones,
-                    "emails" to emails,
-                ))
-                count++
+            val idIdx = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)
+            val nameIdx = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
+            while (cursor.moveToNext() && matches.size < limit) {
+                matches[cursor.getLong(idIdx)] = cursor.getString(nameIdx)
             }
+        }
+
+        // Pass 2: one Data query for all phones + emails of those contacts, grouped in memory
+        // (previously two sub-queries per contact — up to 200 extra queries at limit=100).
+        val phones = HashMap<Long, MutableList<String>>()
+        val emails = HashMap<Long, MutableList<String>>()
+        if (matches.isNotEmpty()) {
+            val ids = matches.keys.toList()
+            val placeholders = ids.joinToString(",") { "?" }
+            val dataSelection = "${ContactsContract.Data.CONTACT_ID} IN ($placeholders) AND " +
+                "${ContactsContract.Data.MIMETYPE} IN (?, ?)"
+            val dataArgs = ids.map { it.toString() } + listOf(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+                ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE,
+            )
+            context.contentResolver.query(
+                ContactsContract.Data.CONTENT_URI,
+                arrayOf(
+                    ContactsContract.Data.CONTACT_ID,
+                    ContactsContract.Data.MIMETYPE,
+                    // Phone.NUMBER and Email.ADDRESS are both aliases of DATA1.
+                    ContactsContract.Data.DATA1,
+                ),
+                dataSelection,
+                dataArgs.toTypedArray(),
+                null
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val contactId = cursor.getLong(0)
+                    val value = cursor.getString(2) ?: continue
+                    when (cursor.getString(1)) {
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE ->
+                            phones.getOrPut(contactId) { mutableListOf() }.add(value)
+                        ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE ->
+                            emails.getOrPut(contactId) { mutableListOf() }.add(value)
+                    }
+                }
+            }
+        }
+
+        val contacts = matches.map { (id, name) ->
+            mapOf(
+                "id" to id,
+                "name" to name,
+                "phones" to (phones[id] ?: emptyList<String>()),
+                "emails" to (emails[id] ?: emptyList<String>()),
+            )
         }
 
         return ToolResult.success(mapOf(
@@ -64,37 +101,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
         ))
     }
 
-    /** Returns the contact's phone numbers as plain strings. */
-    private fun getPhoneNumbers(contactId: Long): List<String> {
-        val phones = mutableListOf<String>()
-        context.contentResolver.query(
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-            arrayOf(contactId.toString()),
-            null
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                cursor.getString(0)?.let { phones.add(it) }
-            }
-        }
-        return phones
-    }
-
-    /** Returns the contact's email addresses as plain strings. */
-    private fun getEmails(contactId: Long): List<String> {
-        val emails = mutableListOf<String>()
-        context.contentResolver.query(
-            ContactsContract.CommonDataKinds.Email.CONTENT_URI,
-            arrayOf(ContactsContract.CommonDataKinds.Email.ADDRESS),
-            "${ContactsContract.CommonDataKinds.Email.CONTACT_ID} = ?",
-            arrayOf(contactId.toString()),
-            null
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                cursor.getString(0)?.let { emails.add(it) }
-            }
-        }
-        return emails
-    }
+    /** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
+    private fun escapeLike(value: String): String =
+        value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

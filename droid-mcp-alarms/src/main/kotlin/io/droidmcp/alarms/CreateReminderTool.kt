@@ -10,16 +10,17 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
-import java.text.SimpleDateFormat
 import java.util.*
 
 /**
  * Creates a reminder as a 30-minute calendar event with an alert, inserted into the device's primary
- * calendar via [CalendarContract]. Takes a `title`, a `datetime` (`yyyy-MM-dd HH:mm`), and optional
+ * calendar (else the first visible calendar with contributor access, see
+ * [AlarmsUtils.findWritableCalendarId]) via [CalendarContract]. Takes a `title`, a strictly-parsed
+ * `datetime` (`yyyy-MM-dd HH:mm`, device timezone), and optional
  * `minutes_before` (default 10) for the alert lead time.
  *
  * Requires both [Manifest.permission.READ_CALENDAR] and [Manifest.permission.WRITE_CALENDAR]
- * (checked at runtime; returns an error if either is missing). Fails if no calendar exists on the device.
+ * (checked at runtime; returns an error if either is missing). Fails if no writable calendar exists on the device.
  *
  * Result keys: `success`, `event_id`, `title`, `datetime`, `minutes_before`.
  */
@@ -47,15 +48,11 @@ class CreateReminderTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("datetime is required")
         val minutesBefore = (params["minutes_before"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 10
 
-        val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-        val startMillis = try {
-            format.parse(datetimeStr)?.time ?: return ToolResult.error("Invalid datetime format")
-        } catch (e: Exception) {
-            return ToolResult.error("Invalid datetime: ${e.message}")
-        }
+        val startMillis = AlarmsUtils.parseDateTime(datetimeStr)?.time
+            ?: return ToolResult.error("Invalid datetime '$datetimeStr'. Use format: YYYY-MM-DD HH:mm")
 
-        val calendarId = getPrimaryCalendarId()
-            ?: return ToolResult.error("No calendar found on device")
+        val calendarId = AlarmsUtils.findWritableCalendarId(context)
+            ?: return ToolResult.error("No writable calendar found on device")
 
         val eventValues = ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendarId)
@@ -87,21 +84,5 @@ class CreateReminderTool(private val context: Context) : McpTool {
             "datetime" to datetimeStr,
             "minutes_before" to minutesBefore,
         ))
-    }
-
-    private fun getPrimaryCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID)
-        val selection = "${CalendarContract.Calendars.IS_PRIMARY} = 1"
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
-        )?.use { cursor ->
-            if (cursor.moveToFirst()) return cursor.getLong(0)
-        }
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI, projection, null, null, null
-        )?.use { cursor ->
-            if (cursor.moveToFirst()) return cursor.getLong(0)
-        }
-        return null
     }
 }
