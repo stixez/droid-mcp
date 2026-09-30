@@ -3,6 +3,7 @@ package io.droidmcp.contacts
 import android.content.Context
 import android.provider.ContactsContract
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
 
 /**
  * Searches contacts whose `DISPLAY_NAME_PRIMARY` matches `query` (SQL `LIKE` substring;
@@ -32,7 +33,7 @@ class SearchContactsTool(private val context: Context) : McpTool {
         )
 
         val selection = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} LIKE ? ESCAPE '\\'"
-        val selectionArgs = arrayOf("%${escapeLike(query)}%")
+        val selectionArgs = arrayOf("%${SqlLike.escape(query)}%")
         val sortOrder = "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} ASC"
 
         // Pass 1: collect up to `limit` matching contacts (id + name), preserving sort order.
@@ -100,8 +101,4 @@ class SearchContactsTool(private val context: Context) : McpTool {
             "query" to query,
         ))
     }
-
-    /** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
-    internal fun escapeLike(value: String): String =
-        value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

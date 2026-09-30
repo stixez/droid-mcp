@@ -16,6 +16,7 @@ Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, med
 - Fixed-choice params declare `enumValues`; numeric clamps declare `minimum`/`maximum` — keep them identical to what `execute()` enforces
 - ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
 - File access: sandboxed via `PathValidator` — external storage only
+- Shared module logic lives in `io.droidmcp.core.support` (`ActivityLaunch.canStartActivity`, `SqlLike.escape`, `StrictDates.parse`, `CalendarSupport.findWritableCalendarId`) — use these instead of module-local copies
 - Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
 - No fully qualified names inline — use proper imports
 - Long-running tools call `reportProgress(done, total, message)` (no-op when nobody listens); tools needing user input can call `elicit(message, schema)` (returns null when unsupported)
@@ -168,7 +169,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 111 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 392 in total: `./gradlew testDebugUnitTest`
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 123 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 382 in total: `./gradlew testDebugUnitTest`
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md

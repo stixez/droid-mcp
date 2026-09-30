@@ -4,6 +4,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
+import io.droidmcp.core.support.CalendarSupport
+import io.droidmcp.core.support.StrictDates
 import java.util.*
 
 /**
@@ -12,7 +14,7 @@ import java.util.*
  * parsed strictly as `yyyy-MM-dd HH:mm` (device timezone; impossible dates and trailing text are
  * rejected) and `end` must be after `start`. When `calendar_id` is omitted it falls back to the
  * primary calendar, else the first visible calendar with at least contributor access (see
- * [CalendarUtils.findWritableCalendarId]). Output: `event_id` (the inserted row id, may be null if the URI
+ * [CalendarSupport.findWritableCalendarId]). Output: `event_id` (the inserted row id, may be null if the URI
  * lacks a numeric segment), plus echoed `title`, `start`, and `end`.
  */
 class CreateEventTool(private val context: Context) : McpTool {
@@ -37,15 +39,15 @@ class CreateEventTool(private val context: Context) : McpTool {
         val endStr = params["end"]?.toString()
             ?: return ToolResult.error("end is required")
 
-        val startMillis = CalendarUtils.parseStrict("yyyy-MM-dd HH:mm", startStr)?.time
+        val startMillis = StrictDates.parse("yyyy-MM-dd HH:mm", startStr)?.time
             ?: return ToolResult.error("Invalid start '$startStr'. Use format: YYYY-MM-DD HH:mm")
-        val endMillis = CalendarUtils.parseStrict("yyyy-MM-dd HH:mm", endStr)?.time
+        val endMillis = StrictDates.parse("yyyy-MM-dd HH:mm", endStr)?.time
             ?: return ToolResult.error("Invalid end '$endStr'. Use format: YYYY-MM-DD HH:mm")
         if (endMillis <= startMillis) {
             return ToolResult.error("end must be after start")
         }
 
-        val calendarId = (params["calendar_id"] as? Number)?.toLong() ?: CalendarUtils.findWritableCalendarId(context)
+        val calendarId = (params["calendar_id"] as? Number)?.toLong() ?: CalendarSupport.findWritableCalendarId(context)
             ?: return ToolResult.error("No writable calendar found on device")
 
         val values = ContentValues().apply {

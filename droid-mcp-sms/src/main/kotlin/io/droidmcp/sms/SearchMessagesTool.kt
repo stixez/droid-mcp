@@ -3,6 +3,7 @@ package io.droidmcp.sms
 import android.content.Context
 import android.provider.Telephony
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,7 +30,7 @@ class SearchMessagesTool(private val context: Context) : McpTool {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
         val selection = "${Telephony.Sms.BODY} LIKE ? ESCAPE '\\'"
-        val selectionArgs = arrayOf("%${SmsUtils.escapeLike(query)}%")
+        val selectionArgs = arrayOf("%${SqlLike.escape(query)}%")
         val sortOrder = "${Telephony.Sms.DATE} DESC"
 
         val messages = mutableListOf<Map<String, Any?>>()

@@ -3,6 +3,7 @@ package io.droidmcp.calllog
 import android.content.Context
 import android.provider.CallLog
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -42,7 +43,7 @@ class SearchCallLogTool(private val context: Context) : McpTool {
         )
 
         val selection = "${CallLog.Calls.NUMBER} LIKE ? ESCAPE '\\' OR ${CallLog.Calls.CACHED_NAME} LIKE ? ESCAPE '\\'"
-        val pattern = "%${escapeLike(query)}%"
+        val pattern = "%${SqlLike.escape(query)}%"
         val selectionArgs = arrayOf(pattern, pattern)
         val sortOrder = "${CallLog.Calls.DATE} DESC"
 

@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
+import io.droidmcp.core.support.StrictDates
 import java.util.*
 
 /**
@@ -41,12 +42,12 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         val endDate = params["end_date"]?.toString() ?: startDate
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
-        val localStart = CalendarUtils.parseStrict("yyyy-MM-dd", startDate)
+        val localStart = StrictDates.parse("yyyy-MM-dd", startDate)
             ?: return ToolResult.error("Invalid start_date '$startDate'. Use format: YYYY-MM-DD")
-        val localEndDay = CalendarUtils.parseStrict("yyyy-MM-dd", endDate)
+        val localEndDay = StrictDates.parse("yyyy-MM-dd", endDate)
             ?: return ToolResult.error("Invalid end_date '$endDate'. Use format: YYYY-MM-DD")
-        val utcStart = CalendarUtils.parseStrict("yyyy-MM-dd", startDate, CalendarUtils.UTC)!!
-        val utcEndDay = CalendarUtils.parseStrict("yyyy-MM-dd", endDate, CalendarUtils.UTC)!!
+        val utcStart = StrictDates.parse("yyyy-MM-dd", startDate, CalendarUtils.UTC)!!
+        val utcEndDay = StrictDates.parse("yyyy-MM-dd", endDate, CalendarUtils.UTC)!!
         if (localEndDay.before(localStart)) {
             return ToolResult.error("end_date must not be before start_date")
         }

@@ -51,7 +51,7 @@ Needs `READ_CONTACTS`. `create_contact` is registered only when `WRITE_CONTACTS`
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `read_messages` | Read SMS, filtered by box, number or date | `box` (inbox/sent, default inbox), `address`, `since` (YYYY-MM-DD), `limit` (1-100, default 10) |
-| `send_message` | Send an SMS. Waits up to 15 s for the carrier and reports `status` as `sent`, `failed` or `timeout`. | `to` (required, phone number), `body` (required) |
+| `send_message` | Send an SMS. Waits up to 15 s for the carrier. A carrier-reported failure is an error; otherwise `status` is `sent` or `timeout` (`sent: false`, not an error: the message may still arrive). | `to` (required, phone number), `body` (required) |
 | `search_messages` | Search message bodies by keyword | `query` (required), `limit` (1-100, default 10) |
 
 Needs `READ_SMS` and `SEND_SMS`. `send_message` rejects malformed phone numbers.

@@ -3,6 +3,7 @@ package io.droidmcp.calendar
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
 
 /**
  * Searches calendar events whose `TITLE` or `DESCRIPTION` contains `query` (SQL `LIKE`
@@ -41,7 +42,7 @@ class SearchEventsTool(private val context: Context) : McpTool {
         val selection = "(${CalendarContract.Events.TITLE} LIKE ? ESCAPE '\\' OR " +
             "${CalendarContract.Events.DESCRIPTION} LIKE ? ESCAPE '\\') " +
             "AND ${CalendarContract.Events.DELETED} != 1"
-        val pattern = "%${CalendarUtils.escapeLike(query)}%"
+        val pattern = "%${SqlLike.escape(query)}%"
         val selectionArgs = arrayOf(pattern, pattern)
         val sortOrder = "${CalendarContract.Events.DTSTART} DESC"
 

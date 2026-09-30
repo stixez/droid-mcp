@@ -10,6 +10,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Sets screen brightness (0-255, clamped). Requires `WRITE_SETTINGS`; when not granted it launches
@@ -29,7 +30,7 @@ class SetBrightnessTool(private val context: Context) : McpTool {
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!Settings.System.canWrite(context)) {
-            if (!canStartActivityNow(context)) {
+            if (!ActivityLaunch.canStartActivity(context)) {
                 return ToolResult.error("WRITE_SETTINGS permission not granted. $BACKGROUND_LAUNCH_ERROR")
             }
             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {

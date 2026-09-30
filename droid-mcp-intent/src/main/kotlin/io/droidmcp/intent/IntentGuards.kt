@@ -1,11 +1,9 @@
 package io.droidmcp.intent
 
-import android.app.ActivityManager
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Shared safety checks for the intent tools: a data-URI scheme allowlist and a
@@ -58,19 +56,12 @@ internal object IntentGuards {
     /**
      * On API 29+ `startActivity` from a background app is silently dropped by the
      * system (no exception), so the tool would report a false success. Returns an
-     * error result when the host is neither visible to the user
-     * (`ActivityManager.getMyMemoryState` importance `<= IMPORTANCE_VISIBLE`) nor
-     * holds `SYSTEM_ALERT_WINDOW` (which exempts it from the restriction); null when
-     * the launch can proceed.
+     * error result when [ActivityLaunch.canStartActivity] says the host may not start
+     * an activity right now (not foreground/visible and no `SYSTEM_ALERT_WINDOW`);
+     * null when the launch can proceed.
      */
     fun backgroundLaunchError(context: Context): ToolResult? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
-        val state = ActivityManager.RunningAppProcessInfo()
-        runCatching { ActivityManager.getMyMemoryState(state) }
-        if (state.importance != 0 &&
-            state.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
-        ) return null
-        if (runCatching { Settings.canDrawOverlays(context) }.getOrDefault(false)) return null
+        if (ActivityLaunch.canStartActivity(context)) return null
         return ToolResult.error(
             "background_activity_launch_blocked",
             "Android 10+ blocks starting activities while the host app is in the background. " +

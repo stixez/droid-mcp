@@ -14,12 +14,8 @@ import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.util.Calendar
-import java.util.Date
 
 class SmsUtilsTest {
-
-    // ---- LIKE escaping ------------------------------------------------------------------------
 
     /** Minimal SQL `LIKE ? ESCAPE '\\'` evaluator (case-insensitive, like SQLite for ASCII). */
     private fun like(pattern: String, text: String): Boolean {
@@ -36,71 +32,6 @@ class SmsUtilsTest {
             i++
         }
         return Regex(regex.toString(), setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).matches(text)
-    }
-
-    private fun contains(query: String, text: String) = like("%${SmsUtils.escapeLike(query)}%", text)
-
-    @Test
-    fun `escapeLike escapes percent, underscore and backslash`() {
-        assertThat(SmsUtils.escapeLike("100%")).isEqualTo("100\\%")
-        assertThat(SmsUtils.escapeLike("a_b")).isEqualTo("a\\_b")
-        assertThat(SmsUtils.escapeLike("C:\\dir")).isEqualTo("C:\\\\dir")
-        assertThat(SmsUtils.escapeLike("plain text")).isEqualTo("plain text")
-        assertThat(SmsUtils.escapeLike("")).isEqualTo("")
-    }
-
-    @Test
-    fun `escapeLike escapes backslash first so escapes are not double-escaped`() {
-        // Input \% must become \\\% (escaped backslash + escaped percent), not \\% .
-        assertThat(SmsUtils.escapeLike("\\%")).isEqualTo("\\\\\\%")
-        assertThat(SmsUtils.escapeLike("\\_")).isEqualTo("\\\\\\_")
-        assertThat(SmsUtils.escapeLike("%_\\")).isEqualTo("\\%\\_\\\\")
-    }
-
-    @Test
-    fun `escaped query matches only literally inside LIKE`() {
-        assertThat(contains("100%", "save 100% now")).isTrue()
-        assertThat(contains("100%", "save 1000 now")).isFalse()
-        assertThat(contains("a_b", "x a_b y")).isTrue()
-        assertThat(contains("a_b", "x aXb y")).isFalse()
-        assertThat(contains("%", "no percent here")).isFalse()
-        assertThat(contains("_", "")).isFalse()
-        assertThat(contains("C:\\dir", "path C:\\dir\\file")).isTrue()
-        assertThat(contains("C:\\dir", "path C:dir")).isFalse()
-        assertThat(contains("\\%", "a\\%b")).isTrue()
-        assertThat(contains("\\%", "a\\b")).isFalse()
-        assertThat(contains("Meeting", "team meeting notes")).isTrue()
-    }
-
-    // ---- strict date parsing ------------------------------------------------------------------
-
-    private fun ymd(date: Date?): Triple<Int, Int, Int>? = date?.let {
-        val cal = Calendar.getInstance().apply { time = it }
-        Triple(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
-    }
-
-    @Test
-    fun `parses valid dates in the device timezone`() {
-        assertThat(ymd(SmsUtils.parseDate("2026-03-01"))).isEqualTo(Triple(2026, 3, 1))
-        assertThat(ymd(SmsUtils.parseDate("2024-02-29"))).isEqualTo(Triple(2024, 2, 29))
-        assertThat(ymd(SmsUtils.parseDate("2026-12-31"))).isEqualTo(Triple(2026, 12, 31))
-        assertThat(ymd(SmsUtils.parseDate("  2026-03-01 \t"))).isEqualTo(Triple(2026, 3, 1))
-        val cal = Calendar.getInstance().apply { time = SmsUtils.parseDate("2026-03-01")!! }
-        assertThat(cal.get(Calendar.HOUR_OF_DAY)).isEqualTo(0)
-        assertThat(cal.get(Calendar.MINUTE)).isEqualTo(0)
-    }
-
-    @Test
-    fun `rejects impossible dates instead of rolling them over`() {
-        listOf("2026-02-30", "2026-02-29", "2026-04-31", "2026-13-01", "2026-00-10", "2026-01-00", "2026-01-32")
-            .forEach { assertWithMessage(it).that(SmsUtils.parseDate(it)).isNull() }
-    }
-
-    @Test
-    fun `rejects trailing garbage and other formats`() {
-        listOf("2026-03-01x", "2026-03-01 10:00", "2026-03-01T00:00", "2026-03-01Z", "2026/03/01",
-            "01-03-2026", "March 1 2026", "", "   ", "2026-03")
-            .forEach { assertWithMessage(it).that(SmsUtils.parseDate(it)).isNull() }
     }
 
     // ---- address matching ---------------------------------------------------------------------
@@ -181,5 +112,61 @@ class SmsUtilsTest {
     @Test
     fun `digit normalization does not make alphanumeric senders match numbers`() {
         assertThat(SmsUtils.addressMatches("BANK", "555")).isFalse()
+    }
+
+    // ---- SQL address pre-filter ---------------------------------------------------------------
+
+    @Test
+    fun `numeric filter pre-filters on its last seven digits in order`() {
+        val f = SmsUtils.addressPrefilter("+1 (555) 010-9999")!!
+        assertThat(f.selection).isEqualTo("address LIKE ? ESCAPE '\\'")
+        assertThat(f.arg).isEqualTo("%0%1%0%9%9%9%9%")
+        assertThat(SmsUtils.addressPrefilter("555-0109")!!.arg).isEqualTo("%5%5%5%0%1%0%9%")
+        assertThat(SmsUtils.addressPrefilter("1234")!!.arg).isEqualTo("%1%2%3%4%")
+    }
+
+    @Test
+    fun `alphanumeric filter pre-filters on the escaped literal text`() {
+        assertThat(SmsUtils.addressPrefilter(" BANK ")!!.arg).isEqualTo("%BANK%")
+        assertThat(SmsUtils.addressPrefilter("A%_B")!!.arg).isEqualTo("%A\\%\\_B%")
+    }
+
+    @Test
+    fun `no pre-filter when LIKE could not safely narrow the rows`() {
+        // 1-3 digits: too short to pin down, and addressMatches still accepts digit substrings.
+        assertThat(SmsUtils.addressPrefilter("555")).isNull()
+        assertThat(SmsUtils.addressPrefilter("ACME 1")).isNull()
+        // SQLite LIKE folds case for ASCII only; addressMatches ignores case for all letters.
+        assertThat(SmsUtils.addressPrefilter("Банк")).isNull()
+        assertThat(SmsUtils.addressPrefilter("   ")).isNull()
+    }
+
+    @Test
+    fun `pre-filter keeps every address that addressMatches accepts`() {
+        every { PhoneNumberUtils.compare("+385911234567", "0911234567") } returns true
+        listOf(
+            "BANK" to "bank",
+            "My-BANK" to "BANK",
+            "+15551234567" to "+1 555-123-4567",
+            "+15551234567" to "(555) 123-4567",
+            "5551234567" to "555 123 4567",
+            "+1 555-123-4567" to "+15551234567",
+            "+1 (555) 010-9999" to "555-0109",
+            "(555) 123-4567" to "5551234567",
+            "1 555 123 4567" to "+15551234567",
+            "+385911234567" to "0911234567",
+            "06 12 34 56 78" to "0612345678",
+        ).forEach { (address, filter) ->
+            assertWithMessage("$address / $filter").that(SmsUtils.addressMatches(address, filter)).isTrue()
+            val prefilter = SmsUtils.addressPrefilter(filter) ?: return@forEach
+            assertWithMessage("$address / $filter -> ${prefilter.arg}").that(like(prefilter.arg, address)).isTrue()
+        }
+    }
+
+    @Test
+    fun `pre-filter excludes numbers without the filter's trailing digits`() {
+        val arg = SmsUtils.addressPrefilter("555-0109")!!.arg
+        assertThat(like(arg, "+1 (555) 999-0000")).isFalse()
+        assertThat(like(arg, "BANK")).isFalse()
     }
 }

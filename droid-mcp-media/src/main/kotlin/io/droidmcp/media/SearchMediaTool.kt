@@ -4,7 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import io.droidmcp.core.*
-import java.text.ParsePosition
+import io.droidmcp.core.support.SqlLike
+import io.droidmcp.core.support.StrictDates
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,10 +44,10 @@ class SearchMediaTool(private val context: Context) : McpTool {
         val displayFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         val startMillis = startDateStr?.let {
-            (parseDate(it) ?: return ToolResult.error("Invalid start_date format. Use YYYY-MM-DD")).time
+            (StrictDates.parse("yyyy-MM-dd", it) ?: return ToolResult.error("Invalid start_date format. Use YYYY-MM-DD")).time
         }
         val endMillis = endDateStr?.let {
-            val parsed = parseDate(it) ?: return ToolResult.error("Invalid end_date format. Use YYYY-MM-DD")
+            val parsed = StrictDates.parse("yyyy-MM-dd", it) ?: return ToolResult.error("Invalid end_date format. Use YYYY-MM-DD")
             // End of day; Calendar.add rather than +86_400_000 so a DST switch doesn't shift it.
             Calendar.getInstance().apply {
                 time = parsed
@@ -87,7 +88,7 @@ class SearchMediaTool(private val context: Context) : McpTool {
         typeCondition?.let { conditions.add(it) }
         query?.let {
             conditions.add("${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? ESCAPE '\\'")
-            args.add("%${escapeLike(it)}%")
+            args.add("%${SqlLike.escape(it)}%")
         }
         startMillis?.let {
             conditions.add("${MediaStore.MediaColumns.DATE_TAKEN} >= ?")
@@ -140,17 +141,4 @@ class SearchMediaTool(private val context: Context) : McpTool {
             "media_type" to mediaType,
         ))
     }
-
-    /** Strict `yyyy-MM-dd` parse (device timezone): non-lenient and the whole string must match. */
-    internal fun parseDate(input: String): Date? {
-        val text = input.trim()
-        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
-        val pos = ParsePosition(0)
-        val date = format.parse(text, pos) ?: return null
-        return if (pos.errorIndex < 0 && pos.index == text.length) date else null
-    }
-
-    /** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
-    internal fun escapeLike(value: String): String =
-        value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }

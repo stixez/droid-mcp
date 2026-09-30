@@ -3,6 +3,7 @@ package io.droidmcp.sms
 import android.content.Context
 import android.provider.Telephony
 import io.droidmcp.core.*
+import io.droidmcp.core.support.StrictDates
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -11,7 +12,9 @@ import java.util.*
  * filtered by `address` and `since` (strict `yyyy-MM-dd`; an unparseable value is an error),
  * newest first. `address` matches a raw case-insensitive substring, a digits-only substring after
  * normalizing formatting (`+1 (555) 010-9999` → `+15550109999`), or `PhoneNumberUtils.compare`
- * (tolerates national vs international prefixes); it is applied in the cursor loop. Requires
+ * (tolerates national vs international prefixes). A SQL `LIKE` pre-filter
+ * ([SmsUtils.addressPrefilter]) narrows the rows the provider returns, and
+ * [SmsUtils.addressMatches] is the precise check in the cursor loop. Requires
  * `READ_SMS`. Output: `messages` (list of {id, address, body, date formatted
  * `yyyy-MM-dd HH:mm`, read}), `count`, and the resolved `box`. `box` is 'inbox'
  * (default) or 'sent'; `limit` clamps to 1–100 (default 10).
@@ -45,13 +48,20 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         val selectionParts = mutableListOf<String>()
         val selectionArgs = mutableListOf<String>()
 
-        // Address filtering happens in the cursor loop (see SmsUtils.addressMatches) rather than
-        // with SQL LIKE: stored addresses vary in formatting and country prefix ("+1 555-0109"
-        // vs "5550109"), which a substring LIKE can't reconcile.
+        // Stored addresses vary in formatting and country prefix ("+1 555-0109" vs "5550109"),
+        // which a plain substring LIKE can't reconcile, so SmsUtils.addressMatches decides in the
+        // cursor loop. The LIKE pre-filter only narrows the candidates (always a superset of the
+        // matches) so a filtered read doesn't pull the whole box through the provider.
+        if (address != null) {
+            SmsUtils.addressPrefilter(address)?.let {
+                selectionParts.add(it.selection)
+                selectionArgs.add(it.arg)
+            }
+        }
         if (since != null) {
             // Previously a bad `since` was silently swallowed, dropping the filter entirely
             // while the caller believed messages were date-filtered — now it's an error.
-            val sinceMillis = SmsUtils.parseDate(since)?.time
+            val sinceMillis = StrictDates.parse("yyyy-MM-dd", since)?.time
                 ?: return ToolResult.error("Invalid since date '$since'. Use format: YYYY-MM-DD")
             selectionParts.add("${Telephony.Sms.DATE} >= ?")
             selectionArgs.add(sinceMillis.toString())
@@ -73,20 +83,21 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         )
 
         context.contentResolver.query(uri, projection, selection, args, sortOrder)?.use { cursor ->
+            val idIdx = cursor.getColumnIndexOrThrow(Telephony.Sms._ID)
+            val addressIdx = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+            val bodyIdx = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
+            val dateIdx = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE)
+            val readIdx = cursor.getColumnIndexOrThrow(Telephony.Sms.READ)
             var count = 0
             while (cursor.moveToNext() && count < limit) {
-                if (address != null &&
-                    !SmsUtils.addressMatches(cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)), address)
-                ) {
-                    continue
-                }
-                val date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
+                val rowAddress = cursor.getString(addressIdx)
+                if (address != null && !SmsUtils.addressMatches(rowAddress, address)) continue
                 messages.add(mapOf(
-                    "id" to cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)),
-                    "address" to cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)),
-                    "body" to cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)),
-                    "date" to timeFormat.format(Date(date)),
-                    "read" to (cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.READ)) == 1),
+                    "id" to cursor.getLong(idIdx),
+                    "address" to rowAddress,
+                    "body" to cursor.getString(bodyIdx),
+                    "date" to timeFormat.format(Date(cursor.getLong(dateIdx))),
+                    "read" to (cursor.getInt(readIdx) == 1),
                 ))
                 count++
             }

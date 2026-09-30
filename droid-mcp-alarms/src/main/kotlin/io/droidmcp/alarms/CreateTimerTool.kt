@@ -8,6 +8,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Creates a countdown timer by firing an [AlarmClock.ACTION_SET_TIMER] intent at the system clock app
@@ -16,7 +17,7 @@ import io.droidmcp.core.ToolResult
  *
  * On Android 10+ the intent can only be delivered while the host app is in the foreground or
  * holds `SYSTEM_ALERT_WINDOW`; otherwise the platform silently blocks the launch, so the tool
- * returns an error up front (see [AlarmsUtils.canStartActivity]).
+ * returns an error up front (see [ActivityLaunch.canStartActivity]).
  *
  * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest).
  *
@@ -48,7 +49,7 @@ class CreateTimerTool(private val context: Context) : McpTool {
 
         // On API 29+ a background startActivity is silently dropped — fail loudly instead of
         // reporting success for an alarm that was never set.
-        if (!AlarmsUtils.canStartActivity(context)) {
+        if (!ActivityLaunch.canStartActivity(context)) {
             return ToolResult.error(AlarmsUtils.BACKGROUND_LAUNCH_ERROR)
         }
 

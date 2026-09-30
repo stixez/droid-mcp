@@ -10,6 +10,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Toggles WiFi on/off. Requires `CHANGE_WIFI_STATE`. On API 29+ apps cannot toggle WiFi directly,
@@ -35,7 +36,7 @@ class ToggleWifiTool(private val context: Context) : McpTool {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // API 29+: Cannot directly toggle WiFi, open settings panel
-            if (!canStartActivityNow(context)) {
+            if (!ActivityLaunch.canStartActivity(context)) {
                 return ToolResult.error(BACKGROUND_LAUNCH_ERROR)
             }
             val intent = Intent(Settings.Panel.ACTION_WIFI).apply {

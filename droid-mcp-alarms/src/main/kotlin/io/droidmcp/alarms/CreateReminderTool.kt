@@ -10,12 +10,14 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.CalendarSupport
+import io.droidmcp.core.support.StrictDates
 import java.util.*
 
 /**
  * Creates a reminder as a 30-minute calendar event with an alert, inserted into the device's primary
  * calendar (else the first visible calendar with contributor access, see
- * [AlarmsUtils.findWritableCalendarId]) via [CalendarContract]. Takes a `title`, a strictly-parsed
+ * [CalendarSupport.findWritableCalendarId]) via [CalendarContract]. Takes a `title`, a strictly-parsed
  * `datetime` (`yyyy-MM-dd HH:mm`, device timezone), and optional
  * `minutes_before` (default 10) for the alert lead time.
  *
@@ -48,10 +50,10 @@ class CreateReminderTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("datetime is required")
         val minutesBefore = (params["minutes_before"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 10
 
-        val startMillis = AlarmsUtils.parseDateTime(datetimeStr)?.time
+        val startMillis = StrictDates.parse("yyyy-MM-dd HH:mm", datetimeStr)?.time
             ?: return ToolResult.error("Invalid datetime '$datetimeStr'. Use format: YYYY-MM-DD HH:mm")
 
-        val calendarId = AlarmsUtils.findWritableCalendarId(context)
+        val calendarId = CalendarSupport.findWritableCalendarId(context)
             ?: return ToolResult.error("No writable calendar found on device")
 
         val eventValues = ContentValues().apply {

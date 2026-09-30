@@ -59,7 +59,7 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 - `notifications/cancelled` now stops the caller's in-flight `tools/call`. The cancelled request gets no response (HTTP 202).
 
 ### Tools that used to claim success when nothing happened now return errors
-- `send_message` waits for the carrier result and reports `status` as `sent`, `failed` or `timeout`.
+- `send_message` waits for the carrier result: a reported failure is a tool error (`SMS send failed: <reason>`); otherwise `status` is `sent`, or `timeout` (`sent: false`, not an error, since the message may still arrive; don't resend automatically).
 - `print_content` needs an Activity. Pass one with `PrintTools.all(context) { currentActivity }`.
 - When the host is in the background and lacks the overlay permission, Android 10+ silently drops activity launches. The affected tools now return an error instead of claiming success:
   - The intent tools return the code `background_activity_launch_blocked`.

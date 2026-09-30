@@ -17,7 +17,3 @@ internal fun callTypeName(type: Int): String = when (type) {
     CallLog.Calls.BLOCKED_TYPE -> "blocked"
     else -> "unknown"
 }
-
-/** Escapes `\`, `%`, `_` so [value] matches literally inside a `LIKE ? ESCAPE '\'` clause. */
-internal fun escapeLike(value: String): String =
-    value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

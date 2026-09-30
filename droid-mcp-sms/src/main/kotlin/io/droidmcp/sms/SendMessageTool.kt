@@ -23,10 +23,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * Each part carries an immutable sent-`PendingIntent` (unique request code, delivered to a
  * non-exported receiver registered for the duration of the call), and the tool waits up to 15 s
  * for the radio to report a result for every part. Output: `sent` (true only when every part
- * reported `RESULT_OK`), echoed `to`, `body_length`, `parts`, and `status` (`sent` | `failed` |
- * `timeout`); on `failed`/`timeout` an `error` string explains what happened (a timeout means the
- * outcome is unknown, not that the message was dropped). Exceptions thrown by `SmsManager`
- * itself (bad address, missing permission) return a tool error.
+ * reported `RESULT_OK`), echoed `to`, `body_length`, `parts`, and `status` (`sent` | `timeout`).
+ *
+ * If the radio reports a failure for any part, the tool returns an error (`SMS send failed:
+ * <reason>`). A timeout is deliberately *not* an error: it returns success with `sent: false`,
+ * `status: "timeout"` and an `error` string, because an unconfirmed send may still be delivered
+ * and treating it as a failure would invite the caller to resend a duplicate. Exceptions thrown
+ * by `SmsManager` itself (bad address, missing permission) also return a tool error.
  */
 class SendMessageTool(private val context: Context) : McpTool {
 
@@ -42,7 +45,7 @@ class SendMessageTool(private val context: Context) : McpTool {
     }
 
     override val name = "send_message"
-    override val description = "Send an SMS message to a phone number. Waits up to 15s for the radio to confirm; `sent` is true only when every part was confirmed sent."
+    override val description = "Send an SMS message to a phone number. Waits up to 15s for the radio to confirm; `sent` is true only when every part was confirmed sent. A radio-reported failure is an error. A timeout returns `sent: false` with `status: \"timeout\"`: the message may still arrive, so do not resend it automatically."
     override val parameters = listOf(
         ToolParameter("to", "Recipient phone number", ParameterType.STRING, required = true),
         ToolParameter("body", "Message text", ParameterType.STRING, required = true),
@@ -126,25 +129,26 @@ class SendMessageTool(private val context: Context) : McpTool {
             val codes = synchronized(resultCodes) { resultCodes.copyOf() }
             val failed = codes.filter { it != PENDING && it != Activity.RESULT_OK }
 
+            if (failed.isNotEmpty()) {
+                return ToolResult.error(
+                    "SMS send failed: " + failed.distinct().joinToString(", ") { describeResultCode(it) },
+                )
+            }
+
             val result = linkedMapOf<String, Any?>(
-                "sent" to (confirmed && failed.isEmpty()),
+                "sent" to confirmed,
                 "to" to to,
                 "body_length" to body.length,
                 "parts" to parts.size,
             )
-            when {
-                failed.isNotEmpty() -> {
-                    result["status"] = "failed"
-                    result["error"] = "SMS send failed: " +
-                        failed.distinct().joinToString(", ") { describeResultCode(it) }
-                }
-                !confirmed -> {
-                    result["status"] = "timeout"
-                    result["error"] = "No send confirmation from the radio within ${SEND_TIMEOUT_MS / 1000}s " +
-                        "(${codes.count { it == Activity.RESULT_OK }}/${parts.size} parts confirmed); " +
-                        "the message may or may not have been sent"
-                }
-                else -> result["status"] = "sent"
+            if (confirmed) {
+                result["status"] = "sent"
+            } else {
+                // Not an error: the message may still go out, and an error would invite a resend.
+                result["status"] = "timeout"
+                result["error"] = "No send confirmation from the radio within ${SEND_TIMEOUT_MS / 1000}s " +
+                    "(${codes.count { it == Activity.RESULT_OK }}/${parts.size} parts confirmed); " +
+                    "the message may or may not have been sent"
             }
             return ToolResult.success(result)
         } finally {
