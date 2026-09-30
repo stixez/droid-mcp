@@ -36,7 +36,7 @@ subprojects {
                         from(components["release"])
                         groupId = "io.droidmcp"
                         artifactId = project.name
-                        version = "0.10.1"
+                        version = providers.gradleProperty("VERSION_NAME").get()
                     }
                 }
             }

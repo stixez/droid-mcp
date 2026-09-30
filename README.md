@@ -70,25 +70,25 @@ dependencyResolutionManagement {
 // build.gradle.kts
 dependencies {
     // Core (required)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.11.0")
 
     // Pick what you need
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.10.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-sms:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-location:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-camera:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-mlkit:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-accessibility:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-ime:0.11.0")
     // ... see full list below
 
     // Or include everything (except Tier 4/5 power-user modules)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.10.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.11.0")
 
     // Power-user tiers — opt in only if you want them (they pull third-party deps)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.10.1")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
-    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.10.1")       // Tier 5: root-UID admin (pulls libsu)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.11.0")    // Tier 4: shell-UID admin (pulls dev.rikka.shizuku)
+    implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.11.0")       // Tier 5: root-UID admin (pulls libsu)
 }
 ```
 
