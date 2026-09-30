@@ -1,5 +1,6 @@
 package io.droidmcp.tls
 
+import android.util.Log
 import io.droidmcp.core.transport.TlsConfig
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
@@ -10,6 +11,8 @@ import java.math.BigInteger
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.UnrecoverableKeyException
+import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import java.util.Date
 import javax.security.auth.x500.X500Principal
@@ -38,6 +41,7 @@ object SelfSignedCert {
     private const val KEY_SIZE_BITS = 2048
     private const val DEFAULT_ALIAS = "droid-mcp"
     private const val DEFAULT_PASSWORD = "droid-mcp"
+    private const val TAG = "SelfSignedCert"
 
     /**
      * Load the keystore at [file] if it exists, otherwise generate a fresh
@@ -49,6 +53,9 @@ object SelfSignedCert {
      *   file; the security boundary is the pinned fingerprint, not this value)
      * @param httpsPort port the TLS server should bind
      * @param validityDays certificate lifetime
+     * @throws IOException if the keystore exists but [password] is wrong — regenerating would
+     *   silently change the pinned fingerprint, so this is surfaced instead.
+     * @throws IllegalStateException if the keystore exists but holds no entry under [alias].
      */
     fun loadOrCreate(
         file: File,
@@ -58,17 +65,7 @@ object SelfSignedCert {
         validityDays: Long = 3650,
     ): TlsConfig {
         val keyStore = if (file.exists()) {
-            try {
-                KeyStore.getInstance(KEYSTORE_TYPE).apply {
-                    file.inputStream().use { load(it, password) }
-                }
-            } catch (e: Exception) {
-                // Corrupt or truncated keystore (e.g. the process was killed mid-write, since
-                // the previous write wasn't atomic) — regenerate rather than permanently
-                // breaking TLS for this host app until someone manually deletes the file.
-                file.delete()
-                generateAndPersist(file, alias, password, validityDays)
-            }
+            loadExisting(file, alias, password, validityDays)
         } else {
             generateAndPersist(file, alias, password, validityDays)
         }
@@ -79,6 +76,39 @@ object SelfSignedCert {
             privateKeyPassword = password,
             httpsPort = httpsPort,
         )
+    }
+
+    /**
+     * Loads [file]. Only genuine corruption (truncated/garbled file) or an expired certificate
+     * triggers regeneration; a wrong password or a missing alias is a host configuration error
+     * and is thrown, because regenerating would silently break every client pinning the old
+     * fingerprint.
+     */
+    private fun loadExisting(file: File, alias: String, password: CharArray, validityDays: Long): KeyStore {
+        val keyStore = try {
+            KeyStore.getInstance(KEYSTORE_TYPE).apply {
+                file.inputStream().use { load(it, password) }
+            }
+        } catch (e: IOException) {
+            // JDK signals a bad password via the cause; Android's BouncyCastle PKCS12 provider
+            // only via the message ("mac invalid - wrong password or corrupted file").
+            if (e.cause is UnrecoverableKeyException || e.message?.contains("password", ignoreCase = true) == true) {
+                throw e
+            }
+            Log.w(TAG, "TLS keystore at ${file.path} is corrupt; regenerating (fingerprint will change)", e)
+            file.delete()
+            return generateAndPersist(file, alias, password, validityDays)
+        }
+        val cert = keyStore.getCertificate(alias) as? X509Certificate
+            ?: throw IllegalStateException("TLS keystore ${file.path} has no certificate under alias '$alias'")
+        return try {
+            cert.checkValidity()
+            keyStore
+        } catch (_: CertificateException) {
+            Log.w(TAG, "TLS certificate in ${file.path} expired; regenerating (fingerprint will change)")
+            file.delete()
+            generateAndPersist(file, alias, password, validityDays)
+        }
     }
 
     /** Generates a fresh keystore and persists it to [file] via a temp-file-then-rename

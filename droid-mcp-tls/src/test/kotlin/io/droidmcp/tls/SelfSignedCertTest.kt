@@ -2,8 +2,10 @@ package io.droidmcp.tls
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.io.IOException
 import java.security.cert.X509Certificate
 import java.nio.file.Path
 
@@ -56,5 +58,26 @@ class SelfSignedCertTest {
         assertThat(file.exists()).isTrue()
         val cert = config.keyStore.getCertificate(config.keyAlias) as X509Certificate
         assertThat(cert.subjectX500Principal.name).contains("droid-mcp")
+    }
+
+    @Test
+    fun `wrong password throws instead of silently regenerating`(@TempDir dir: Path) {
+        val file = File(dir.toFile(), "tls.p12")
+        val original = SelfSignedCert.loadOrCreate(file, password = "right-pass".toCharArray())
+        val before = file.readBytes()
+
+        assertThrows<IOException> { SelfSignedCert.loadOrCreate(file, password = "wrong-pass".toCharArray()) }
+
+        assertThat(file.readBytes()).isEqualTo(before)
+        assertThat(SelfSignedCert.loadOrCreate(file, password = "right-pass".toCharArray()).certFingerprintSha256)
+            .isEqualTo(original.certFingerprintSha256)
+    }
+
+    @Test
+    fun `missing alias throws a clear error`(@TempDir dir: Path) {
+        val file = File(dir.toFile(), "tls.p12")
+        SelfSignedCert.loadOrCreate(file, alias = "one")
+        val e = assertThrows<IllegalStateException> { SelfSignedCert.loadOrCreate(file, alias = "two") }
+        assertThat(e.message).contains("two")
     }
 }

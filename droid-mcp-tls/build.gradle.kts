@@ -14,6 +14,8 @@ android {
     kotlinOptions { jvmTarget = "11" }
     testOptions {
         unitTests.all { it.useJUnitPlatform() }
+        // SelfSignedCert logs via android.util.Log on the regenerate paths.
+        unitTests.isReturnDefaultValues = true
     }
 }
 
