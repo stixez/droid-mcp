@@ -118,4 +118,16 @@ class ToolRegistryExecutionTest {
         }
         assertThat(registry.executeTool("read", emptyMap()).isSuccess).isTrue()
     }
+
+    @Test
+    fun `viaClientElicitation falls back when the caller can't elicit`() = runBlocking {
+        var ran = false
+        val declines = ToolRegistry(confirmer = ToolCallConfirmer.viaClientElicitation()).apply { register(destructive("a") { ran = true }) }
+        assertThat(declines.executeTool("a", emptyMap()).errorMessage).startsWith("tool_call_declined")
+        assertThat(ran).isFalse()
+
+        val approves = ToolRegistry(confirmer = ToolCallConfirmer.viaClientElicitation { true }).apply { register(destructive("b") { ran = true }) }
+        assertThat(approves.executeTool("b", emptyMap()).isSuccess).isTrue()
+        assertThat(ran).isTrue()
+    }
 }

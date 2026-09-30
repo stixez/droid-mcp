@@ -213,7 +213,13 @@ public final class io/droidmcp/core/ToolCallAudit {
 }
 
 public abstract interface class io/droidmcp/core/ToolCallConfirmer {
+	public static final field Companion Lio/droidmcp/core/ToolCallConfirmer$Companion;
 	public abstract fun confirm (Lio/droidmcp/core/ToolCallRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/ToolCallConfirmer$Companion {
+	public final fun viaClientElicitation (Lio/droidmcp/core/ToolCallConfirmer;)Lio/droidmcp/core/ToolCallConfirmer;
+	public static synthetic fun viaClientElicitation$default (Lio/droidmcp/core/ToolCallConfirmer$Companion;Lio/droidmcp/core/ToolCallConfirmer;ILjava/lang/Object;)Lio/droidmcp/core/ToolCallConfirmer;
 }
 
 public final class io/droidmcp/core/ToolCallContextKt {

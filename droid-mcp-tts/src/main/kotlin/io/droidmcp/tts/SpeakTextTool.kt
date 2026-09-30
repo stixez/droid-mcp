@@ -8,8 +8,11 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.reportProgress
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.channels.Channel
 import java.util.Locale
 
 /**
@@ -62,11 +65,14 @@ class SpeakTextTool(private val context: Context) : McpTool {
             val idPrefix = "droid-mcp-tts-${System.nanoTime()}-"
             val lastId = idPrefix + (chunks.size - 1)
             val outcome = CompletableDeferred<ToolResult>()
+            // TTS callbacks run on the engine's thread; hand finished chunk numbers to the coroutine.
+            val finishedChunks = Channel<Int>(Channel.UNLIMITED)
 
             engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {}
 
                 override fun onDone(utteranceId: String?) {
+                    utteranceId?.removePrefix(idPrefix)?.toIntOrNull()?.let { finishedChunks.trySend(it + 1) }
                     if (utteranceId == lastId) {
                         outcome.complete(ToolResult.success(mapOf(
                             "success" to true,
@@ -95,8 +101,17 @@ class SpeakTextTool(private val context: Context) : McpTool {
             }
 
             val timeoutMs = playbackTimeoutMs(text.length, speed)
-            withTimeoutOrNull(timeoutMs) { outcome.await() }
-                ?: ToolResult.error("TTS playback timed out after ${timeoutMs / 1000}s")
+            withTimeoutOrNull(timeoutMs) {
+                while (!outcome.isCompleted) {
+                    select {
+                        outcome.onAwait { }
+                        finishedChunks.onReceive { done ->
+                            if (chunks.size > 1) reportProgress(done.toDouble(), chunks.size.toDouble(), "Spoke chunk $done of ${chunks.size}")
+                        }
+                    }
+                }
+                outcome.await()
+            } ?: ToolResult.error("TTS playback timed out after ${timeoutMs / 1000}s")
         }
     }
 

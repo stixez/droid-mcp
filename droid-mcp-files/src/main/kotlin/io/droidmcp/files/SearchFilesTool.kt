@@ -70,6 +70,9 @@ class SearchFilesTool(private val context: Context) : McpTool {
                     budgetExhausted = true
                     return
                 }
+                if (visited % PROGRESS_EVERY == 0) {
+                    reportProgress(visited.toDouble(), message = "Scanned $visited entries, ${results.size} matches")
+                }
                 // Never follow or report symlinks: they can loop, or point outside the sandbox.
                 val isLink = try {
                     Files.isSymbolicLink(file.toPath())
@@ -106,6 +109,9 @@ class SearchFilesTool(private val context: Context) : McpTool {
     private companion object {
         /** Max directory entries examined per call. */
         const val MAX_VISITED = 20_000
+
+        /** Report progress every this many visited entries. */
+        private const val PROGRESS_EVERY = 500
 
         /** Max wall-clock time per call, in milliseconds. */
         const val TIME_BUDGET_MS = 10_000L

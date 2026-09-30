@@ -23,6 +23,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.reportProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -165,7 +166,10 @@ class CaptureVideoTool(private val context: Context) : McpTool {
             session!!.setRepeatingRequest(captureRequest, null, handler)
             mediaRecorder.start()
 
-            delay(durationSec * 1000L)
+            for (second in 1..durationSec) {
+                delay(1000L)
+                reportProgress(second.toDouble(), durationSec.toDouble(), "Recording")
+            }
 
             mediaRecorder.stop()
             mediaRecorder.release()
