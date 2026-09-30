@@ -8,15 +8,20 @@ import io.droidmcp.core.ToolResult
 
 /**
  * Shared body for the three `put_*_setting` tools. `namespace` is the
- * `settings` CLI namespace (`secure` / `global` / `system`).
+ * `settings` CLI namespace (`secure` / `global` / `system`). Keys in
+ * [ShellPolicy.deniedSettingKeys] are refused with `denied_by_policy`.
  */
 private suspend fun putSetting(
     shell: ShellBackend,
     namespace: String,
     params: Map<String, Any>,
+    policy: ShellPolicy,
 ): ToolResult {
     val key = ShellValidation.requireSettingsKey(params["key"]?.toString())
         .getOrElse { return (it as ShellValidationFailure).let { f -> ToolResult.error(f.code, f.detail) } }
+    if (policy.isSettingKeyDenied(key)) {
+        return policyDenied("host policy forbids writing settings key '$key'")
+    }
     val value = ShellValidation.requireSettingsValue(params["value"]?.toString())
         .getOrElse { return (it as ShellValidationFailure).let { f -> ToolResult.error(f.code, f.detail) } }
     return shell.gatedExec("settings", listOf("put", namespace, key, value)) { result ->
@@ -38,14 +43,17 @@ private suspend fun putSetting(
  * most apps cannot do without privileged shell access. Idempotent. Delegates
  * to [putSetting]; treated as failure on non-zero exit or non-empty stderr.
  *
- * Privilege: requires a working [ShellBackend].
+ * Privilege: requires a working [ShellBackend]. Honours [ShellPolicy.deniedSettingKeys].
  *
  * Params: `key` (required), `value` (required).
  *
  * On success the result map carries `success` (true), `namespace`
  * (`"secure"`), `key`, and `value`.
  */
-class PutSecureSettingTool(private val shell: ShellBackend) : McpTool {
+class PutSecureSettingTool(
+    private val shell: ShellBackend,
+    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+) : McpTool {
     override val name = "put_secure_setting"
     override val description = "Write a Settings.Secure value via `settings put secure`. Examples: location-mode, accessibility-enabled toggles. Most apps cannot write these without privileged shell access. Idempotent."
     override val parameters = listOf(
@@ -53,7 +61,7 @@ class PutSecureSettingTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("value", "Value to write. The shell converts numbers / booleans implicitly.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
-    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "secure", params)
+    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "secure", params, policy)
 }
 
 /**
@@ -61,14 +69,17 @@ class PutSecureSettingTool(private val shell: ShellBackend) : McpTool {
  * `airplane_mode_on`, `wifi_on`). Idempotent. Delegates to [putSetting];
  * treated as failure on non-zero exit or non-empty stderr.
  *
- * Privilege: requires a working [ShellBackend].
+ * Privilege: requires a working [ShellBackend]. Honours [ShellPolicy.deniedSettingKeys].
  *
  * Params: `key` (required), `value` (required).
  *
  * On success the result map carries `success` (true), `namespace`
  * (`"global"`), `key`, and `value`.
  */
-class PutGlobalSettingTool(private val shell: ShellBackend) : McpTool {
+class PutGlobalSettingTool(
+    private val shell: ShellBackend,
+    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+) : McpTool {
     override val name = "put_global_setting"
     override val description = "Write a Settings.Global value via `settings put global`. Examples: airplane_mode_on, wifi_on. Idempotent."
     override val parameters = listOf(
@@ -76,7 +87,7 @@ class PutGlobalSettingTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("value", "Value to write.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
-    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "global", params)
+    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "global", params, policy)
 }
 
 /**
@@ -84,14 +95,17 @@ class PutGlobalSettingTool(private val shell: ShellBackend) : McpTool {
  * `screen_brightness`, `screen_off_timeout`). Idempotent. Delegates to
  * [putSetting]; treated as failure on non-zero exit or non-empty stderr.
  *
- * Privilege: requires a working [ShellBackend].
+ * Privilege: requires a working [ShellBackend]. Honours [ShellPolicy.deniedSettingKeys].
  *
  * Params: `key` (required), `value` (required).
  *
  * On success the result map carries `success` (true), `namespace`
  * (`"system"`), `key`, and `value`.
  */
-class PutSystemSettingTool(private val shell: ShellBackend) : McpTool {
+class PutSystemSettingTool(
+    private val shell: ShellBackend,
+    private val policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+) : McpTool {
     override val name = "put_system_setting"
     override val description = "Write a Settings.System value via `settings put system`. Examples: screen_brightness, screen_off_timeout. Idempotent."
     override val parameters = listOf(
@@ -99,5 +113,5 @@ class PutSystemSettingTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("value", "Value to write.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
-    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "system", params)
+    override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "system", params, policy)
 }

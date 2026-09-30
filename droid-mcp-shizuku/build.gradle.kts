@@ -9,6 +9,8 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
+        // Keeps the reflectively-invoked Shizuku.newProcess in minified hosts.
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {

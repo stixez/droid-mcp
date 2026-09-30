@@ -32,6 +32,11 @@ interface ShellBackend {
      * permission denied, process spawn failed). Tools translate that into a
      * `shell_unavailable: <reason>` MCP error.
      *
+     * Implementations should bound both wall-clock time (throwing
+     * [ShellException.SpawnFailed] on timeout, after killing the process) and
+     * captured output size (reporting [ShellResult.outputTruncated]), and must
+     * honour coroutine cancellation by killing the process.
+     *
      * **Output format is implementation-dependent for binary commands.**
      * The Shizuku backend returns raw bytes (it reads `process.inputStream`
      * directly). The libsu backend's `Shell.Result.out` is line-decoded
@@ -69,11 +74,17 @@ interface ShellBackend {
  * [stdoutBytes] is the raw byte stream — needed for binary commands like
  * `screencap -p` which emit PNG bytes. [stdout] is the UTF-8 decode of those
  * bytes for text use. [stderr] is always text.
+ *
+ * [outputTruncated] is `true` when the backend stopped collecting output because
+ * stdout or stderr exceeded its per-stream capture cap (the process is killed at
+ * that point, so [exitCode] is then `-1` and the captured output is a prefix).
+ * Backends that don't cap leave it `false`.
  */
 data class ShellResult(
     val exitCode: Int,
     val stdoutBytes: ByteArray,
     val stderr: String,
+    val outputTruncated: Boolean = false,
 ) {
     val stdout: String by lazy { stdoutBytes.toString(Charsets.UTF_8) }
     val isSuccess: Boolean get() = exitCode == 0
@@ -92,6 +103,7 @@ data class ShellResult(
         if (other !is ShellResult) return false
         return exitCode == other.exitCode &&
             stderr == other.stderr &&
+            outputTruncated == other.outputTruncated &&
             stdoutBytes.contentEquals(other.stdoutBytes)
     }
 
@@ -99,6 +111,7 @@ data class ShellResult(
         var result = exitCode
         result = 31 * result + stdoutBytes.contentHashCode()
         result = 31 * result + stderr.hashCode()
+        result = 31 * result + outputTruncated.hashCode()
         return result
     }
 }
@@ -108,6 +121,10 @@ data class ShellResult(
  * from a non-zero exit code returned by the spawned process.
  */
 sealed class ShellException(message: String) : Exception(message) {
+    /**
+     * Backend unreachable — Shizuku binder down / died mid-call, `su` shell could not be
+     * created, etc. Tools report it as `shell_unavailable`.
+     */
     class NotAvailable(reason: String) : ShellException("shell backend not available: $reason")
     class PermissionDenied(reason: String) : ShellException("shell permission denied: $reason")
     class SpawnFailed(reason: String) : ShellException("shell spawn failed: $reason")

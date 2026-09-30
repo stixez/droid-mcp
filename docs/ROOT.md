@@ -17,7 +17,7 @@ All four expose the same `su` binary contract that libsu uses; the SDK doesn't c
 
 ## 2. Grant the host app root access
 
-On the first `Shell.cmd(...).exec()` call (or `Shell.getShell { }`), the superuser manager surfaces a prompt asking whether to grant root to the host app. Tap **Allow** (or "Grant" / "Forever").
+On the first root shell creation (`RootTools.requestAccess()`, i.e. `Shell.getShell { }`), the superuser manager surfaces a prompt asking whether to grant root to the host app. Tap **Allow** (or "Grant" / "Forever").
 
 droid-mcp's `RootTools.requestAccess(onResult)` triggers this prompt asynchronously without blocking the UI. The callback fires once libsu has the shell ready, with `true` if the resulting shell is a root shell. The sample app wires it to the **Grant Access** chip on the "Root" tool category: grant arrives → callback fires → `MainViewModel.initialize()` re-runs → Root-backed tools appear in the registry without an app restart.
 
@@ -73,6 +73,22 @@ The sample app uses a simpler "last-write-wins" pattern: registers Shizuku first
 
 Granting root to a host app is **strictly more powerful** than Shizuku — that app can now do everything the device can do. Treat as you would `su` access from a terminal: only enable for apps you trust deeply. droid-mcp's MCP server bearer-auth still gates the LLM's tool calls, but a malicious / compromised tool gets `root`-UID range once it crosses that boundary.
 
-The default-deny `ShellAllowlist` on `run_shell` continues to apply. Specific verbs (`force_stop_app`, `put_secure_setting`, etc.) are narrow-scope by construction. Don't broaden the allowlist beyond what your app actually needs.
+**What the dedicated tools can do — they are not narrow.** Even with `run_shell` disabled, the typed tools are enough to take over the device if the model is steered by a malicious prompt (e.g. via a notification, web page or message it reads):
 
-**libsu license:** libsu is Apache 2.0. droid-mcp bundles the `:core` artifact only; we don't bundle Magisk binaries, Magisk app code, or any other content from the Magisk repository. The libsu API surface we use is the public Kotlin DSL (`Shell.cmd(...)`, `Shell.isAppGrantedRoot()`, `Shell.getShell {}`).
+- `put_secure_setting` / `put_global_setting` / `put_system_setting` write *any* key: enabling an accessibility service or notification listener (`enabled_accessibility_services`, `enabled_notification_listeners`), switching the default keyboard (`default_input_method`), turning on ADB (`adb_enabled`, `adb_wifi_enabled`), disabling package verification, etc.
+- `grant_permission` grants any runtime permission the target app declares — and `development`-protection permissions such as `WRITE_SECURE_SETTINGS`.
+- `install_apk` installs any readable APK silently (the path must be absolute and end in `.apk`, but there is no storage sandbox); `uninstall_app` / `clear_app_data` / `disable_app` are destructive.
+
+**Host denylist.** Pass a `ShellPolicy` when registering to block specific setting keys and grantable permissions — denied calls return `denied_by_policy` without spawning anything. The default (`ShellPolicy.PERMISSIVE`) blocks nothing; `ShellPolicy.RECOMMENDED` blocks the keys/permissions above:
+
+```kotlin
+RootTools.all(context, ShellPolicy.RECOMMENDED)
+```
+
+Only register the tools you actually need (filter the returned list by name), and prefer `readOnly` servers or per-tool gating for anything exposed to untrusted input.
+
+**`run_shell` allowlist.** `run_shell` is default-deny. `ShellAllowlist.set(...)` entries are matched token-by-token against the request's leading argv (`"pm list"` matches `pm list packages`, not `pmx` or `pm listx`); arguments after the matched prefix are unrestricted, so allowlist the narrowest prefix that works. Entries starting with an interpreter or exec-wrapper (`sh`, `bash`, `toybox`, `busybox`, `su`, `app_process`, `env`, `xargs`, `nohup`, `timeout`, `awk`, `python`, …) are **rejected** with `IllegalArgumentException`, because allowlisting one would let the model run anything as the `root` UID. Commands that can spawn subprocesses from their arguments (`find -exec`, …) can't all be enumerated — review each entry with that in mind.
+
+**Timeouts and output caps.** Each call runs in its own freshly built `su` shell (never libsu's shared main shell), with stdin redirected from `/dev/null`, so a command that reads stdin, changes directory/environment or exits can't poison later calls. Calls are limited to 30 s (configurable via `RootShellBackend(execTimeoutMs = ...)`) and ~4 MiB per stream (64 MiB stdout for `capture_screen_quiet`, whose temp file under `/data/local/tmp` is created with `umask 077` and always deleted). On timeout, caller cancellation or an exceeded cap the dedicated shell is closed, killing the command. A timeout reports `shell_spawn_failed`; an exceeded cap returns the captured prefix with `stdout_truncated`/`stderr_truncated` and `exit_code: -1`. stderr is captured separately. Some superuser managers show a toast or log entry per `su` session — expect one per tool call.
+
+**libsu license:** libsu is Apache 2.0. droid-mcp depends on the `:core` and `:io` artifacts only; we don't bundle Magisk binaries, Magisk app code, or any other content from the Magisk repository. The libsu API surface we use is public (`Shell.Builder`, `Shell.newJob()`, `Shell.isAppGrantedRoot()`, `Shell.getShell {}`, `SuFile` / `SuFileInputStream`).

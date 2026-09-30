@@ -80,10 +80,29 @@ If any tool returns `shell_unavailable: Shizuku`, the binder isn't reachable —
 
 - **Survives reboot?** No. Shizuku must be re-activated via wireless debugging or ADB after every reboot. The Shizuku app shows the activation command in a notification once you've activated it once.
 - **Sui (root-Shizuku):** users with root can install Sui (Shizuku-as-Magisk-module) and skip the wireless-debugging step. The API is identical; droid-mcp doesn't care which is running.
+- **Package visibility:** the module's manifest declares a `<queries>` entry for `moe.shizuku.privileged.api`, so `permissionStatus()` can tell "not installed" from "not activated" on API 30+.
 - **API version:** droid-mcp's Shizuku integration is pinned to API v13.x. The Shizuku app and the API library are usually decoupled; any recent Shizuku app build is compatible.
 
 ## 6. Security notes
 
 Granting Shizuku to a host app is a meaningful trust extension — that app can now run anything `adb shell` can. Treat the grant as you would `adb shell` access: only enable it for apps you trust. droid-mcp uses Shizuku to mediate LLM tool calls; the host app's MCP server bearer-auth setup is still the boundary the LLM has to clear, but a malicious / compromised tool call gets `shell`-UID range once it crosses that boundary.
 
-The default-deny `ShellAllowlist` on the `run_shell` tool prevents arbitrary command execution by the LLM; specific tools like `force_stop_app` / `put_secure_setting` are narrow-scope by construction. Don't broaden the allowlist beyond what your app actually needs.
+**What the dedicated tools can do — they are not narrow.** Even with `run_shell` disabled, the typed tools are enough to take over the device if the model is steered by a malicious prompt (e.g. via a notification, web page or message it reads):
+
+- `put_secure_setting` / `put_global_setting` / `put_system_setting` write *any* key: enabling an accessibility service or notification listener (`enabled_accessibility_services`, `enabled_notification_listeners`), switching the default keyboard (`default_input_method`), turning on ADB (`adb_enabled`, `adb_wifi_enabled`), disabling package verification, etc.
+- `grant_permission` grants any runtime permission the target app declares — and `development`-protection permissions such as `WRITE_SECURE_SETTINGS`.
+- `install_apk` installs any readable APK silently (the path must be absolute and end in `.apk`, but there is no storage sandbox); `uninstall_app` / `clear_app_data` / `disable_app` are destructive.
+
+**Host denylist.** Pass a `ShellPolicy` when registering to block specific setting keys and grantable permissions — denied calls return `denied_by_policy` without spawning anything. The default (`ShellPolicy.PERMISSIVE`) blocks nothing; `ShellPolicy.RECOMMENDED` blocks the keys/permissions above:
+
+```kotlin
+ShizukuTools.all(context, ShellPolicy.RECOMMENDED)
+```
+
+Only register the tools you actually need (filter the returned list by name), and prefer `readOnly` servers or per-tool gating for anything exposed to untrusted input.
+
+**`run_shell` allowlist.** `run_shell` is default-deny. `ShellAllowlist.set(...)` entries are matched token-by-token against the request's leading argv (`"pm list"` matches `pm list packages`, not `pmx` or `pm listx`); arguments after the matched prefix are unrestricted, so allowlist the narrowest prefix that works. Entries starting with an interpreter or exec-wrapper (`sh`, `bash`, `toybox`, `busybox`, `su`, `app_process`, `env`, `xargs`, `nohup`, `timeout`, `awk`, `python`, …) are **rejected** with `IllegalArgumentException`, because allowlisting one would let the model run anything as the `shell` UID. Commands that can spawn subprocesses from their arguments (`find -exec`, …) can't all be enumerated — review each entry with that in mind.
+
+**Timeouts and output caps.** Each call runs with a 30 s wall-clock limit (configurable via `ShizukuShellBackend(execTimeoutMs = ...)`) and 4 MiB per stream of captured stdout/stderr (64 MiB stdout for `capture_screen_quiet`). The child's stdin is closed at spawn. On timeout, caller cancellation (the core `ToolRegistry` per-tool timeout included) or an exceeded cap, the remote process is destroyed and its pipes closed. A timeout reports `shell_spawn_failed`; an exceeded cap returns the captured prefix with `stdout_truncated`/`stderr_truncated` and `exit_code: -1`. If the Shizuku service dies mid-call, tools report `shell_unavailable`.
+
+**R8 / ProGuard.** `ShizukuShellBackend` reflectively calls the private `Shizuku.newProcess`. The module ships consumer rules (`consumer-rules.pro`) that keep it, so minified host builds work without extra configuration.

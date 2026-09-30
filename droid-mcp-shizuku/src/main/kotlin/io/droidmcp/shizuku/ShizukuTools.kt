@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
+import io.droidmcp.shell.ShellPolicy
 import io.droidmcp.shell.ShellTools
 import rikka.shizuku.Shizuku
 
@@ -21,7 +22,15 @@ object ShizukuTools {
 
     private val backend = ShizukuShellBackend()
 
-    fun all(context: Context): List<McpTool> = ShellTools.all(context, backend)
+    /**
+     * The shell-core tool set wired against the Shizuku backend.
+     *
+     * @param policy optional host denylist for settings keys / grantable permissions
+     *   (see [ShellPolicy]). Defaults to [ShellPolicy.PERMISSIVE]; pass
+     *   [ShellPolicy.RECOMMENDED] unless the model is fully trusted.
+     */
+    fun all(context: Context, policy: ShellPolicy = ShellPolicy.PERMISSIVE): List<McpTool> =
+        ShellTools.all(context, backend, policy)
 
     /**
      * No `Manifest.permission.*` runtime grants — Shizuku's permission is its

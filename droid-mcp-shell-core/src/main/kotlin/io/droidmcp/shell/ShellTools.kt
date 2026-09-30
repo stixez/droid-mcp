@@ -16,8 +16,15 @@ object ShellTools {
 
     /**
      * The full 0.8.0 shell-tool set, wired against [shell].
+     *
+     * @param policy optional host denylist applied to the settings-write and
+     *   `grant_permission` tools. Defaults to [ShellPolicy.PERMISSIVE] (denies nothing).
      */
-    fun all(context: Context, shell: ShellBackend): List<McpTool> = listOf(
+    fun all(
+        context: Context,
+        shell: ShellBackend,
+        policy: ShellPolicy = ShellPolicy.PERMISSIVE,
+    ): List<McpTool> = listOf(
         // PM
         InstallApkTool(shell),
         UninstallAppTool(shell),
@@ -26,13 +33,13 @@ object ShellTools {
         DisableAppTool(shell),
         EnableAppTool(shell),
         // Permissions
-        GrantPermissionTool(shell),
+        GrantPermissionTool(shell, policy),
         RevokePermissionTool(shell),
         ListAppPermissionsTool(shell),
         // Settings
-        PutSecureSettingTool(shell),
-        PutGlobalSettingTool(shell),
-        PutSystemSettingTool(shell),
+        PutSecureSettingTool(shell, policy),
+        PutGlobalSettingTool(shell, policy),
+        PutSystemSettingTool(shell, policy),
         // Dumpsys (just the cheap ones in 0.8.0; batterystats / procstats / notifications dumpsys deferred)
         GetTopWindowTool(shell),
         // Standby

@@ -64,6 +64,33 @@ class ShellToolsTest {
     }
 
     @Test
+    fun `install_apk rejects option-like, relative, and non-apk paths`() = runTest {
+        val shell = FakeShellBackend().apply { stubAlwaysSucceed("Success") }
+        for (bad in listOf("-g", "--user 10", "sdcard/test.apk", "/sdcard/test.zip", "/sdcard/../data/x.apk")) {
+            val result = InstallApkTool(shell).execute(mapOf("path" to bad))
+            assertThat(result.isSuccess).isFalse()
+            assertThat(result.errorMessage).contains("invalid_args")
+        }
+        assertThat(shell.invocations).isEmpty()
+    }
+
+    @Test
+    fun `policy denies listed settings keys and permissions without spawning`() = runTest {
+        val shell = FakeShellBackend().apply { stubAlwaysSucceed("") }
+        val policy = ShellPolicy.RECOMMENDED
+        val put = PutSecureSettingTool(shell, policy).execute(mapOf("key" to "ENABLED_ACCESSIBILITY_SERVICES", "value" to "x/y"))
+        assertThat(put.errorMessage).contains("denied_by_policy")
+        val grant = GrantPermissionTool(shell, policy).execute(mapOf(
+            "package_name" to "com.x",
+            "permission" to "android.permission.WRITE_SECURE_SETTINGS",
+        ))
+        assertThat(grant.errorMessage).contains("denied_by_policy")
+        assertThat(shell.invocations).isEmpty()
+        // Non-denied key still goes through.
+        assertThat(PutSecureSettingTool(shell, policy).execute(mapOf("key" to "mock_location", "value" to "1")).isSuccess).isTrue()
+    }
+
+    @Test
     fun `put_secure_setting builds correct argv`() = runTest {
         val shell = FakeShellBackend().apply { stubAlwaysSucceed("") }
         PutSecureSettingTool(shell).execute(mapOf("key" to "mock_location", "value" to "1"))
