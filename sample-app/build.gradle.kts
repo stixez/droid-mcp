@@ -45,9 +45,9 @@ android {
 
 dependencies {
     implementation(project(":droid-mcp-all"))
-    // Tier 4 — opt-in (pulls dev.rikka.shizuku). The sample app exercises Shizuku tools, so we add it here.
+    // Opt-in (pulls dev.rikka.shizuku). The sample app exercises Shizuku tools, so we add it here.
     implementation(project(":droid-mcp-shizuku"))
-    // Tier 5 — opt-in (pulls libsu). Same shell tool surface as Shizuku, just routed via su.
+    // Opt-in (pulls libsu). Same shell tool surface as Shizuku, just routed via su.
     implementation(project(":droid-mcp-root"))
     // 0.10.0 hardening — opt-in modules (Room, BouncyCastle, foreground service).
     implementation(project(":droid-mcp-audit"))

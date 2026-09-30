@@ -83,8 +83,8 @@ dependencies {
     // code (dev.rikka.shizuku, libsu) that consumers who don't want
     // shell-UID / root admin tools shouldn't pay for. Hosts opt in
     // explicitly:
-    //   implementation(":droid-mcp-shizuku")  // Tier 4
-    //   implementation(":droid-mcp-root")     // Tier 5
+    //   implementation(":droid-mcp-shizuku")  // shell tools via Shizuku
+    //   implementation(":droid-mcp-root")     // shell tools via root
 
     // ToolContractTest: discovers and instantiates every tool, including the shell set.
     testImplementation(project(":droid-mcp-shell-core"))

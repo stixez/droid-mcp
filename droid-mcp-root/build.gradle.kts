@@ -28,7 +28,7 @@ dependencies {
     api(project(":droid-mcp-shell-core"))
     implementation(libs.kotlinx.coroutines.core)
 
-    // libsu — Tier 5 root shell backend
+    // libsu — root shell backend
     api(libs.libsu.core)
     // libsu:io — SuFileInputStream for binary-safe stdout reads (screencap)
     api(libs.libsu.io)

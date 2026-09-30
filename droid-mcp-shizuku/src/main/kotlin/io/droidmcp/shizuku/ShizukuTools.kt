@@ -16,7 +16,7 @@ import rikka.shizuku.Shizuku
  *
  * Shizuku activation is a special-access flow (the user installs the Shizuku
  * app, activates it via wireless debugging on Android 11+ or ADB, then grants
- * the runtime permission to this host app). See `docs/SHIZUKU.md`.
+ * the runtime permission to this host app). See `docs/SHELL.md`.
  */
 object ShizukuTools {
 

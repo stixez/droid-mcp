@@ -19,7 +19,7 @@ import io.droidmcp.shell.ShellTools
  *
  * Root activation is a special-access flow: the user installs a superuser
  * manager (Magisk / KernelSU / SuperSU) and grants this app root access on
- * first request. See `docs/ROOT.md`.
+ * first request. See `docs/SHELL.md`.
  */
 object RootTools {
 

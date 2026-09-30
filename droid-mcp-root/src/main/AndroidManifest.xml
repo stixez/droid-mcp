@@ -1,5 +1,5 @@
 <!--
-    Intentionally empty. The Tier 5 root backend doesn't declare any Android
+    Intentionally empty. The root backend doesn't declare any Android
     permissions — libsu's privilege comes from the `su` shell at runtime,
     gated by the user's superuser manager (Magisk / KernelSU / SuperSU).
 -->

@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference
  * Activation is the user's responsibility: install the Shizuku app, activate
  * it via wireless debugging (Android 11+) or ADB, grant the permission. The
  * backend reports `isAvailable() == false` until both the binder is reachable
- * and the host has permission. See `docs/SHIZUKU.md`.
+ * and the host has permission. See `docs/SHELL.md`.
  *
  * **Bounds.** Each [exec] is limited to [execTimeoutMs] of wall-clock time and
  * [maxOutputBytes] of captured stdout / stderr each ([execBinary] uses the larger

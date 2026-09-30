@@ -3,7 +3,7 @@ package io.droidmcp.shell
 /**
  * [ShellBackend] that's always unavailable. Useful as a fallback in the
  * "use root if available, Shizuku otherwise" dispatch pattern documented
- * in `docs/ROOT.md` — when neither tier is reachable on the current device,
+ * in `docs/SHELL.md` — when neither backend is reachable on the current device,
  * every tool errors with `shell_unavailable: NoOp` so the LLM sees a
  * structured failure instead of unexpected behaviour.
  *
