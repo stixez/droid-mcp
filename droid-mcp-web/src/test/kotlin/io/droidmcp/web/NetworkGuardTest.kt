@@ -112,6 +112,25 @@ class NetworkGuardTest {
         assertAllAllowed("64:ff9b:1::a00:1")
     }
 
+    @Test
+    fun `6to4 2002 slash 16 is judged by the embedded IPv4`() {
+        // 2002:c0a8:0101:: = 192.168.1.1, 2002:7f00:0001:: = 127.0.0.1, 2002:a9fe:a9fe:: = 169.254.169.254
+        assertAllBlocked("2002:c0a8:101::1", "2002:7f00:1::1", "2002:a9fe:a9fe::1")
+        assertAllAllowed("2002:808:808::1") // 8.8.8.8
+    }
+
+    @Test
+    fun `Teredo 2001 slash 32 is judged by its server and bit-inverted client IPv4`() {
+        // Server 65.54.227.120 (4136:e378) is public; client f7f7:f7f7 inverts to 8.8.8.8.
+        assertAllAllowed("2001:0:4136:e378:8000:63bf:f7f7:f7f7")
+        // Client 3f57:fefe inverts to 192.168.1.1.
+        assertAllBlocked("2001:0:4136:e378:8000:63bf:3f57:fefe")
+        // Server 10.0.0.1 (a00:1) is private.
+        assertAllBlocked("2001:0:a00:1:8000:63bf:f7f7:f7f7")
+        // Other 2001::/16 space (e.g. 2001:db8 docs, 2001:4860 Google) isn't Teredo.
+        assertAllAllowed("2001:4860:4860::8888")
+    }
+
     // ---- client wiring / allowPrivateNetwork opt-in -------------------------------------------
 
     @Test

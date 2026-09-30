@@ -12,7 +12,7 @@ capture_screen  [destructive]
   format: string enum=png|jpeg
 
 capture_screen_quiet  [readOnly]
-  display: integer
+  display: integer min=0
 
 capture_video  [destructive]
   duration_sec: integer min=1 max=60

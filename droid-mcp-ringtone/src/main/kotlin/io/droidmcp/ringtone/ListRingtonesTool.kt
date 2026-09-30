@@ -27,7 +27,7 @@ class ListRingtonesTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val typeStr = params["type"]?.toString() ?: "ringtone"
+        val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50
 
         val type = when (typeStr) {

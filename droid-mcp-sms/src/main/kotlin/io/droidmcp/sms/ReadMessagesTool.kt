@@ -29,7 +29,7 @@ class ReadMessagesTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val box = params["box"]?.toString() ?: "inbox"
+        val box = params["box"]?.toString()?.trim()?.lowercase() ?: "inbox"
         if (box !in setOf("inbox", "sent")) {
             return ToolResult.error("Invalid box '$box'. Use: inbox, sent")
         }

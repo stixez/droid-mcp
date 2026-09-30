@@ -40,7 +40,7 @@ class SetDndModeTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val mode = params["mode"]?.toString()
+        val mode = params["mode"]?.toString()?.trim()?.lowercase()
             ?: return ToolResult.error("mode is required")
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

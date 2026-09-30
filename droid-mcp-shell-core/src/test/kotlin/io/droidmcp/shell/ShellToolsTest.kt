@@ -38,6 +38,15 @@ class ShellToolsTest {
     }
 
     @Test
+    fun `capture_screen_quiet rejects a negative display id without spawning`() = runTest {
+        val shell = FakeShellBackend()
+        val result = CaptureScreenQuietTool(shell).execute(mapOf("display" to -1))
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).contains("invalid_args")
+        assertThat(shell.invocations).isEmpty()
+    }
+
+    @Test
     fun `force_stop_app validates package name`() = runTest {
         val shell = FakeShellBackend()
         val result = ForceStopAppTool(shell).execute(mapOf("package_name" to "not a valid pkg!"))

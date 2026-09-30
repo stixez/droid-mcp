@@ -33,7 +33,7 @@ class SetRingtoneTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uriStr = params["uri"]?.toString()
             ?: return ToolResult.error("uri is required")
-        val typeStr = params["type"]?.toString() ?: "ringtone"
+        val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"
 
         val type = when (typeStr) {
             "ringtone" -> RingtoneManager.TYPE_RINGTONE

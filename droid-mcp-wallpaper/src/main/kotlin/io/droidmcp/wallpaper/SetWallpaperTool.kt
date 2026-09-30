@@ -42,7 +42,7 @@ class SetWallpaperTool(private val context: Context) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()
             ?: return ToolResult.error("path is required")
-        val target = params["target"]?.toString() ?: "both"
+        val target = params["target"]?.toString()?.trim()?.lowercase() ?: "both"
 
         if (target !in listOf("home", "lock", "both")) {
             return ToolResult.error("target must be 'home', 'lock', or 'both'")

@@ -41,7 +41,7 @@ class WriteNfcTagTool(private val context: Context) : McpTool {
             return@withContext ToolResult.error("NFC is disabled")
         }
 
-        val type = params["type"]?.toString()
+        val type = params["type"]?.toString()?.trim()?.lowercase()
             ?: return@withContext ToolResult.error("type is required")
         val content = params["content"]?.toString()
             ?: return@withContext ToolResult.error("content is required")

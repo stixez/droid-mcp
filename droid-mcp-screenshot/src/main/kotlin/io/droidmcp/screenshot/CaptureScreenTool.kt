@@ -63,7 +63,7 @@ class CaptureScreenTool(private val context: Context) : McpTool {
             return ToolResult.error("MediaProjection not available. The host app must grant screen capture consent first.")
         }
 
-        val format = params["format"]?.toString() ?: "png"
+        val format = params["format"]?.toString()?.trim()?.lowercase() ?: "png"
         if (format !in listOf("png", "jpeg")) {
             return ToolResult.error("format must be 'png' or 'jpeg'")
         }

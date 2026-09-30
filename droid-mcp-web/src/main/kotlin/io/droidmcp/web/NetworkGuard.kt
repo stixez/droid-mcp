@@ -17,7 +17,9 @@ import java.util.concurrent.TimeUnit
  * tools refuse to talk to anything that isn't a public unicast address: loopback, RFC 1918
  * private ranges (10/8, 172.16/12, 192.168/16), unique-local IPv6 (fc00::/7), link-local
  * (169.254/16 — incl. cloud metadata endpoints — and fe80::/10), CGNAT (100.64/10), the
- * unspecified address, `0/8`, broadcast, and multicast.
+ * unspecified address, `0/8`, broadcast, and multicast. IPv6 forms that carry an IPv4 address
+ * (IPv4-mapped / -compatible, NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, Teredo `2001::/32`) are
+ * judged by the embedded IPv4.
  *
  * Enforced in two layers, both of which run again for every redirect hop:
  *  - [GuardedDns] filters hostname resolution *before* any socket is opened.
@@ -63,6 +65,12 @@ internal object NetworkGuard {
                     b.copyOfRange(0, 12).all { it.toInt() == 0 } -> isBlockedV4(b.copyOfRange(12, 16))
                     b0 == 0x00 && b1 == 0x64 && (b[2].toInt() and 0xff) == 0xff && (b[3].toInt() and 0xff) == 0x9b &&
                         b.copyOfRange(4, 12).all { it.toInt() == 0 } -> isBlockedV4(b.copyOfRange(12, 16))
+                    // 6to4 (2002:a.b.c.d::/48): the v4 sits in bytes 2..5.
+                    b0 == 0x20 && b1 == 0x02 -> isBlockedV4(b.copyOfRange(2, 6))
+                    // Teredo (2001:0000::/32): server v4 in bytes 4..7, client v4 bit-inverted in 12..15.
+                    b0 == 0x20 && b1 == 0x01 && b[2].toInt() == 0 && b[3].toInt() == 0 ->
+                        isBlockedV4(b.copyOfRange(4, 8)) ||
+                            isBlockedV4(ByteArray(4) { (b[12 + it].toInt() xor 0xff).toByte() })
                     else -> false
                 }
             }

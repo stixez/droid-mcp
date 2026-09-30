@@ -31,7 +31,7 @@ class MediaControlTool(private val context: Context) : McpTool {
     override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val command = params["command"]?.toString()
+        val command = params["command"]?.toString()?.trim()?.lowercase()
             ?: return ToolResult.error("command is required")
         val targetPackage = params["package_name"]?.toString()
 
