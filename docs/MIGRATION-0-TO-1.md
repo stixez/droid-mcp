@@ -43,7 +43,7 @@ A correctness and security sweep. Tool names didn't change and nothing was remov
 - Every request after `initialize` must carry the `Mcp-Session-Id` it was issued. Requests without it get 400, and requests with another client's session get 404.
 - Requests with an `Origin` header outside `enableHttpServer(allowedOrigins = …)` get 403. Native clients send no `Origin` and are unaffected. Browser clients such as MCP Inspector need their origin allowlisted.
 - `POST /mcp` requires `Content-Type: application/json` (otherwise 415) and a body of at most 4 MB (otherwise 413).
-- `GET /mcp` returns 405. The SSE stream is gone: the server never pushed anything on it.
+- `GET /mcp` returns 405. The old idle SSE stream is gone. Server messages (progress, elicitation) now travel on the `tools/call` reply itself, which becomes an SSE stream only when the tool sends them and the client accepts `text/event-stream`.
 - `Authorization` must use the `Bearer` scheme (matched case-insensitively), and a bare token is rejected. `enableHttpServer(token = …)` now requires at least 16 characters.
 - `initialize` negotiates `protocolVersion` (2025-11-25, 2025-06-18, 2025-03-26 or 2024-11-05) instead of always answering 2024-11-05.
 - Notifications (messages without an `id`) are never answered. Errors use the correct JSON-RPC codes (-32600, -32602, -32603) and always carry `id`.

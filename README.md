@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 147 tools across 53 modules.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 151 tools across 53 modules.
   </p>
 </p>
 
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.4-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-147-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-151-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
   <a href="https://buymeacoffee.com/stixe"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 </p>
@@ -170,6 +170,26 @@ The phone broadcasts itself on the local network via mDNS (`_mcp._tcp`) — the 
 
 Browser-based clients (e.g. MCP Inspector) send an `Origin` header and must be listed in `allowedOrigins`; native clients like Claude Code don't need this.
 
+### Confirming risky calls
+
+Ask the user before destructive tools run (sending SMS, deleting events, installing apps, …). Confirmation works on both transports:
+
+```kotlin
+DroidMcp.builder()
+    .addTools(SmsTools.all(context))
+    // By default every tool marked destructiveHint needs approval.
+    .confirmToolCalls { request ->
+        withContext(Dispatchers.Main) { showApprovalDialog(request.toolName, request.arguments) }
+    }
+    .build()
+```
+
+If the user declines, or the confirmer doesn't answer before the tool timeout, the call returns `tool_call_declined` and the tool never runs. `ToolCallConfirmer.viaClientElicitation(fallback)` asks the desktop client's user instead, over MCP elicitation, and uses `fallback` when the client can't answer.
+
+### Progress and elicitation
+
+Inside a tool, `reportProgress(done, total, message)` sends MCP progress notifications to clients that asked for them. In-process callers get the same updates through `mcp.callTool(name, params) { update -> … }`. `elicit(message, schema)` asks the client's user for input and returns null when the client can't answer. Over HTTP, both switch that call's reply to an SSE stream. Every other reply stays plain JSON.
+
 ### Permission handling
 
 The library never requests permissions. Your app stays in control:
@@ -189,7 +209,7 @@ Some providers register only the tools whose permissions are granted (e.g. `crea
 
 ## Modules
 
-53 modules, 147 tools. Each module depends only on `core`, and only the permissions of the modules you include are merged into your manifest. `shizuku` and `root` expose the same 17 shell tools (defined in `shell-core`) through different backends.
+53 modules, 151 tools. Each module depends only on `core`, and only the permissions of the modules you include are merged into your manifest. `shizuku` and `root` expose the same 17 shell tools (defined in `shell-core`) through different backends.
 
 Not listed below: the support modules `notification-listener` and `shell-core`, and the [hardening modules](#hardening-modules) `audit`, `tls` and `server-service`. Permissions are what each module's manifest declares; "special" ones are granted in system Settings (see [Special permissions](#special-permissions)).
 
@@ -197,8 +217,8 @@ Not listed below: the support modules `notification-listener` and `shell-core`, 
 |--------|-------|-------------|
 | **core** | MCP protocol, transports | `INTERNET` |
 | **device** | `get_device_info` `get_battery_info` `get_connectivity` `get_storage_info` | `ACCESS_NETWORK_STATE` |
-| **calendar** | `read_calendar` `create_event` `search_events` | `READ_CALENDAR` `WRITE_CALENDAR` |
-| **contacts** | `search_contacts` `read_contact` `list_contacts` | `READ_CONTACTS` |
+| **calendar** | `read_calendar` `create_event` `search_events` `update_event` `delete_event` | `READ_CALENDAR`; write tools also `WRITE_CALENDAR` |
+| **contacts** | `search_contacts` `read_contact` `list_contacts` `create_contact` | `READ_CONTACTS`; `create_contact` also `WRITE_CONTACTS` |
 | **sms** | `read_messages` `send_message` `search_messages` | `READ_SMS` `SEND_SMS` |
 | **files** | `browse_files` `read_file` `search_files` | `READ_EXTERNAL_STORAGE` (< API 33) |
 | **notifications** | `get_active_notifications` | None |
@@ -208,7 +228,7 @@ Not listed below: the support modules `notification-listener` and `shell-core`, 
 | **health** | `get_step_count` `get_activity_info` | `ACTIVITY_RECOGNITION` |
 | **clipboard** | `read_clipboard` `write_clipboard` | None |
 | **apps** | `list_installed_apps` `get_app_info` `launch_app` | None |
-| **alarms** | `create_alarm` `create_timer` `create_reminder` | `SET_ALARM`; `create_reminder` also `READ_CALENDAR` `WRITE_CALENDAR` |
+| **alarms** | `create_alarm` `create_timer` `create_reminder` `get_next_alarm` | `SET_ALARM`; `create_reminder` also `READ_CALENDAR` `WRITE_CALENDAR` |
 | **settings** | `get_settings` `set_brightness` `set_volume` `toggle_wifi` | `ACCESS_WIFI_STATE` `CHANGE_WIFI_STATE`; `set_brightness` needs `WRITE_SETTINGS` (special) |
 | **bluetooth** | `get_bluetooth_status` `list_paired_devices` | `BLUETOOTH_CONNECT` (API 31+), `BLUETOOTH` (≤ API 30) |
 | **wifi** | `get_wifi_info` `list_saved_networks` | `ACCESS_WIFI_STATE` `ACCESS_NETWORK_STATE` `ACCESS_FINE_LOCATION` |

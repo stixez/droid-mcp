@@ -27,6 +27,7 @@ Assume an attacker who can reach the device's IP, for example on the same Wi-Fi.
 | Invoke destructive tools on an observe-only deployment | Send SMS, force-stop apps, etc. | **Read-only mode** (`readOnly = true`) filters `tools/list` to read-only tools and rejects `tools/call` for the rest. "Read-only" means "changes nothing", not "harmless": SMS, contacts and silent screenshots (`take_screenshot_via_a11y`, `capture_screen_quiet`) are still reads. Gate those individually if the client shouldn't see them. |
 | Call a tool you never intended to expose | Whole registered surface is reachable | **Per-tool gating** (`setToolEnabled` / `setDisabledTools`) removes a tool from both `tools/list` and `tools/call` at runtime. |
 | Discover the server | — | mDNS (`_mcp._tcp`) advertises `version`, `auth`, `readonly` and `tls`, but **not** the token. `/health` requires auth. |
+| A prompt-injected model sends SMS, deletes data, installs apps | Harmful actions without the user noticing | `Builder.confirmToolCalls` runs a host confirmer (for example a dialog on the phone) before every `destructiveHint` tool, on both transports. `viaClientElicitation` asks the desktop client's user instead. That catches a model that was misled, but not a compromised client. |
 | Exhaust memory or threads | Crash the host app | Bodies over 4 MB get 413. Tool calls time out. Shell output is capped at 4 MiB. |
 
 ## Host-app trust assumptions

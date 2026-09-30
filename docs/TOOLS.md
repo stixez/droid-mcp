@@ -1,6 +1,6 @@
 # Tool Reference
 
-Reference for all 147 tools. They are defined in 45 modules. The 17 tools in `shell-core` are exposed through either `shizuku` or `root`. `core`, `notification-listener`, `overlay`, `audit`, `tls` and `server-service` expose no LLM tools.
+Reference for all 151 tools. They are defined in 45 modules. The 17 tools in `shell-core` are exposed through either `shizuku` or `root`. `core`, `notification-listener`, `overlay`, `audit`, `tls` and `server-service` expose no LLM tools.
 
 Parameters are optional unless marked (required).
 
@@ -28,8 +28,12 @@ On Android 10+, tools that start an activity return an error when the host is in
 | `read_calendar` | Events in a date range, including recurring occurrences and multi-day events | `start_date` (required, YYYY-MM-DD), `end_date` (default `start_date`), `limit` (1-100, default 10) |
 | `create_event` | Create a calendar event | `title` (required), `start` (required, YYYY-MM-DD HH:mm), `end` (required, YYYY-MM-DD HH:mm), `location`, `description`, `calendar_id` (default: primary writable calendar) |
 | `search_events` | Search events by keyword in title or description | `query` (required), `limit` (1-100, default 10) |
+| `update_event` | Change fields of an existing event; only the fields passed are written | `event_id` (required, ≥ 1), `title`, `description`, `location`, `start` (YYYY-MM-DD HH:mm; YYYY-MM-DD for all-day), `end` (same; exclusive for all-day), `all_day` (boolean; changing it needs both `start` and `end`) |
+| `delete_event` | Delete an event. For a recurring event this deletes the whole series | `event_id` (required, ≥ 1) |
 
-Needs `READ_CALENDAR`. `create_event` is registered only when `WRITE_CALENDAR` is also granted. `search_events` returns a recurring event once, not once per occurrence.
+Needs `READ_CALENDAR`. `create_event`, `update_event` and `delete_event` are registered only when `WRITE_CALENDAR` is also granted. `search_events` returns a recurring event once, not once per occurrence.
+
+`update_event` and `delete_event` return an error when the event doesn't exist (so deleting twice reports not-found) or its calendar is read-only. When `update_event` gets only one of `start`/`end`, it checks the new value against the event's stored other end. It can change the title, description and location of a recurring event (for every occurrence) but not its times.
 
 ## Contacts
 
@@ -38,8 +42,9 @@ Needs `READ_CALENDAR`. `create_event` is registered only when `WRITE_CALENDAR` i
 | `search_contacts` | Search contacts by display name (substring) | `query` (required), `limit` (1-100, default 10) |
 | `read_contact` | Full details for one contact | `contact_id` (required) |
 | `list_contacts` | Paginated contact list | `limit` (1-100, default 50), `offset` (default 0) |
+| `create_contact` | Add a contact to the local device account | `name` (required), `phone`, `phone_type` (`mobile`/`home`/`work`/`other`, default `mobile`), `email`, `email_type` (`home`/`work`/`other`, default `home`) |
 
-Needs `READ_CONTACTS`.
+Needs `READ_CONTACTS`. `create_contact` is registered only when `WRITE_CONTACTS` is also granted. It returns `contact_id` (usable with `read_contact`) and `raw_contact_id`.
 
 ## SMS
 
@@ -130,8 +135,9 @@ On Android 10+, `read_clipboard` works only while the host app is in the foregro
 | `create_alarm` | Set an alarm in the clock app | `hour` (required, 0-23), `minute` (required, 0-59), `message`, `days` (comma-separated, e.g. `mon,wed`; empty = one-time) |
 | `create_timer` | Start a countdown timer | `seconds` (required, > 0), `message` |
 | `create_reminder` | Calendar event with an alert | `title` (required), `datetime` (required, YYYY-MM-DD HH:mm), `minutes_before` (≥ 0, default 10) |
+| `get_next_alarm` | Next scheduled alarm clock: `has_alarm`, `trigger_time` (ISO local), `trigger_millis`, `creator_package` | -- |
 
-Alarm and timer use `SET_ALARM`. `create_reminder` is registered only when `READ_CALENDAR` and `WRITE_CALENDAR` are granted. Reading existing alarms is not supported.
+Alarm and timer use `SET_ALARM`; `get_next_alarm` needs no permission. `create_reminder` is registered only when `READ_CALENDAR` and `WRITE_CALENDAR` are granted. Android has no API to list alarms, so `get_next_alarm` reports only the soonest one registered with `AlarmManager.setAlarmClock` (normally the clock app's).
 
 ## Settings
 

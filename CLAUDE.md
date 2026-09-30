@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 147 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 151 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
 - **Language:** Kotlin 2.4, Android SDK 28+ (compile/target 36), Gradle 9.8, AGP 9 (built-in Kotlin — modules don't apply `kotlin.android`)
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **53 modules**, 147 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
+- **53 modules**, 151 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
 
 ## Key Conventions
 
@@ -18,6 +18,7 @@ Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, med
 - File access: sandboxed via `PathValidator` — external storage only
 - Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
 - No fully qualified names inline — use proper imports
+- Long-running tools call `reportProgress(done, total, message)` (no-op when nobody listens); tools needing user input can call `elicit(message, schema)` (returns null when unsupported)
 
 ## Don't
 
@@ -62,8 +63,8 @@ droid-mcp-{name}/
 |--------|---------|-------|
 | `droid-mcp-core` | `io.droidmcp.core` | Protocol, transports, interfaces |
 | `droid-mcp-device` | `io.droidmcp.device` | get_device_info, get_battery_info, get_connectivity, get_storage_info |
-| `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, create_event, search_events |
-| `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts |
+| `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, create_event, search_events, update_event, delete_event |
+| `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts, create_contact |
 | `droid-mcp-sms` | `io.droidmcp.sms` | read_messages, send_message, search_messages |
 | `droid-mcp-files` | `io.droidmcp.files` | browse_files, read_file, search_files |
 | `droid-mcp-notifications` | `io.droidmcp.notifications` | get_active_notifications |
@@ -73,7 +74,7 @@ droid-mcp-{name}/
 | `droid-mcp-health` | `io.droidmcp.health` | get_step_count, get_activity_info |
 | `droid-mcp-clipboard` | `io.droidmcp.clipboard` | read_clipboard, write_clipboard |
 | `droid-mcp-apps` | `io.droidmcp.apps` | list_installed_apps, get_app_info, launch_app |
-| `droid-mcp-alarms` | `io.droidmcp.alarms` | create_alarm, create_timer, create_reminder |
+| `droid-mcp-alarms` | `io.droidmcp.alarms` | create_alarm, create_timer, create_reminder, get_next_alarm |
 | `droid-mcp-settings` | `io.droidmcp.settings` | get_settings, set_brightness, set_volume, toggle_wifi |
 | `droid-mcp-bluetooth` | `io.droidmcp.bluetooth` | get_bluetooth_status, list_paired_devices |
 | `droid-mcp-wifi` | `io.droidmcp.wifi` | get_wifi_info, list_saved_networks |
@@ -167,7 +168,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 97 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 350 in total: `./gradlew testDebugUnitTest`
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 111 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 392 in total: `./gradlew testDebugUnitTest`
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md
@@ -178,6 +179,8 @@ object MyTools {
 ## Security Decisions
 
 - HTTP transport rejects foreign `Origin` headers (403; allowlist via `enableHttpServer(allowedOrigins=)`), non-JSON bodies (415), bodies > 4 MB (413) and unknown `MCP-Protocol-Version` (400). Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. `GET /mcp` is 405 (no server push). Protocol negotiates 2025-11-25 / 2025-06-18 / 2025-03-26 / 2024-11-05.
+- `Builder.confirmToolCalls` gates `destructiveHint` tools behind a host confirmer on both transports (decline/timeout → `tool_call_declined`)
+- `tools/call` replies upgrade to SSE only when the tool sends progress/elicitation and the client accepts `text/event-stream`; elicitation answers are only accepted from the same client label
 - HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
 - Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
 - mDNS (`_mcp._tcp`) broadcasts version/auth/readonly/tls via TXT records; does NOT broadcast the bearer token. `/health` requires auth.

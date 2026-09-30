@@ -15,7 +15,7 @@ The server speaks MCP Streamable HTTP at `/mcp`.
 - **Protocol version.** An `MCP-Protocol-Version` header the server doesn't support gets `400`. Supported versions: 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05.
 - **Origin.** A request with an `Origin` header not listed in `enableHttpServer(allowedOrigins = ...)` gets `403`. Native clients send no `Origin` and are not affected. Browser tools such as MCP Inspector must be allowlisted.
 - `DELETE /mcp` with the session header ends the session.
-- `GET /mcp` returns `405`, because the server never pushes messages. There is no SSE stream.
+- `GET /mcp` returns `405`: there is no standalone server stream. A `tools/call` whose tool reports progress or asks for elicitation replies with an SSE stream instead (send `Accept: application/json, text/event-stream`). Answer an elicitation request with a separate POST in the same session.
 - `GET /health` returns tool count and read-only state. It needs the same bearer token.
 
 ## mDNS service
