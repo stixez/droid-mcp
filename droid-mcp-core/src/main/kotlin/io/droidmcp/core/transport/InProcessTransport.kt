@@ -18,16 +18,18 @@ class InProcessTransport(private val registry: ToolRegistry) {
 
     /**
      * The enabled tools serialised to a JSON array, each entry carrying `name`, `description`,
-     * a `parameters` JSON Schema (`type: object` with `properties` and a `required` list), and
-     * `annotations` when any hint differs from the defaults. For LLM runtimes that want the tool
+     * a `parameters` JSON Schema (`type: object` with `properties` and a `required` list), plus
+     * `title`, `outputSchema` and `annotations` when set. For LLM runtimes that want the tool
      * catalogue as a string. Gated-off tools are excluded, matching `tools/list` over HTTP.
      */
     fun listToolsJson(): String {
         val tools = registry.listEnabledTools().map { tool ->
             buildJsonObject {
                 put("name", tool.name)
+                tool.annotations.title?.let { put("title", it) }
                 put("description", tool.description)
                 put("parameters", ToolSchemas.inputSchema(tool))
+                tool.outputSchema?.let { put("outputSchema", ToolSchemas.toJsonElement(it)) }
                 ToolSchemas.annotations(tool.annotations)?.let { put("annotations", it) }
             }
         }

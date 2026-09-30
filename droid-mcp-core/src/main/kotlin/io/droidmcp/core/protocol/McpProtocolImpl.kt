@@ -133,6 +133,7 @@ class McpProtocolImpl(
                 tool.annotations.title?.let { put("title", it) }
                 put("description", tool.description)
                 put("inputSchema", ToolSchemas.inputSchema(tool))
+                tool.outputSchema?.let { put("outputSchema", ToolSchemas.toJsonElement(it)) }
                 ToolSchemas.annotations(tool.annotations)?.let { put("annotations", it) }
             }
         }

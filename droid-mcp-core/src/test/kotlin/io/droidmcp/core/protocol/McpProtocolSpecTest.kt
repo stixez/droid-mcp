@@ -39,9 +39,23 @@ class McpProtocolSpecTest {
         override suspend fun execute(params: Map<String, Any>): ToolResult = ToolResult.success(mapOf())
     }
 
+    private val typedTool = object : McpTool {
+        override val name = "typed"
+        override val description = "has an output schema"
+        override val parameters = emptyList<ToolParameter>()
+        override val annotations = ToolAnnotations(readOnlyHint = true, title = "Typed tool")
+        override val outputSchema = mapOf(
+            "type" to "object",
+            "properties" to mapOf("count" to mapOf("type" to "integer")),
+            "required" to listOf("count"),
+        )
+        override suspend fun execute(params: Map<String, Any>): ToolResult = ToolResult.success(mapOf("count" to 1))
+    }
+
     private val registry = ToolRegistry().apply {
         register(echoTool)
         register(writeTool)
+        register(typedTool)
     }
     private val protocol = McpProtocolImpl(registry)
 
@@ -172,5 +186,18 @@ class McpProtocolSpecTest {
         val tool = r["result"]!!.jsonObject["tools"]!!.jsonArray.map { it.jsonObject }
             .first { it["name"]!!.jsonPrimitive.content == "titled" }
         assertThat(tool["title"]!!.jsonPrimitive.content).isEqualTo("Nice Title")
+    }
+
+    @Test
+    fun `tools-list carries title and outputSchema when declared`() = runTest {
+        val r = call("""{"jsonrpc":"2.0","id":20,"method":"tools/list"}""")
+        val tools = r["result"]!!.jsonObject["tools"]!!.jsonArray.map { it.jsonObject }
+        val typed = tools.first { it["name"]!!.jsonPrimitive.content == "typed" }
+        assertThat(typed["title"]!!.jsonPrimitive.content).isEqualTo("Typed tool")
+        val out = typed["outputSchema"]!!.jsonObject
+        assertThat(out["type"]!!.jsonPrimitive.content).isEqualTo("object")
+        assertThat(out["required"]!!.jsonArray.map { it.jsonPrimitive.content }).containsExactly("count")
+        val echo = tools.first { it["name"]!!.jsonPrimitive.content == "echo" }
+        assertThat(echo).doesNotContainKey("outputSchema")
     }
 }
