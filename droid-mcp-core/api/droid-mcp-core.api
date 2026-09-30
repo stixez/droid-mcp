@@ -378,6 +378,27 @@ public final class io/droidmcp/core/protocol/McpProtocolImpl$Companion {
 	public final fun getSUPPORTED_PROTOCOL_VERSIONS ()Ljava/util/List;
 }
 
+public final class io/droidmcp/core/support/ActivityLaunch {
+	public static final field INSTANCE Lio/droidmcp/core/support/ActivityLaunch;
+	public final fun canStartActivity (Landroid/content/Context;)Z
+}
+
+public final class io/droidmcp/core/support/CalendarSupport {
+	public static final field INSTANCE Lio/droidmcp/core/support/CalendarSupport;
+	public final fun findWritableCalendarId (Landroid/content/Context;)Ljava/lang/Long;
+}
+
+public final class io/droidmcp/core/support/SqlLike {
+	public static final field INSTANCE Lio/droidmcp/core/support/SqlLike;
+	public final fun escape (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/support/StrictDates {
+	public static final field INSTANCE Lio/droidmcp/core/support/StrictDates;
+	public final fun parse (Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;)Ljava/util/Date;
+	public static synthetic fun parse$default (Lio/droidmcp/core/support/StrictDates;Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;ILjava/lang/Object;)Ljava/util/Date;
+}
+
 public final class io/droidmcp/core/transport/HttpTransport {
 	public static final field ANONYMOUS_LABEL Ljava/lang/String;
 	public static final field Companion Lio/droidmcp/core/transport/HttpTransport$Companion;
