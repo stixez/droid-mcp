@@ -110,6 +110,8 @@ data class MainState(
     val strictShellPolicy: Boolean = true,
     /** watch_id from the last successful watch_notifications call, for the poll/unwatch buttons. */
     val lastWatchId: String? = null,
+    /** event_id from the last successful create_event call, for the update/delete buttons. */
+    val lastEventId: Long? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -240,6 +242,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 logs = listOf(log) + _state.value.logs,
                 loading = false,
                 lastWatchId = trackWatchId(name, params, result, _state.value.lastWatchId),
+                lastEventId = trackEventId(name, params, result, _state.value.lastEventId),
             )
         }
     }
@@ -252,6 +255,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             name == "unwatch_notifications" && params["watch_id"] == current -> null
             name == "poll_notification_watch" && !result.isSuccess &&
                 params["watch_id"] == current && result.errorMessage?.contains("watch_not_found") == true -> null
+            else -> current
+        }
+
+    /** Remember the newest created event so the Tools tab can update/delete only that one; forget it once deleted. */
+    private fun trackEventId(name: String, params: Map<String, Any>, result: ToolResult, current: Long?): Long? =
+        when {
+            name == "create_event" && result.isSuccess ->
+                (result.data?.get("event_id") as? Number)?.toLong() ?: current
+            name == "delete_event" && (params["event_id"] as? Number)?.toLong() == current &&
+                (result.isSuccess || result.errorMessage?.startsWith("Event not found") == true) -> null
             else -> current
         }
 

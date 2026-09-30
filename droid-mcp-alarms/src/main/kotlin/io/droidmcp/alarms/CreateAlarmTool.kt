@@ -19,14 +19,15 @@ import io.droidmcp.core.ToolResult
  * returns an error up front (see [AlarmsUtils.canStartActivity]).
  *
  * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest;
- * a normal install-time permission). Reading existing alarms is not possible via any standard API.
+ * a normal install-time permission). Listing existing alarms is not possible via any standard API;
+ * [GetNextAlarmTool] reports only the next one.
  *
  * Result keys: `success`, `hour`, `minute`, `message`, `days`.
  */
 class CreateAlarmTool(private val context: Context) : McpTool {
 
     override val name = "create_alarm"
-    override val description = "Create an alarm at the specified time. Note: Reading existing alarms is not supported by a standard Android API — each clock app stores them differently."
+    override val description = "Create an alarm at the specified time. Note: Listing existing alarms is not supported by a standard Android API — each clock app stores them differently; get_next_alarm reports the next one."
     override val parameters = listOf(
         ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 23.0),
         ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 59.0),

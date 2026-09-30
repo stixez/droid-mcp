@@ -7,6 +7,11 @@ import android.provider.CalendarContract
 import android.provider.Settings
 import java.text.ParsePosition
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
 
@@ -80,4 +85,22 @@ internal object AlarmsUtils {
             if (cursor.moveToFirst()) cursor.getLong(0) else null
         }
     }
+
+    /** [millis] as an ISO-8601 local date-time (`2026-03-01T07:30:00`) in [zone], truncated to whole seconds. */
+    fun isoLocal(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), zone)
+            .truncatedTo(ChronoUnit.SECONDS)
+            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+    /**
+     * The `get_next_alarm` result map: `has_alarm` plus `trigger_time`/`trigger_millis`/
+     * `creator_package`, which are all null when [triggerMillis] is null (no alarm scheduled).
+     */
+    fun nextAlarmResult(triggerMillis: Long?, creatorPackage: String?, zone: ZoneId = ZoneId.systemDefault()): Map<String, Any?> =
+        mapOf(
+            "has_alarm" to (triggerMillis != null),
+            "trigger_time" to triggerMillis?.let { isoLocal(it, zone) },
+            "trigger_millis" to triggerMillis,
+            "creator_package" to creatorPackage?.takeIf { triggerMillis != null },
+        )
 }

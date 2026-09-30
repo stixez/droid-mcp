@@ -35,3 +35,13 @@ public final class io/droidmcp/alarms/CreateTimerTool : io/droidmcp/core/McpTool
 	public fun getParameters ()Ljava/util/List;
 }
 
+public final class io/droidmcp/alarms/GetNextAlarmTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+

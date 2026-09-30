@@ -6,9 +6,10 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
 
 /**
- * Provider for the alarms module: [CreateAlarmTool], [CreateTimerTool], and [CreateReminderTool].
- * Alarm/timer tools rely only on `SET_ALARM` (a normal, install-time permission) and the system
- * clock app, so they are always registered. The reminder tool writes a calendar event and is
+ * Provider for the alarms module: [CreateAlarmTool], [CreateTimerTool], [CreateReminderTool] and
+ * [GetNextAlarmTool]. Alarm/timer tools rely only on `SET_ALARM` (a normal, install-time
+ * permission) and the system clock app, and [GetNextAlarmTool] needs no permission, so they are
+ * always registered. The reminder tool writes a calendar event and is
  * registered only when READ/WRITE_CALENDAR are granted — it is gated inside [all] (mirroring how
  * `SettingsTools` gates its write tools) so missing calendar access never hides alarms/timers.
  */
@@ -19,10 +20,11 @@ object AlarmsTools {
         Manifest.permission.WRITE_CALENDAR,
     )
 
-    /** Tools for the current grant state: alarm + timer always, [CreateReminderTool] only with calendar access. */
+    /** Tools for the current grant state: alarm, timer and next-alarm always, [CreateReminderTool] only with calendar access. */
     fun all(context: Context): List<McpTool> = buildList {
         add(CreateAlarmTool(context))
         add(CreateTimerTool(context))
+        add(GetNextAlarmTool(context))
         if (PermissionHelper.hasPermissions(context, calendarPermissions)) {
             add(CreateReminderTool(context))
         }

@@ -403,6 +403,7 @@ fun MainScreen(
                     onCallTool = onCallTool,
                     onRequestSpecialPermission = onRequestSpecialPermission,
                     lastWatchId = state.lastWatchId,
+                    lastEventId = state.lastEventId,
                 )
                 1 -> GatingPage(
                     tools = state.tools,

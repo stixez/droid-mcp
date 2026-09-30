@@ -34,6 +34,8 @@ fun ToolsPage(
     onRequestSpecialPermission: (String) -> Unit = {},
     /** watch_id from the last successful watch_notifications call; null until one is made. */
     lastWatchId: String? = null,
+    /** event_id from the last successful create_event call; null until one is made. */
+    lastEventId: Long? = null,
 ) {
     val ownPackage = LocalContext.current.packageName
     // DUMP is in ShellPolicy.RECOMMENDED_DENIED_PERMISSIONS: strict policy answers
@@ -56,10 +58,33 @@ fun ToolsPage(
         ToolCategory("Calendar", listOf(
             ToolButton("Today", "read_calendar", mapOf("start_date" to today)),
             ToolButton("Search", "search_events", mapOf("query" to "meeting")),
+            // Write buttons only ever touch the event this page created (lastEventId).
+            ToolButton(
+                "Create Test Event (writes)",
+                "create_event",
+                mapOf("title" to "droid-mcp test event", "start" to "$today 15:00", "end" to "$today 16:00"),
+            ),
+            ToolButton(
+                if (lastEventId != null) "Rename Test Event #$lastEventId" else "Rename (create first)",
+                "update_event",
+                mapOf("event_id" to (lastEventId ?: 0L), "title" to "droid-mcp test event (renamed)", "end" to "$today 17:00"),
+                enabled = lastEventId != null,
+            ),
+            ToolButton(
+                if (lastEventId != null) "DELETE Test Event #$lastEventId" else "Delete (create first)",
+                "delete_event",
+                mapOf("event_id" to (lastEventId ?: 0L)),
+                enabled = lastEventId != null,
+            ),
         )),
         ToolCategory("Contacts", listOf(
             ToolButton("List", "list_contacts"),
             ToolButton("Search", "search_contacts", mapOf("query" to "John")),
+            ToolButton(
+                "Add Test Contact (writes)",
+                "create_contact",
+                mapOf("name" to "droid-mcp Test", "phone" to "+1 555 010 0000", "email" to "test@example.com"),
+            ),
         )),
         ToolCategory("SMS", listOf(
             ToolButton("Inbox", "read_messages"),
@@ -116,6 +141,7 @@ fun ToolsPage(
             ToolButton("Active", "get_active_notifications"),
         )),
         ToolCategory("Alarms", listOf(
+            ToolButton("Next Alarm", "get_next_alarm"),
             ToolButton("Alarm", "create_alarm", mapOf("hour" to 8, "minute" to 0, "message" to "Test alarm")),
             ToolButton("Timer", "create_timer", mapOf("seconds" to 10, "message" to "Test timer")),
             ToolButton("Reminder", "create_reminder", mapOf("title" to "Test reminder", "datetime" to "$today 12:00")),
