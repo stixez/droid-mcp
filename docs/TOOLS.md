@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 145 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
+Complete reference for all 146 tools. They live in 47 of droid-mcp's 53 modules — the other 6 expose no LLM tools: `core` and `notification-listener` (shared infrastructure consumed by other modules), `overlay` (programmatic-only `OverlayController`, no LLM tools), and the 3 opt-in hardening modules (`audit`, `tls`, `server-service`). `shell-core` is not in that list — it defines the 17 shell tools shared by `shizuku` and `root`.
 
 ---
 
@@ -201,7 +201,8 @@ Telephony tools use `TelephonyManager` and require `READ_PHONE_STATE`. Phone num
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `vibrate` | Trigger device vibration | `duration_ms` (1-10000), `amplitude` (0-255) |
-| `vibrate_pattern` | Vibrate with a pattern | `timings` (list), `repeat` (-1 for none) |
+| `vibrate_pattern` | Vibrate with a pattern (each timing ≤ 10 s, total ≤ 30 s; repeating patterns auto-stop after 60 s) | `timings` (list), `repeat` (-1 for none) |
+| `cancel_vibration` | Stop any ongoing vibration, including a repeating pattern | -- |
 
 Requires `VIBRATE` permission. Amplitude control available on API 26+.
 
@@ -271,7 +272,7 @@ NFC tools use a tag cache — the host app must forward discovered tags via `Nfc
 | `share_content` | Share text via the Android share sheet | `text` (required), `subject`, `type` |
 | `open_deep_link` | Open a URI via ACTION_VIEW | `uri` (required), `package_name` |
 
-`send_intent` restricts actions to a safe allowlist: VIEW, DIAL, SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT, PICK, GET_CONTENT, CREATE_DOCUMENT, OPEN_DOCUMENT. Dangerous actions (CALL, DELETE, FACTORY_RESET, etc.) are blocked.
+`send_intent` restricts actions to a safe allowlist: VIEW, DIAL, SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT. Dangerous actions (CALL, DELETE, FACTORY_RESET, etc.) are blocked. Data URIs for `send_intent` and `open_deep_link` must use http, https, geo, tel, mailto, sms, smsto, mms, mmsto or market (`uri_scheme_not_allowed` otherwise). Both return `background_activity_launch_blocked` when the host is backgrounded without the overlay permission.
 
 ## Playback
 
@@ -300,6 +301,7 @@ Requires notification listener access (same as Playback). To enable the active-n
 | `watch_notifications` | Register a filter against the live notification stream; returns `watch_id`. Filter semantics: case-insensitive substring on sender / keyword, AND-combine, fire-once-per-key with optional `fire_on_update`, no replay. | `package_name?`, `sender_pattern?`, `keyword?`, `ttl_seconds`, `fire_on_update` |
 | `unwatch_notifications` | Remove a watch by id. Idempotent — unknown id returns success with `removed = false`. | `watch_id` (required) |
 | `list_notification_watches` | List currently-active watches with TTL countdown. Expired watches are swept before the list is returned. | -- |
+| `poll_notification_watch` | Return notifications matched by a watch (buffered, max 50 per watch) | `watch_id`, `clear` (default true) |
 
 Push subscription complement to Notifications (Reply)'s pull/snapshot tools. Shares the same listener service. Hosts can subscribe directly to `NotificationListenerBus.events: SharedFlow<NotificationEvent>` from the `droid-mcp-notification-listener` module to react to notifications without using the LLM-tool surface at all.
 

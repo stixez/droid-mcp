@@ -1,12 +1,12 @@
 # droid-mcp
 
-Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 145 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
+Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, media, location, sensors, camera, NFC, intents, playback, screenshot, ML Kit vision, notification reply + watch, accessibility-driven UI control, custom IME typing, floating overlay, Shizuku shell-UID admin, libsu root-UID admin, etc.) via Model Context Protocol — 146 tools across 53 modules, compatible with on-device LLMs and desktop MCP clients.
 
 ## Quick Reference
 
-- **Language:** Kotlin 2.1, Android SDK 28+, Gradle 8.12
+- **Language:** Kotlin 2.4, Android SDK 28+ (compile/target 36), Gradle 9.8, AGP 9 (built-in Kotlin — modules don't apply `kotlin.android`)
 - **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **53 modules**, 145 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
+- **53 modules**, 146 tools, sample app with Compose UI. Tiers 1–3 are the core surface; Tiers 4–5 (`shizuku`, `root`) are opt-in power tools excluded from `:droid-mcp-all`. 0.10.0 adds three opt-in hardening modules (`audit`, `tls`, `server-service`) — also excluded from `:droid-mcp-all` (they pull Room/BouncyCastle/foreground-service deps).
 
 ## Key Conventions
 
@@ -15,7 +15,7 @@ Android MCP SDK. Exposes phone capabilities (calendar, contacts, SMS, files, med
 - Limit params: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`
 - ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
 - File access: sandboxed via `PathValidator` — external storage only
-- Tool calls run on `Dispatchers.IO`, never main thread
+- Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
 - No fully qualified names inline — use proper imports
 
 ## Don't
@@ -81,7 +81,7 @@ droid-mcp-{name}/
 | `droid-mcp-tts` | `io.droidmcp.tts` | speak_text, get_tts_info |
 | `droid-mcp-web` | `io.droidmcp.web` | web_search, fetch_webpage |
 | `droid-mcp-telephony` | `io.droidmcp.telephony` | get_phone_number, get_sim_info, get_network_operator, get_call_state |
-| `droid-mcp-vibration` | `io.droidmcp.vibration` | vibrate, vibrate_pattern |
+| `droid-mcp-vibration` | `io.droidmcp.vibration` | vibrate, vibrate_pattern, cancel_vibration |
 | `droid-mcp-flashlight` | `io.droidmcp.flashlight` | toggle_flashlight, set_flashlight_brightness |
 | `droid-mcp-biometric` | `io.droidmcp.biometric` | check_biometric_availability, get_biometric_enrollments |
 | `droid-mcp-network` | `io.droidmcp.network` | get_data_usage, get_cellular_signal, is_vpn_active |
@@ -102,7 +102,7 @@ droid-mcp-{name}/
 | `droid-mcp-mlkit` | `io.droidmcp.mlkit` | recognize_text, label_image, detect_faces |
 | `droid-mcp-notification-listener` | `io.droidmcp.notification` | Shared listener support (Holder, Store, base service) |
 | `droid-mcp-notifications-reply` | `io.droidmcp.notificationsreply` | list_repliable_notifications, reply_to_notification, dismiss_notification, invoke_notification_action |
-| `droid-mcp-notification-watch` | `io.droidmcp.notificationwatch` | watch_notifications, unwatch_notifications, list_notification_watches (+ NotificationListenerBus SharedFlow) |
+| `droid-mcp-notification-watch` | `io.droidmcp.notificationwatch` | watch_notifications, unwatch_notifications, list_notification_watches, poll_notification_watch (+ NotificationListenerBus SharedFlow) |
 | `droid-mcp-accessibility` | `io.droidmcp.accessibility` | query_screen, find_node, wait_for_text, click_node, long_click_node, set_node_text, scroll_node, gesture, global_action, get_active_window_info, take_screenshot_via_a11y, tap, long_press, find_and_tap, scroll_to_find |
 | `droid-mcp-ime` | `io.droidmcp.ime` | is_ime_active, type_text, commit_keystroke, delete_text, set_selection, get_text_around_cursor, switch_to_previous_ime |
 | `droid-mcp-overlay` | `io.droidmcp.overlay` | OverlayController programmatic API only (no LLM tools) |
@@ -121,14 +121,12 @@ droid-mcp-{name}/
 ```kotlin
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
 }
 android {
     namespace = "io.droidmcp.{name}"
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_11; targetCompatibility = JavaVersion.VERSION_11 }
-    kotlinOptions { jvmTarget = "11" }
 }
 dependencies { implementation(project(":droid-mcp-core")) }
 ```
@@ -167,7 +165,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 51 tests covering ToolRegistry, ToolParameter, ToolResult, McpProtocol, InProcessTransport, TokenStore, DroidMcp builder
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 90 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Several tool modules (accessibility, ime, notification-*, shell-core, root, tls) also have JVM unit tests: `./gradlew testDebugUnitTest`
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp`
@@ -176,6 +174,7 @@ object MyTools {
 
 ## Security Decisions
 
+- HTTP transport rejects foreign `Origin` headers (403; allowlist via `enableHttpServer(allowedOrigins=)`), non-JSON bodies (415), bodies > 4 MB (413) and unknown `MCP-Protocol-Version` (400). Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. `GET /mcp` is 405 (no server push). Protocol negotiates 2025-11-25 / 2025-06-18 / 2025-03-26 / 2024-11-05.
 - HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
 - Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
 - mDNS (`_mcp._tcp`) broadcasts version/auth/readonly via TXT records; does NOT broadcast the bearer token.
@@ -186,7 +185,10 @@ object MyTools {
 - All numeric params clamped to safe ranges
 - `ToolRegistry` uses `ConcurrentHashMap` for thread safety
 - Settings read tools register without write permission; write tools require `canWrite()`
-- `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.
+- `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.; `send_intent`/`open_deep_link` data URIs limited to http(s), geo, tel, mailto, sms(to), mms(to), market
+- `fetch_webpage`/`web_search` block private, loopback and link-local addresses (SSRF) unless `allowPrivateNetwork = true`
+- `run_shell` allowlist matches argv token-by-token and rejects interpreter entries; optional `ShellPolicy` denies sensitive setting keys/permissions
+- `get_text_around_cursor` refuses password fields
 - `set_wallpaper` validates file path against external storage root (same sandboxing as file tools)
 - `set_ringtone` only accepts `content://` URIs — rejects `file://` and other schemes
 - Playback tools use `NotificationListenerHolder` — host app must explicitly configure its service ComponentName

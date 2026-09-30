@@ -2,7 +2,7 @@
   <h1 align="center">droid-mcp</h1>
   <p align="center">
     Give your Android AI app access to the entire phone.<br/>
-    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 145 tools across 53 modules.
+    Calendar, contacts, SMS, camera, location, sensors, notification reply + push subscription, accessibility-driven UI control, IME typing, floating overlay, shell-UID admin via Shizuku, root-UID admin via libsu, and more — 146 tools across 53 modules.
   </p>
 </p>
 
@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform" />
   <img src="https://img.shields.io/badge/min%20SDK-28-blue" alt="Min SDK" />
   <img src="https://img.shields.io/badge/Kotlin-2.1-purple" alt="Kotlin" />
-  <img src="https://img.shields.io/badge/tools-145-red" alt="Tools" />
+  <img src="https://img.shields.io/badge/tools-146-red" alt="Tools" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
   <a href="https://buymeacoffee.com/stixe"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=000" alt="Buy Me a Coffee" /></a>
 </p>
@@ -49,7 +49,7 @@ On-device LLMs and AI agents are getting good, but they can't do much without ac
 
 - **For on-device LLM apps** — call tools directly from your model's output. No server needed.
 - **For desktop AI tools** — connect Claude Code, Cursor, or any MCP client to your phone over WiFi.
-- **For agent builders** — 145 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
+- **For agent builders** — 146 pre-built, validated tools covering the full Android API surface. Skip the boilerplate.
 
 ---
 
@@ -178,7 +178,7 @@ if (CalendarTools.hasPermissions(context)) {
 
 ## Modules
 
-53 modules, 145 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
+53 modules, 146 tools. Each module is independent — only the permissions for included modules are added to your manifest. Root (Tier 5) reuses the same 17 shell tools as Shizuku (Tier 4) via the shared `ShellBackend` interface.
 
 The table below lists 48 of them (`core` plus the tool modules; `overlay` is listed too, though it exposes a programmatic API rather than LLM tools). The remaining five are infrastructure: two support modules (`notification-listener`, `shell-core`) that the listener-based and shell-based modules wire against, plus three opt-in hardening modules added in 0.10.0 (`audit`, `tls`, `server-service`) — see [Hardening modules](#hardening-modules-0100) below.
 
@@ -208,7 +208,7 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | **flashlight** | `toggle_flashlight` `set_flashlight_brightness` | `CAMERA` `FLASHLIGHT` |
 | **network** | `get_data_usage` `get_cellular_signal` `is_vpn_active` | `ACCESS_NETWORK_STATE` + `PACKAGE_USAGE_STATS` (special, for `get_data_usage`) |
 | **telephony** | `get_phone_number` `get_sim_info` `get_network_operator` `get_call_state` | `READ_PHONE_STATE` `READ_SMS` |
-| **vibration** | `vibrate` `vibrate_pattern` | `VIBRATE` |
+| **vibration** | `vibrate` `vibrate_pattern` `cancel_vibration` | `VIBRATE` |
 | **biometric** | `check_biometric_availability` `get_biometric_enrollments` | None |
 | **sensors** | `get_accelerometer` `get_gyroscope` `get_light_level` `get_proximity` | None |
 | **qr** | `scan_qr_code` `scan_barcode` `generate_qr_code` | `CAMERA` |
@@ -218,7 +218,7 @@ The table below lists 48 of them (`core` plus the tool modules; `overlay` is lis
 | **intent** | `send_intent` `share_content` `open_deep_link` | None |
 | **playback** | `get_now_playing` `media_control` | Notification Listener (special) |
 | **notifications-reply** | `list_repliable_notifications` `reply_to_notification` `dismiss_notification` `invoke_notification_action` | Notification Listener (special) |
-| **notification-watch** | `watch_notifications` `unwatch_notifications` `list_notification_watches` (+ `NotificationListenerBus` SharedFlow API) | Notification Listener (special) |
+| **notification-watch** | `watch_notifications` `unwatch_notifications` `list_notification_watches` `poll_notification_watch` (+ `NotificationListenerBus` SharedFlow API) | Notification Listener (special) |
 | **accessibility** | `query_screen` `find_node` `wait_for_text` `click_node` `long_click_node` `set_node_text` `scroll_node` `gesture` `global_action` `get_active_window_info` `take_screenshot_via_a11y` `tap` `long_press` `find_and_tap` `scroll_to_find` | Accessibility Service (special) |
 | **ime** | `is_ime_active` `type_text` `commit_keystroke` `delete_text` `set_selection` `get_text_around_cursor` `switch_to_previous_ime` | Input Method enabled + selected (special) |
 | **overlay** | (programmatic `OverlayController` only — no LLM tools) | `SYSTEM_ALERT_WINDOW` (special) |

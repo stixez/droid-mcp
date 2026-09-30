@@ -37,7 +37,7 @@ droid-mcp is a library; the host app is responsible for the parts a library can'
 
 ## Power tiers — escalating authority
 
-Tiers 4 (Shizuku) and 5 (root) hand the LLM `shell`-UID or root-UID reach. The `run_shell` escape hatch is **default-deny**: the LLM cannot run an arbitrary command unless the host registers a prefix allowlist (`ShellAllowlist.set(...)`). Keep that allowlist as narrow as the app actually needs. Granting Shizuku/root to a host app is equivalent to granting it `adb shell` / `su` — treat it that way.
+Tiers 4 (Shizuku) and 5 (root) hand the LLM `shell`-UID or root-UID reach. The `run_shell` escape hatch is **default-deny**: the LLM cannot run an arbitrary command unless the host registers an allowlist (`ShellAllowlist.set(...)`). Entries match the command's argv token-by-token, and entries that start with an interpreter (`sh`, `toybox`, `su`, `app_process`, `env`, …) are rejected. `ShellPolicy` can additionally deny sensitive setting keys and permission grants. Keep that allowlist as narrow as the app actually needs. Granting Shizuku/root to a host app is equivalent to granting it `adb shell` / `su` — treat it that way.
 
 ## Audit log privacy
 
