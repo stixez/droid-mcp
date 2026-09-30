@@ -84,7 +84,7 @@ class FetchWebpageTool @JvmOverloads constructor(
             doc.select("script, style, noscript, nav, footer, header").remove()
 
             val bodyEl = doc.body()
-            val fullText = bodyEl?.text()?.trim() ?: ""
+            val fullText = bodyEl.text().trim()
             val truncated = if (fullText.length > maxLength) fullText.substring(0, maxLength) else fullText
 
             ToolResult.success(mapOf(

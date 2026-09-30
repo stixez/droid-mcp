@@ -41,10 +41,11 @@ class GetDisplayInfoTool(private val context: Context) : McpTool {
 
         val refreshRate = display.refreshRate
 
-        val hdrCapable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            display.hdrCapabilities?.supportedHdrTypes?.isNotEmpty() == true
+        val hdrCapable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            display.mode.supportedHdrTypes.isNotEmpty()
         } else {
-            false
+            @Suppress("DEPRECATION")
+            display.hdrCapabilities?.supportedHdrTypes?.isNotEmpty() == true
         }
 
         return ToolResult.success(mapOf(

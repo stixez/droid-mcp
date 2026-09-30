@@ -112,7 +112,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
             val jpegSizes = configMap?.getOutputSizes(ImageFormat.JPEG)
             val size = jpegSizes?.maxByOrNull { it.width * it.height }
                 ?: return@withContext ToolResult.error("Cannot determine camera resolution")
-            val previewSize = pickPreviewSize(configMap?.getOutputSizes(ImageFormat.YUV_420_888))
+            val previewSize = pickPreviewSize(configMap.getOutputSizes(ImageFormat.YUV_420_888))
             val sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
             val afModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES) ?: IntArray(0)
             val afMode = if (CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE in afModes) {
@@ -150,8 +150,8 @@ class TakePhotoTool(private val context: Context) : McpTool {
 
                 session = suspendCancellableCoroutine { cont ->
                     val outputs = listOf(
-                        OutputConfiguration(previewReader!!.surface),
-                        OutputConfiguration(imageReader!!.surface),
+                        OutputConfiguration(previewReader.surface),
+                        OutputConfiguration(imageReader.surface),
                     )
                     sessionExecutor = Executors.newSingleThreadExecutor()
                     val sessionConfig = SessionConfiguration(
@@ -175,7 +175,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
                 // settle, or the convergence budget runs out — then capture regardless.
                 val converged = CompletableDeferred<Unit>()
                 val previewRequest = device!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                    addTarget(previewReader!!.surface)
+                    addTarget(previewReader.surface)
                     set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                     afMode?.let { set(CaptureRequest.CONTROL_AF_MODE, it) }
@@ -191,7 +191,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
                 runCatching { session!!.stopRepeating() }
 
                 val captureRequest = device!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
-                    addTarget(imageReader!!.surface)
+                    addTarget(imageReader.surface)
                     set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                     afMode?.let { set(CaptureRequest.CONTROL_AF_MODE, it) }
@@ -200,7 +200,7 @@ class TakePhotoTool(private val context: Context) : McpTool {
                 }.build()
 
                 suspendCancellableCoroutine<ByteArray?> { cont ->
-                    imageReader!!.setOnImageAvailableListener({ reader ->
+                    imageReader.setOnImageAvailableListener({ reader ->
                         val image = reader.acquireLatestImage()
                         val buffer = image?.planes?.get(0)?.buffer
                         val data = buffer?.let { ByteArray(it.remaining()).also { arr -> it.get(arr) } }

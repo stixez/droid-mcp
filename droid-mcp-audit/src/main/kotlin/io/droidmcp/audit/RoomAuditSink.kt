@@ -51,11 +51,12 @@ class RoomAuditSink(
 
     /** Parent of every write; cancelling it leaves the caller's [scope] untouched. */
     private val writeJob = SupervisorJob(scope.coroutineContext[Job])
+    private val writeScope = CoroutineScope(scope.coroutineContext + writeJob)
 
     private val lastPruneAt = AtomicLong(0L)
 
     override fun record(entry: ToolCallAudit) {
-        scope.launch(writeJob) {
+        writeScope.launch {
             try {
                 dao.insert(entry.toEntity())
                 val now = System.currentTimeMillis()

@@ -30,7 +30,8 @@ internal fun StatusBarNotification.toEvent(channelImportance: Int): Notification
         groupKey = groupKey,
         isOngoing = n != null && (n.flags and Notification.FLAG_ONGOING_EVENT) != 0,
         isClearable = isClearable,
-        legacyPriority = n?.priority ?: 0,
+        // Pre-channel priority, exposed on purpose as `legacyPriority` for apps that still set it.
+        legacyPriority = @Suppress("DEPRECATION") (n?.priority ?: 0),
         channelImportance = channelImportance,
         postedAt = postTime,
         `when` = n?.`when` ?: 0L,

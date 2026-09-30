@@ -1,6 +1,7 @@
 package io.droidmcp.telephony
 
 import android.content.Context
+import android.os.Build
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
@@ -25,7 +26,12 @@ class GetCallStateTool(private val context: Context) : McpTool {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
         val callState = try {
-            telephonyManager.callState
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                telephonyManager.callStateForSubscription
+            } else {
+                @Suppress("DEPRECATION")
+                telephonyManager.callState
+            }
         } catch (e: SecurityException) {
             return ToolResult.error("READ_PHONE_STATE permission not granted")
         }

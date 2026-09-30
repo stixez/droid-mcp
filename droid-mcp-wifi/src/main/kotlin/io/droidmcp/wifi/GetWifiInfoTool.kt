@@ -3,6 +3,7 @@ package io.droidmcp.wifi
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import java.net.Inet4Address
 import android.net.wifi.WifiManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
@@ -38,14 +39,13 @@ class GetWifiInfoTool(private val context: Context) : McpTool {
         // On API 26+, SSID returns "<unknown ssid>" without location permission
         val ssid = if (rawSsid == "<unknown ssid>") null else rawSsid?.removeSurrounding("\"")
 
-        val ipInt = wifiInfo.ipAddress
-        val ipAddress = if (ipInt != 0) {
-            "%d.%d.%d.%d".format(
-                ipInt and 0xff,
-                (ipInt shr 8) and 0xff,
-                (ipInt shr 16) and 0xff,
-                (ipInt shr 24) and 0xff,
-            )
+        // WifiInfo.ipAddress is deprecated (IPv4-only int); read the Wi-Fi network's link
+        // addresses instead. Only meaningful while the active network is Wi-Fi.
+        val ipAddress = if (isConnected) {
+            connectivityManager.getLinkProperties(activeNetwork)?.linkAddresses
+                ?.map { it.address }
+                ?.firstOrNull { it is Inet4Address }
+                ?.hostAddress
         } else null
 
         return ToolResult.success(mapOf(

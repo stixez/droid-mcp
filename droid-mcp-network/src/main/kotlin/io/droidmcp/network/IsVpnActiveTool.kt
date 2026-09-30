@@ -41,59 +41,47 @@ class IsVpnActiveTool(private val context: Context) : McpTool {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
                 ?: return@withContext ToolResult.error("ConnectivityManager not available")
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val activeNetwork: Network = connectivityManager.activeNetwork
-                    ?: return@withContext ToolResult.success(mapOf(
-                        "is_active" to false,
-                        "vpn_package_name" to null
-                    ))
+            val activeNetwork: Network = connectivityManager.activeNetwork
+                ?: return@withContext ToolResult.success(mapOf(
+                    "is_active" to false,
+                    "vpn_package_name" to null
+                ))
 
-                val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-                    ?: return@withContext ToolResult.success(mapOf(
-                        "is_active" to false,
-                        "vpn_package_name" to null
-                    ))
+            val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+                ?: return@withContext ToolResult.success(mapOf(
+                    "is_active" to false,
+                    "vpn_package_name" to null
+                ))
 
-                val hasVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+            val hasVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
 
-                if (hasVpn) {
-                    // NetworkCapabilities.getOwnerUid() is public from API 30. The platform only
-                    // populates it for the VPN app itself (INVALID_UID for everyone else), so for a
-                    // third-party caller this usually stays "unknown". Below API 30 there is no
-                    // public way to find the owner.
-                    val packageName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        try {
-                            val uid = capabilities.ownerUid
-                            if (uid >= Process.FIRST_APPLICATION_UID) {
-                                context.packageManager.getPackagesForUid(uid)?.firstOrNull()
-                            } else {
-                                null
-                            }
-                        } catch (e: Exception) {
+            if (hasVpn) {
+                // NetworkCapabilities.getOwnerUid() is public from API 30. The platform only
+                // populates it for the VPN app itself (INVALID_UID for everyone else), so for a
+                // third-party caller this usually stays "unknown". Below API 30 there is no
+                // public way to find the owner.
+                val packageName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    try {
+                        val uid = capabilities.ownerUid
+                        if (uid >= Process.FIRST_APPLICATION_UID) {
+                            context.packageManager.getPackagesForUid(uid)?.firstOrNull()
+                        } else {
                             null
                         }
-                    } else {
+                    } catch (e: Exception) {
                         null
                     }
-
-                    ToolResult.success(mapOf(
-                        "is_active" to true,
-                        "vpn_package_name" to (packageName ?: "unknown")
-                    ))
                 } else {
-                    ToolResult.success(mapOf(
-                        "is_active" to false,
-                        "vpn_package_name" to null
-                    ))
+                    null
                 }
-            } else {
-                // Fallback for older Android versions
-                @Suppress("DEPRECATION")
-                val networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_VPN)
-                val isActive = networkInfo?.isConnected == true
 
                 ToolResult.success(mapOf(
-                    "is_active" to isActive,
+                    "is_active" to true,
+                    "vpn_package_name" to (packageName ?: "unknown")
+                ))
+            } else {
+                ToolResult.success(mapOf(
+                    "is_active" to false,
                     "vpn_package_name" to null
                 ))
             }

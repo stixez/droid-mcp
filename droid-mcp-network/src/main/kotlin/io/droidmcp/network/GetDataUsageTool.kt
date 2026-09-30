@@ -51,6 +51,9 @@ class GetDataUsageTool(private val context: Context) : McpTool {
             calendar.add(Calendar.DAY_OF_YEAR, -days)
             val startTime = calendar.timeInMillis
 
+            // querySummaryForDevice still keys on the legacy network type; there's no public
+            // NetworkCapabilities-based overload, so TYPE_MOBILE remains the correct argument.
+            @Suppress("DEPRECATION")
             val bucket = networkStatsManager.querySummaryForDevice(
                 ConnectivityManager.TYPE_MOBILE,
                 null,
