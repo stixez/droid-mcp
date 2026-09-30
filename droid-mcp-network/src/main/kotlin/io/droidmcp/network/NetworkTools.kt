@@ -3,7 +3,6 @@ package io.droidmcp.network
 import android.Manifest
 import android.app.AppOpsManager
 import android.content.Context
-import android.os.Build
 import android.os.Process
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
@@ -40,20 +39,13 @@ object NetworkTools {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
             ?: return false
 
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(),
-                context.packageName
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(),
-                context.packageName
-            )
-        }
+        // checkOpNoThrow(String, …) was deprecated for unsafeCheckOpNoThrow on API 29–35, then
+        // un-deprecated on 36 (which deprecated unsafeCheckOpNoThrow instead); both behave identically.
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            context.packageName
+        )
 
         return mode == AppOpsManager.MODE_ALLOWED
     }

@@ -5,15 +5,15 @@ import android.content.Context
 import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.provider.Settings
-import android.view.Surface
-import android.view.WindowManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 
 /**
- * Reads a snapshot of common device settings. No permissions required.
+ * Reads a snapshot of common device settings. Uses only install-time permissions declared by the
+ * module manifest (`ACCESS_WIFI_STATE`, and legacy `BLUETOOTH` on API <= 30); if either read
+ * fails (e.g. a host manifest merge removed the permission) the corresponding flag reports `false`.
  *
  * Output keys: `screen_brightness` (0-255, `-1` if unreadable), `volume_ring`, `volume_media`,
  * `volume_alarm`, `wifi_enabled`, `bluetooth_enabled`, `airplane_mode`, `auto_rotate`.
@@ -37,13 +37,14 @@ class GetSettingsTool(private val context: Context) : McpTool {
         val volumeMedia = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val volumeAlarm = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
 
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        @Suppress("DEPRECATION")
-        val wifiEnabled = wifiManager.isWifiEnabled
+        val wifiEnabled = try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            wifiManager?.isWifiEnabled ?: false
+        } catch (e: Exception) { false }
 
         val bluetoothEnabled = try {
-            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            bluetoothManager.adapter?.isEnabled ?: false
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            bluetoothManager?.adapter?.isEnabled ?: false
         } catch (e: Exception) { false }
 
         val airplaneMode = Settings.Global.getInt(contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0

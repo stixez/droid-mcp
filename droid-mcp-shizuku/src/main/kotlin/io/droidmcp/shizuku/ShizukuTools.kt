@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
+import io.droidmcp.shell.ShellPolicy
 import io.droidmcp.shell.ShellTools
 import rikka.shizuku.Shizuku
 
@@ -15,13 +16,21 @@ import rikka.shizuku.Shizuku
  *
  * Shizuku activation is a special-access flow (the user installs the Shizuku
  * app, activates it via wireless debugging on Android 11+ or ADB, then grants
- * the runtime permission to this host app). See `docs/SHIZUKU.md`.
+ * the runtime permission to this host app). See `docs/SHELL.md`.
  */
 object ShizukuTools {
 
     private val backend = ShizukuShellBackend()
 
-    fun all(context: Context): List<McpTool> = ShellTools.all(context, backend)
+    /**
+     * The shell-core tool set wired against the Shizuku backend.
+     *
+     * @param policy optional host denylist for settings keys / grantable permissions
+     *   (see [ShellPolicy]). Defaults to [ShellPolicy.RECOMMENDED]; pass
+     *   [ShellPolicy.PERMISSIVE] only if the model is fully trusted.
+     */
+    fun all(context: Context, policy: ShellPolicy = ShellPolicy.RECOMMENDED): List<McpTool> =
+        ShellTools.all(context, backend, policy)
 
     /**
      * No `Manifest.permission.*` runtime grants — Shizuku's permission is its
@@ -40,10 +49,11 @@ object ShizukuTools {
     fun isShizukuReady(): Boolean = backend.isAvailable()
 
     /**
-     * Open the Shizuku app's permission flow. If Shizuku is installed and
-     * pingable, calls `Shizuku.requestPermission(requestCode)` which surfaces
-     * a system dialog. If not installed, returns a launch intent for the
-     * Play Store / install screen.
+     * Ask Shizuku to show its permission dialog (`Shizuku.requestPermission`).
+     * Does nothing if the Shizuku service isn't running — check
+     * [isShizukuReady] first, and use [installOrOpenIntent] to send the user
+     * to Shizuku when it isn't. The result arrives via Shizuku's
+     * `OnRequestPermissionResultListener`.
      */
     fun requestPermission(requestCode: Int) {
         runCatching { Shizuku.requestPermission(requestCode) }

@@ -10,13 +10,15 @@ import io.droidmcp.core.ToolResult
 
 /**
  * Shares text via the system share sheet (ACTION_SEND wrapped in a chooser), with optional
- * `subject` and `type` (default `text/plain`). No permissions.
+ * `subject` and `type` (default `text/plain`). No permissions. On API 29+ the host must be
+ * visible or hold `SYSTEM_ALERT_WINDOW`, else `background_activity_launch_blocked` (see
+ * [IntentGuards.backgroundLaunchError]).
  * Output: `success`, `text_length`, `type`.
  */
 class ShareContentTool(private val context: Context) : McpTool {
 
     override val name = "share_content"
-    override val description = "Share text content via the Android share sheet (ACTION_SEND)"
+    override val description = "Share text content via the Android share sheet (ACTION_SEND). Requires the host app to be in the foreground (or hold 'Display over other apps') on Android 10+."
     override val parameters = listOf(
         ToolParameter("text", "Text content to share", ParameterType.STRING, required = true),
         ToolParameter("subject", "Optional subject line (used by email apps)", ParameterType.STRING),
@@ -29,6 +31,7 @@ class ShareContentTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("text is required")
         val subject = params["subject"]?.toString()
         val type = params["type"]?.toString() ?: "text/plain"
+        IntentGuards.backgroundLaunchError(context)?.let { return it }
 
         val intent = Intent(Intent.ACTION_SEND).apply {
             this.type = type

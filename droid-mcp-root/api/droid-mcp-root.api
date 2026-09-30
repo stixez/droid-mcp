@@ -1,0 +1,31 @@
+public final class io/droidmcp/root/RootShellBackend : io/droidmcp/shell/ShellBackend {
+	public static final field Companion Lio/droidmcp/root/RootShellBackend$Companion;
+	public static final field DEFAULT_EXEC_TIMEOUT_MS J
+	public static final field DEFAULT_MAX_BINARY_OUTPUT_BYTES I
+	public static final field DEFAULT_MAX_OUTPUT_BYTES I
+	public fun <init> ()V
+	public fun <init> (JII)V
+	public synthetic fun <init> (JIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun availabilityProblem ()Lio/droidmcp/shell/ShellException;
+	public fun exec (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun execBinary (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getName ()Ljava/lang/String;
+	public fun isAvailable ()Z
+}
+
+public final class io/droidmcp/root/RootShellBackend$Companion {
+}
+
+public final class io/droidmcp/root/RootTools {
+	public static final field INSTANCE Lio/droidmcp/root/RootTools;
+	public final fun all (Landroid/content/Context;Lio/droidmcp/shell/ShellPolicy;)Ljava/util/List;
+	public static synthetic fun all$default (Lio/droidmcp/root/RootTools;Landroid/content/Context;Lio/droidmcp/shell/ShellPolicy;ILjava/lang/Object;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun isRootAvailable ()Z
+	public final fun permissionStatus (Landroid/content/Context;)Lio/droidmcp/core/PermissionStatus;
+	public final fun requestAccess (Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun requestAccess$default (Lio/droidmcp/root/RootTools;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun requiredPermissions ()Ljava/util/List;
+	public final fun supportedTools (Landroid/content/Context;)Ljava/util/Set;
+}
+

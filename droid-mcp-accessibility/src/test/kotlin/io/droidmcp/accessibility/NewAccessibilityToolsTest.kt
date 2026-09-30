@@ -93,9 +93,9 @@ class NewAccessibilityToolsTest {
     }
 
     @Test
-    fun `idempotentGlobalActions excludes power_dialog and screenshot`() {
+    fun `idempotentGlobalActions excludes non-repeatable actions`() {
         assertThat(AccessibilityTools.idempotentGlobalActions).containsExactly(
-            "back", "home", "recents", "notifications", "quick_settings", "lock_screen",
+            "home", "notifications", "quick_settings", "lock_screen",
         )
     }
 

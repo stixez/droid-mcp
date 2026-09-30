@@ -1,73 +1,84 @@
-# droid-mcp Security Model
+# Security model
 
-droid-mcp lets an LLM — on-device or remote — invoke phone capabilities through the Model Context Protocol. That is a lot of authority to hand out, so this document is explicit about what protects it, what the trust boundaries are, and what is deliberately **out of scope**.
+droid-mcp lets an LLM, on the device or on a desktop, call phone capabilities through MCP. This page covers what protects those calls, where the trust boundaries are, and what is out of scope.
 
-## Transports and their boundaries
+## Transports
 
-droid-mcp exposes tools over two transports:
+| Transport | Used by | Boundary |
+|---|---|---|
+| In-process (`InProcessTransport`) | An on-device LLM in the same app process | No socket. The host app is the trust boundary: anything in the process can call any registered tool. Not audited. |
+| HTTP (`HttpTransport`) | A desktop MCP client on the network | Bearer auth (on by default), Origin and session checks, optional TLS, read-only mode, per-tool gating and an optional audit log. Most of this page is about this transport. |
 
-| Transport | Who uses it | Boundary |
-|-----------|-------------|----------|
-| **In-process** (`InProcessTransport`) | An on-device LLM in the same app process | No network. The host app *is* the trust boundary — anything in the process can call any registered tool. Not audited. |
-| **HTTP** (`HttpTransport`) | A desktop / remote MCP client over the LAN | Bearer-token auth (default on), optional TLS, optional read-only mode, per-tool gating, audit log. This is the surface the rest of this document is about. |
+On both transports, tool calls run on `Dispatchers.IO` with a per-call timeout (`Builder.toolTimeout()`, default 5 min), and `Builder.confirmToolCalls` can require approval before a tool runs.
 
-If you only use the in-process transport, the HTTP threat model below does not apply — no socket is ever opened.
+## Threat model: an attacker on the same network
 
-## Threat model — attacker on the same network
+Assume an attacker who can reach the device's IP, for example on the same Wi-Fi. The server listens on all interfaces, so every network the phone is on counts.
 
-Assume an attacker who can reach the device's IP on the LAN (same WiFi: a café, an office, a compromised router). What can they do, and what stops them?
+| Attack | Mitigation |
+|---|---|
+| Call tools without credentials | Bearer auth is on by default (`requireAuth = true`). A 32-byte `SecureRandom` token is generated if you don't supply one; a token you supply must be at least 16 characters. Tokens are compared in constant time. Failures get 401 with `WWW-Authenticate: Bearer realm="droid-mcp"`. |
+| A web page in the phone's browser calls `http://127.0.0.1:8080/mcp` (drive-by or DNS rebinding) | A request whose `Origin` isn't in `allowedOrigins` gets 403. Only `application/json` bodies are accepted (415 otherwise), which rules out CORS "simple" requests. |
+| Use another client's session | Session IDs are tied to the token that created them. A missing `Mcp-Session-Id` gets 400; an unknown or foreign one gets 404. |
+| Sniff the token or tool arguments in transit | TLS (`enableTls`, with the opt-in `droid-mcp-tls` module). The certificate is self-signed, so clients pin its SHA-256 fingerprint from the pairing QR (`DroidMcp.tlsFingerprint`). Without TLS, treat the network as trusted. |
+| Reuse a leaked token | `rotateToken()` replaces the primary token. Per-client tokens (`pairClient` / `revokeClient`) let you revoke one client without affecting the others. |
+| Call write tools on an observe-only deployment | Read-only mode (`readOnly = true`) lists only read-only tools and rejects `tools/call` for the rest. |
+| Call a tool you never meant to expose | `setToolEnabled` / `setDisabledTools` remove a tool from both `tools/list` and `tools/call` at runtime. |
+| Discover the server | mDNS (`_mcp._tcp`) advertises `version`, `auth`, `readonly` and `tls`, never the token. `/health` requires auth. |
+| A prompt-injected model sends SMS, deletes data or installs apps | `Builder.confirmToolCalls` runs a host confirmer, such as a dialog on the phone, before every `destructiveHint` tool on both transports. See [Prompt injection](#prompt-injection). |
+| Exhaust memory or threads | Bodies over 4 MB get 413. Sessions are capped (least recently used evicted). Tool calls time out. Shell output is capped at 4 MiB per stream. |
 
-| Attack | Without mitigation | Mitigation |
-|--------|--------------------|------------|
-| Call tools without credentials | Full control of the device surface | **Bearer auth is on by default** (`requireAuth = true`). A 32-byte `SecureRandom` token is generated if you don't supply one. 401 + `WWW-Authenticate: Bearer` on failure. Token compared in constant time. |
-| Sniff the token / message contents in transit | Plaintext HTTP exposes the token and every argument (message bodies, contacts, locations) to a passive listener | **TLS** (`enableTls`, opt-in `droid-mcp-tls`). Self-signed cert; clients **pin the SHA-256 fingerprint** from the pairing QR (`DroidMcp.tlsFingerprint`) rather than trusting a CA chain. Without TLS, treat the network as trusted. |
-| Replay a captured token | Impersonate the client indefinitely | `rotateToken()` invalidates the primary; per-client pairing (`pairClient` / `revokeClient`) lets you revoke one client without disturbing others. |
-| Invoke destructive tools on an observe-only deployment | Send SMS, force-stop apps, etc. | **Read-only mode** (`readOnly = true`) filters `tools/list` to read-only tools and rejects `tools/call` for the rest. |
-| Call a tool you never intended to expose | Whole registered surface is reachable | **Per-tool gating** (`setToolEnabled` / `setDisabledTools`) removes a tool from both `tools/list` and `tools/call` at runtime. |
-| Discover the server | — | mDNS (`_mcp._tcp`) advertises version / auth mode / readonly / tls. It does **not** advertise the bearer token. |
+> [!NOTE]
+> Read-only means "changes nothing", not "harmless". Reading SMS or contacts and taking silent screenshots (`take_screenshot_via_a11y`, `capture_screen_quiet`) are reads. Disable those tools individually if the client shouldn't have them.
 
-## Host-app trust assumptions
+Protocol details (headers, status codes, SSE) are in [PAIRING.md](PAIRING.md#connecting).
 
-droid-mcp is a library; the host app is responsible for the parts a library can't own:
+## Prompt injection
 
-- **Token distribution.** The pairing QR carries the token (and TLS fingerprint). Anyone who sees the QR gets the credential — show it only to the intended client.
-- **Permission UX.** Library modules never request Android runtime permissions; the host does. A tool degrades gracefully (clear error) when its permission is missing.
-- **Special-access grants.** Accessibility, Notification Listener, IME, Shizuku, and root are extreme grants. Once granted, a tool call that clears the bearer-auth boundary gets that authority. Only enable the tiers you need.
-- **The audit DB.** If you use `droid-mcp-audit`, you own its lifecycle (below).
+Web pages, SMS, notifications, clipboard contents and screen text are untrusted, and can tell the model to call other tools. droid-mcp returns that content as data but can't stop a model from obeying it. Two defenses:
 
-## Power tiers — escalating authority
+- **Confirm on the phone.** `Builder.confirmToolCalls { request -> showDialog(request) }` asks before every tool marked `destructiveHint` (pass `requiresConfirmation` to change the set). A decline, an exception or no answer within the tool timeout returns `tool_call_declined`, and the tool never runs.
+- **Confirm on the client.** `ToolCallConfirmer.viaClientElicitation(fallback)` asks the desktop client's user through MCP elicitation. It works only for clients that declared the `elicitation` capability at `initialize` and accept an SSE response, and each elicitation is scoped to the session that made the call. Without that, `fallback` decides, and with no fallback the call is declined.
 
-Tiers 4 (Shizuku) and 5 (root) hand the LLM `shell`-UID or root-UID reach. The `run_shell` escape hatch is **default-deny**: the LLM cannot run an arbitrary command unless the host registers a prefix allowlist (`ShellAllowlist.set(...)`). Keep that allowlist as narrow as the app actually needs. Granting Shizuku/root to a host app is equivalent to granting it `adb shell` / `su` — treat it that way.
+Confirming on the client catches a misled model but not a compromised client. For that, confirm on the phone.
+
+## Host-app responsibilities
+
+droid-mcp is a library. The host app owns what a library can't:
+
+- **Token distribution.** The pairing QR carries the token and TLS fingerprint. Anyone who sees it has the credential, so show it only to the intended client.
+- **Permission UX.** Library modules never request Android runtime permissions. A tool returns an error when its permission is missing.
+- **Special-access grants.** Accessibility, Notification Listener, IME, Shizuku and root are broad grants. Once granted, any tool call that passes bearer auth gets that authority. Enable only the modules you need.
+- **The audit database**, if you use `droid-mcp-audit` (see below).
+
+## Shizuku and root
+
+`droid-mcp-shizuku` and `droid-mcp-root` run tools as the `shell` UID or as root. Granting either to a host app is equivalent to giving it `adb shell` or `su`.
+
+- `run_shell` is default-deny. It runs nothing until the host registers an allowlist with `ShellAllowlist.set(...)`. Entries match argv token by token, and entries that start with a shell or interpreter (`sh`, `toybox`, `su`, `app_process`, `env` and others) are rejected.
+- `ShellPolicy.RECOMMENDED` is the default. It blocks setting keys and permission grants that would hand over control of the device (accessibility, IME, ADB, `WRITE_SECURE_SETTINGS` and similar). `ShellPolicy.PERMISSIVE` is an explicit opt-in.
+
+Details: [SHELL.md](SHELL.md#safety).
 
 ## Audit log privacy
 
-`RoomAuditSink` persists every HTTP `tools/call`, **including the arguments** — which are the sensitive data (message text, contact names, file paths, coordinates). The database lives in the host app's private storage. The host owns:
+`RoomAuditSink` stores every HTTP `tools/call`, including its arguments, which are the sensitive part (message text, contact names, file paths, coordinates). The database lives in the host app's private storage, and the host owns:
 
-- **Retention** — default 7 days; set `Duration.ZERO` to keep indefinitely.
-- **Deletion** — `clear()`; export with `exportJson()`.
-- **Encryption** — not applied by default. If the threat model includes device compromise, layer on encrypted storage.
+- **Retention.** Default 7 days. `Duration.ZERO` keeps rows indefinitely.
+- **Deletion and export.** `clear()` and `exportJson()`.
+- **Encryption.** Not applied. If your threat model includes device compromise, add encrypted storage.
 
-The dependency-free `AuditSink` hook in core is the alternative: receive each record and decide yourself whether/where to persist. Persisting nothing is a valid choice.
+The dependency-free `AuditSink` interface in core is the alternative: receive each record and decide yourself whether and where to keep it. Keeping nothing is a valid choice.
 
 ## Out of scope
 
-droid-mcp does **not** defend against:
+droid-mcp does not defend against:
 
-- **A malicious or compromised host app.** The host has in-process access to every tool by construction.
-- **A malicious LLM that has already cleared bearer auth.** Auth gates *who* can call; it doesn't reason about *intent*. Use read-only mode and per-tool gating to shrink what a trusted-but-wrong model can reach.
-- **Physical device access.**
-- **Supply-chain integrity of third-party deps** (Shizuku, libsu, Room, BouncyCastle) beyond pinning their versions.
+- **A malicious or compromised host app.** The host has in-process access to every tool by design.
+- **A malicious caller that has passed bearer auth.** Auth decides who can call, not why. Use read-only mode, per-tool gating and `confirmToolCalls` to limit what a trusted but mistaken model can reach.
+- **Physical access to the device.**
+- **Supply-chain integrity of third-party dependencies** (Shizuku, libsu, Room, BouncyCastle) beyond pinning their versions.
 
-## Packaging note (TLS)
+## Reporting a vulnerability
 
-BouncyCastle ships an identical `META-INF/versions/9/OSGI-INF/MANIFEST.MF` in all three of its jars. A host that depends on `droid-mcp-tls` must exclude it (it's unused on Android):
-
-```kotlin
-android {
-    packaging { resources { excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF" } }
-}
-```
-
-## Reporting
-
-Found a vulnerability? Open a private security advisory on the GitHub repository rather than a public issue.
+Open a private security advisory on the GitHub repository rather than a public issue.

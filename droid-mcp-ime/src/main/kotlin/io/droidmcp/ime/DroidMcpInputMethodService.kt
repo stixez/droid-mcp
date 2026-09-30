@@ -2,6 +2,7 @@ package io.droidmcp.ime
 
 import android.inputmethodservice.InputMethodService
 import android.view.View
+import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.widget.Button
@@ -29,6 +30,9 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
     @Volatile
     private var inputBound: Boolean = false
 
+    @Volatile
+    private var editorInfo: EditorInfo? = null
+
     override fun onCreate() {
         super.onCreate()
         InputMethodServiceHolder.set(this)
@@ -44,16 +48,19 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        editorInfo = attribute
         inputBound = true
     }
 
     override fun onFinishInput() {
         inputBound = false
+        editorInfo = null
         super.onFinishInput()
     }
 
     override fun onDestroy() {
         inputBound = false
+        editorInfo = null
         InputMethodServiceHolder.clear(this)
         super.onDestroy()
     }
@@ -63,11 +70,30 @@ abstract class DroidMcpInputMethodService : InputMethodService() {
      * via [InputMethodServiceHolder.isActive] to short-circuit with a clear
      * error before trying to drive an empty InputConnection.
      */
-    fun hasInputConnection(): Boolean = inputBound && currentInputConnection != null
+    fun hasInputConnection(): Boolean = inputBound && currentInputConnection != null && hasFocusedEditor()
 
     /**
      * Live InputConnection for the currently-focused field, or null if the
      * IME isn't currently driving an editor.
      */
-    fun connection(): InputConnection? = if (inputBound) currentInputConnection else null
+    fun connection(): InputConnection? =
+        if (inputBound && hasFocusedEditor()) currentInputConnection else null
+
+    /**
+     * False when the IME is only bound to the window's placeholder editor — no field has focus.
+     * Android then reports `inputType = TYPE_NULL` with `fieldId = 0`; a real editor has its
+     * view's id (or `View.NO_ID`, -1), so a TYPE_NULL terminal-style view still counts. Text
+     * committed to the placeholder goes nowhere, so tools must not report it as typed.
+     */
+    fun hasFocusedEditor(): Boolean {
+        val info = editorInfo ?: return false
+        return info.inputType != InputType.TYPE_NULL || info.fieldId != 0
+    }
+
+    /**
+     * The [EditorInfo] captured in [onStartInput] for the currently-bound
+     * editor, or null when no editor is bound. Read tools use its `inputType`
+     * to refuse password fields (see [isPasswordInputType]).
+     */
+    fun editorInfo(): EditorInfo? = if (inputBound) editorInfo else null
 }

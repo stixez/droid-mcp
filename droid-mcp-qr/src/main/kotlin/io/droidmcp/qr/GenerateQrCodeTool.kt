@@ -28,7 +28,7 @@ class GenerateQrCodeTool : McpTool {
     override val description = "Generate a QR code from text, returned as base64-encoded PNG"
     override val parameters = listOf(
         ToolParameter("text", "Text content to encode in the QR code", ParameterType.STRING, required = true),
-        ToolParameter("size", "Image size in pixels (100-1000, default 300)", ParameterType.INTEGER, required = false),
+        ToolParameter("size", "Image size in pixels (100-1000, default 300)", ParameterType.INTEGER, required = false, minimum = 100.0, maximum = 1000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -63,7 +63,7 @@ class GenerateQrCodeTool : McpTool {
                 "qr_image" to base64,
                 "format" to "png",
                 "size" to size,
-            ))
+            )).withImage("qr_image", "image/png")
         } catch (e: WriterException) {
             ToolResult.error("Failed to generate QR code: ${e.message}")
         }

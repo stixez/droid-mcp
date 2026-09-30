@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- get_settings: WifiManager.isWifiEnabled -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- get_settings: BluetoothAdapter.isEnabled needs legacy BLUETOOTH on API <= 30 only -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
 </manifest>

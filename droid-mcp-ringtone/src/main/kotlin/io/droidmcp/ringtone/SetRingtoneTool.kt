@@ -26,14 +26,14 @@ class SetRingtoneTool(private val context: Context) : McpTool {
     override val description = "Set the default ringtone, notification, or alarm sound. Requires WRITE_SETTINGS permission."
     override val parameters = listOf(
         ToolParameter("uri", "Ringtone URI (from list_ringtones). Pass 'silent' to set to silent.", ParameterType.STRING, required = true),
-        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
+        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uriStr = params["uri"]?.toString()
             ?: return ToolResult.error("uri is required")
-        val typeStr = params["type"]?.toString() ?: "ringtone"
+        val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"
 
         val type = when (typeStr) {
             "ringtone" -> RingtoneManager.TYPE_RINGTONE

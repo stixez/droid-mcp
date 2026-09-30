@@ -1,5 +1,6 @@
 package io.droidmcp.notification
 
+import android.app.NotificationManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
@@ -19,7 +20,10 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
     override fun onListenerConnected() {
         super.onListenerConnected()
         instance = this
-        NotificationStore.reset(runCatching { activeNotifications }.getOrNull())
+        // Every sbn is attacker-shaped (any app can post one), so never let a
+        // malformed notification throw out of a listener callback — that runs
+        // on the host's main thread and would crash the host process.
+        runCatching { NotificationStore.reset(runCatching { activeNotifications }.getOrNull()) }
     }
 
     override fun onListenerDisconnected() {
@@ -40,26 +44,31 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         sbn ?: return
-        NotificationStore.put(sbn)
-        NotificationListenerBus.publish(sbn.toEvent(channelImportanceFor(sbn)))
+        // Isolated so a malformed notification from any app can't crash the
+        // host (this callback runs on the main thread); the store and the bus
+        // are updated independently so one failing doesn't block the other.
+        runCatching { NotificationStore.put(sbn) }
+        runCatching { NotificationListenerBus.publish(sbn.toEvent(channelImportanceFor(sbn))) }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        sbn?.let { NotificationStore.remove(it.key) }
+        sbn?.let { runCatching { NotificationStore.remove(it.key) } }
     }
 
     /**
-     * Resolves the channel importance for `sbn` via
-     * `NotificationListenerService.getNotificationChannels(pkg, user)`. Returns
-     * `-1` when the channel can't be located (no channel id, listener
-     * disconnected, source app revoked metadata, etc.).
+     * Resolves the effective importance for `sbn` from the listener's
+     * [getCurrentRanking] (`Ranking.importance`, which reflects the channel's
+     * user-set importance on O+). Unlike `getNotificationChannels`, this needs
+     * no companion-device association. Returns `-1` when no ranking is
+     * available for the key (listener disconnected, notification already gone)
+     * or the importance is unspecified.
      */
     private fun channelImportanceFor(sbn: StatusBarNotification): Int {
-        val channelId = sbn.notification?.channelId ?: return -1
         return runCatching {
-            getNotificationChannels(sbn.packageName, sbn.user)
-                ?.firstOrNull { it.id == channelId }
-                ?.importance
+            val rankingMap = currentRanking ?: return@runCatching null
+            val ranking = Ranking()
+            if (!rankingMap.getRanking(sbn.key, ranking)) return@runCatching null
+            ranking.importance.takeIf { it != NotificationManager.IMPORTANCE_UNSPECIFIED }
         }.getOrNull() ?: -1
     }
 

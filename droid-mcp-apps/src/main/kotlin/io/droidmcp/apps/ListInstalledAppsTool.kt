@@ -2,7 +2,6 @@ package io.droidmcp.apps
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -24,7 +23,7 @@ class ListInstalledAppsTool(private val context: Context) : McpTool {
     override val description = "List installed apps on the device"
     override val parameters = listOf(
         ToolParameter("include_system", "Include system apps in results (default: false)", ParameterType.BOOLEAN),
-        ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -33,17 +32,14 @@ class ListInstalledAppsTool(private val context: Context) : McpTool {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50
 
         val pm = context.packageManager
-        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { app ->
-                if (!includeSystem) {
-                    (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0
-                } else {
-                    true
-                }
-            }
-            .sortedBy { it.loadLabel(pm).toString().lowercase() }
+        // Labels are loaded once per app (each loadLabel is a resource lookup) and reused for
+        // both the sort key and the output. Flags 0: no metadata is read.
+        val apps = pm.getInstalledApplications(0)
+            .filter { app -> includeSystem || (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+            .map { app -> app to app.loadLabel(pm).toString() }
+            .sortedBy { (_, label) -> label.lowercase() }
             .take(limit)
-            .map { app ->
+            .map { (app, label) ->
                 val isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                 val versionName = try {
                     pm.getPackageInfo(app.packageName, 0).versionName ?: ""
@@ -51,7 +47,7 @@ class ListInstalledAppsTool(private val context: Context) : McpTool {
                     ""
                 }
                 mapOf(
-                    "app_name" to app.loadLabel(pm).toString(),
+                    "app_name" to label,
                     "package_name" to app.packageName,
                     "version" to versionName,
                     "is_system_app" to isSystem,

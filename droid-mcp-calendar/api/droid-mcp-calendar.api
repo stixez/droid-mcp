@@ -1,0 +1,58 @@
+public final class io/droidmcp/calendar/CalendarTools {
+	public static final field INSTANCE Lio/droidmcp/calendar/CalendarTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+
+public final class io/droidmcp/calendar/CreateEventTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/calendar/DeleteEventTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/calendar/ReadCalendarTool : io/droidmcp/core/McpTool {
+	public static final field DAY_MILLIS J
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/calendar/SearchEventsTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/calendar/UpdateEventTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+

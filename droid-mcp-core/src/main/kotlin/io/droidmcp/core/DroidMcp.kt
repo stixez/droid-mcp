@@ -24,7 +24,7 @@ class DroidMcp private constructor(
     /** The HTTP server's effective bearer token, or null if the server is disabled or open (no auth). */
     val serverToken: String? get() = httpTransport?.effectiveToken
 
-    /** The registered tools as live [McpTool] instances (in-process). */
+    /** The enabled tools as live [McpTool] instances (in-process); gated-off tools are excluded. */
     fun listTools(): List<McpTool> = inProcessTransport.listTools()
 
     /** The registered tools serialised to a JSON catalogue; see [InProcessTransport.listToolsJson]. */
@@ -33,6 +33,13 @@ class DroidMcp private constructor(
     /** Invoke a tool directly in-process, bypassing JSON-RPC. Honours runtime gating. */
     suspend fun callTool(name: String, params: Map<String, Any>): ToolResult =
         inProcessTransport.callTool(name, params)
+
+    /** Like [callTool], delivering the tool's [reportProgress] updates to [onProgress]. */
+    suspend fun callTool(
+        name: String,
+        params: Map<String, Any>,
+        onProgress: suspend (ProgressUpdate) -> Unit,
+    ): ToolResult = inProcessTransport.callTool(name, params, onProgress)
 
     /** Start the HTTP server. Throws if the server was not enabled via [Builder.enableHttpServer]. */
     fun startServer() {
@@ -100,6 +107,10 @@ class DroidMcp private constructor(
         private var androidContext: Context? = null
         private var auditSink: AuditSink? = null
         private var tls: TlsConfig? = null
+        private var allowedOrigins: Set<String> = emptySet()
+        private var toolTimeoutMs: Long = ToolRegistry.DEFAULT_TOOL_TIMEOUT_MS
+        private var confirmer: ToolCallConfirmer? = null
+        private var requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint }
 
         /** Add a single tool to the registry. */
         fun addTool(tool: McpTool) = apply { tools.add(tool) }
@@ -124,6 +135,29 @@ class DroidMcp private constructor(
         fun enableTls(config: TlsConfig) = apply { this.tls = config }
 
         /**
+         * Ask the host before running tools that match [requiresConfirmation] (by default every
+         * tool with [ToolAnnotations.destructiveHint]) — on both transports. [confirmer] typically
+         * shows a dialog; a decline, a missing answer within the tool timeout, or an exception
+         * returns a `tool_call_declined` error and the tool never runs.
+         */
+        fun confirmToolCalls(
+            requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint },
+            confirmer: ToolCallConfirmer,
+        ) = apply {
+            this.requiresConfirmation = requiresConfirmation
+            this.confirmer = confirmer
+        }
+
+        /**
+         * Cap every tool call (both transports) at [millis]; an overrunning tool is cancelled
+         * and reported as a `tool_timeout` error. Defaults to [ToolRegistry.DEFAULT_TOOL_TIMEOUT_MS].
+         */
+        fun toolTimeout(millis: Long) = apply {
+            require(millis > 0) { "tool timeout must be positive" }
+            this.toolTimeoutMs = millis
+        }
+
+        /**
          * Enable the HTTP transport (Ktor) for desktop MCP clients.
          *
          * @param port Plaintext port to bind (ignored when [enableTls] supplies an HTTPS port).
@@ -134,6 +168,12 @@ class DroidMcp private constructor(
          * @param readOnly Expose and accept only read-only tools (filters `tools/list`, rejects
          *   mutating `tools/call`).
          * @param context Android context, used for mDNS service broadcast when available.
+         * @param allowedOrigins Browser origins (e.g. `"http://localhost:6274"` for MCP Inspector)
+         *   allowed to call the server. Requests carrying any other `Origin` header are rejected
+         *   with 403 to block DNS-rebinding and drive-by browser requests; native clients send no
+         *   `Origin` and are unaffected.
+         * @throws IllegalArgumentException if [token] is shorter than
+         *   [HttpTransport.MIN_TOKEN_LENGTH] characters.
          */
         fun enableHttpServer(
             port: Int = 8080,
@@ -141,8 +181,13 @@ class DroidMcp private constructor(
             requireAuth: Boolean = true,
             readOnly: Boolean = false,
             context: Context? = null,
+            allowedOrigins: Set<String> = emptySet(),
         ) = apply {
+            require(token == null || token.length >= HttpTransport.MIN_TOKEN_LENGTH) {
+                "token must be at least ${HttpTransport.MIN_TOKEN_LENGTH} characters"
+            }
             this.httpPort = port
+            this.allowedOrigins = allowedOrigins
             this.authToken = token
             this.requireAuth = requireAuth
             this.readOnly = readOnly
@@ -151,7 +196,7 @@ class DroidMcp private constructor(
 
         /** Assemble the [DroidMcp] instance: build the registry, wire transports, return it (does not start the server). */
         fun build(): DroidMcp {
-            val registry = ToolRegistry()
+            val registry = ToolRegistry(toolTimeoutMs, confirmer, requiresConfirmation)
             registry.registerAll(tools)
             val inProcess = InProcessTransport(registry)
             val http = httpPort?.let {
@@ -164,6 +209,7 @@ class DroidMcp private constructor(
                     context = androidContext,
                     auditSink = auditSink,
                     tls = tls,
+                    allowedOrigins = allowedOrigins,
                 )
             }
             return DroidMcp(registry, http, inProcess)

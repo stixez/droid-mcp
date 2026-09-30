@@ -13,23 +13,24 @@ import kotlinx.coroutines.withContext
 /**
  * Reads the `TYPE_GYROSCOPE` sensor (x/y/z angular rate in rad/s). No permissions. With
  * `duration_ms` (1-5000) it collects a series of samples; otherwise a single reading. See
- * [readSensor]. Output: latest `x`, `y`, `z`, `accuracy`, `timestamp`, plus a `readings` list
- * of `{x,y,z,timestamp}`. Returns [ToolResult.error] when the device has no gyroscope.
+ * [sampleSensor]. Output: latest `x`, `y`, `z`, `accuracy`, `timestamp`, plus a `readings` list
+ * of `{x,y,z,timestamp}`. Returns [ToolResult.error] (with distinct messages) if no reading arrives in time or when the device has no gyroscope.
  */
 class GetGyroscopeTool(private val context: Context) : McpTool {
 
     override val name = "get_gyroscope"
     override val description = "Read gyroscope data (x, y, z rotation in rad/s)"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)
 
-        val readings = readSensor(context, Sensor.TYPE_GYROSCOPE, durationMs)
-            ?: return@withContext ToolResult.error("Gyroscope not available on this device")
+        val result = sampleSensor(context, Sensor.TYPE_GYROSCOPE, durationMs)
+        result.toErrorOrNull("Gyroscope")?.let { return@withContext it }
+        val readings = (result as SensorSampleResult.Readings).readings
 
         val latest = readings.lastOrNull()
 

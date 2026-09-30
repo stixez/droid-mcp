@@ -31,14 +31,15 @@ import io.droidmcp.core.ToolResult
  * projection maps, each shaped like [NodeQuery.toMap]).
  *
  * Returns the short-form error `accessibility_not_enabled` when the host's
- * [DroidMcpAccessibilityService] is not bound.
+ * [DroidMcpAccessibilityService] is not bound, and `no_active_window` when it
+ * is bound but no active-window root is available (see [rootUnavailableError]).
  */
 class QueryScreenTool(private val context: Context) : McpTool {
 
     override val name = "query_screen"
     override val description = "Dump the active window's AccessibilityNodeInfo tree as a flat list of nodes with text / bounds / class / view-id / action capabilities. **Returns nodes ranked by usefulness:** clickable > has-text > scrollable > rest. When truncated to `max_nodes`, the highest-ranked nodes are kept — token-bound callers can trust the order. Password-flagged nodes report `is_password = true` with text / content_description masked."
     override val parameters = listOf(
-        ToolParameter("max_nodes", "Cap on the number of nodes to return (1-2000, default 500).", ParameterType.INTEGER, required = false),
+        ToolParameter("max_nodes", "Cap on the number of nodes to return (1-2000, default 500).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -64,7 +65,7 @@ class QueryScreenTool(private val context: Context) : McpTool {
                 "package_name" to root.packageName?.toString(),
                 "nodes" to sorted.map { it.projection },
             )
-        } ?: return ToolResult.error("accessibility_not_enabled", null)
+        } ?: return rootUnavailableError(shortForm = true)
 
         return ToolResult.success(payload)
     }
@@ -92,3 +93,20 @@ class QueryScreenTool(private val context: Context) : McpTool {
  */
 internal fun notConnectedError(): String =
     "Accessibility service not bound. Enable the host app's accessibility service in Settings > Accessibility > Installed apps."
+
+/**
+ * Error for a null [NodeQuery.withRoot] result, distinguishing the two causes:
+ * the service is not bound (the tool's usual not-connected error — long-form
+ * [notConnectedError] or short-form `accessibility_not_enabled` per
+ * [shortForm]), versus the service being bound but `rootInActiveWindow`
+ * returning null, which yields `no_active_window` (transient — during window
+ * transitions, lock screen, or when no window is focusable; retry shortly).
+ *
+ * @param shortForm True for tools that emit short-form error codes.
+ */
+internal fun rootUnavailableError(shortForm: Boolean): ToolResult = when {
+    AccessibilityServiceHolder.isConnected() ->
+        ToolResult.error("no_active_window", "accessibility service is bound but no active window root is available; retry shortly")
+    shortForm -> ToolResult.error("accessibility_not_enabled", null)
+    else -> ToolResult.error(notConnectedError())
+}

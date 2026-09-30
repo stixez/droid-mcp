@@ -10,7 +10,10 @@ import io.droidmcp.core.ToolResult
  * `pm grant <pkg> <perm>` — grant a runtime permission to an app without the
  * user prompt. Idempotent. The permission must be one the app declared in its
  * manifest. Treated as failure if the command exits non-zero or writes to
- * stderr (not declared / not a runtime permission / etc.).
+ * stderr (not declared / not a runtime permission / etc.). Note `pm grant` also
+ * grants `development`-protection permissions such as `WRITE_SECURE_SETTINGS`;
+ * permissions in [ShellPolicy.deniedPermissions] are refused with
+ * `denied_by_policy`.
  *
  * Privilege: requires a working [ShellBackend].
  *
@@ -19,7 +22,10 @@ import io.droidmcp.core.ToolResult
  * On success the result map carries `success` (true), `package_name`, and
  * `permission`.
  */
-class GrantPermissionTool(private val shell: ShellBackend) : McpTool {
+class GrantPermissionTool(
+    private val shell: ShellBackend,
+    private val policy: ShellPolicy = ShellPolicy.RECOMMENDED,
+) : McpTool {
     override val name = "grant_permission"
     override val description = "Grant a runtime permission to an app via `pm grant`, bypassing the user prompt. Idempotent. Permission must be one the app declared in its manifest."
     override val parameters = listOf(
@@ -33,6 +39,9 @@ class GrantPermissionTool(private val shell: ShellBackend) : McpTool {
             .getOrElse { return (it as ShellValidationFailure).let { f -> ToolResult.error(f.code, f.detail) } }
         val perm = ShellValidation.requirePermission(params["permission"]?.toString())
             .getOrElse { return (it as ShellValidationFailure).let { f -> ToolResult.error(f.code, f.detail) } }
+        if (policy.isPermissionDenied(perm)) {
+            return policyDenied("host policy forbids granting '$perm'")
+        }
         return shell.gatedExec("pm", listOf("grant", pkg, perm)) { result ->
             if (result.isSuccess && result.stderr.isEmpty()) {
                 ToolResult.success(mapOf("success" to true, "package_name" to pkg, "permission" to perm))
@@ -120,12 +129,14 @@ class ListAppPermissionsTool(private val shell: ShellBackend) : McpTool {
     /**
      * Pull permission lines out of `dumpsys package` output. Relevant sections:
      *
-     *   requested permissions:
-     *     android.permission.INTERNET
-     *   install permissions:
-     *     android.permission.INTERNET: granted=true
-     *   runtime permissions:
-     *     android.permission.READ_CONTACTS: granted=true, flags=[USER_SET]
+     * ```
+     * requested permissions:
+     *   android.permission.INTERNET
+     * install permissions:
+     *   android.permission.INTERNET: granted=true
+     * runtime permissions:
+     *   android.permission.READ_CONTACTS: granted=true, flags=[USER_SET]
+     * ```
      *
      * Some API levels / OEM skins emit trailing fields (`gids=[...]`,
      * `restricted=true`) on the same line. We use anchored `find` (not

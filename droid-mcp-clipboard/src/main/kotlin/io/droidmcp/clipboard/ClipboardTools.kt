@@ -4,8 +4,9 @@ import android.content.Context
 import io.droidmcp.core.McpTool
 
 /**
- * Provider for the clipboard tool module. Wires up `ReadClipboardTool` and [WriteClipboardTool],
- * which use the system `ClipboardManager`. No permissions required.
+ * Provider for the clipboard tool module. Wires up [ReadClipboardTool] and [WriteClipboardTool],
+ * which use the system `ClipboardManager`. No permissions required, though on API 29+
+ * reads only succeed while the host app is foreground or the default IME.
  */
 object ClipboardTools {
 

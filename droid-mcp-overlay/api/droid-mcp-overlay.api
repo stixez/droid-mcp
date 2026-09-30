@@ -1,0 +1,38 @@
+public final class io/droidmcp/overlay/OverlayConfig {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/Integer;
+	public final fun component3 ()Lkotlin/jvm/functions/Function0;
+	public final fun component4 ()Lkotlin/jvm/functions/Function0;
+	public final fun component5 ()Lkotlin/jvm/functions/Function2;
+	public final fun copy (Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;)Lio/droidmcp/overlay/OverlayConfig;
+	public static synthetic fun copy$default (Lio/droidmcp/overlay/OverlayConfig;Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lio/droidmcp/overlay/OverlayConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIconRes ()Ljava/lang/Integer;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getOnClick ()Lkotlin/jvm/functions/Function0;
+	public final fun getOnDragEnd ()Lkotlin/jvm/functions/Function2;
+	public final fun getOnLongPress ()Lkotlin/jvm/functions/Function0;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/overlay/OverlayController {
+	public fun <init> (Landroid/content/Context;)V
+	public final fun hide ()V
+	public final fun isPermissionGranted ()Z
+	public final fun permissionIntent ()Landroid/content/Intent;
+	public final fun show (Lio/droidmcp/overlay/OverlayConfig;)V
+	public final fun show (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V
+}
+
+public final class io/droidmcp/overlay/OverlayTools {
+	public static final field INSTANCE Lio/droidmcp/overlay/OverlayTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun permissionStatus (Landroid/content/Context;)Lio/droidmcp/core/PermissionStatus;
+	public final fun requiredPermissions ()Ljava/util/List;
+	public final fun supportedTools (Landroid/content/Context;)Ljava/util/Set;
+}
+

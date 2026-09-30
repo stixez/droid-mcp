@@ -3,8 +3,6 @@ package io.droidmcp.vibration
 import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
@@ -23,8 +21,8 @@ class VibrateTool(private val context: Context) : McpTool {
     override val name = "vibrate"
     override val description = "Vibrate the device for a specified duration"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration of vibration in milliseconds (1-10000)", ParameterType.INTEGER, required = true),
-        ToolParameter("amplitude", "Vibration amplitude (1-255), or null for default", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration of vibration in milliseconds (1-10000)", ParameterType.INTEGER, required = true, minimum = 1.0, maximum = 10000.0),
+        ToolParameter("amplitude", "Vibration amplitude (1-255), or null for default", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 255.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 
@@ -34,15 +32,8 @@ class VibrateTool(private val context: Context) : McpTool {
 
         val amplitude = (params["amplitude"] as? Number)?.toInt()?.coerceIn(1, 255)
 
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vm.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
-
-        if (!vibrator.hasVibrator()) {
+        val vibrator = defaultVibrator(context)
+        if (vibrator == null || !vibrator.hasVibrator()) {
             return ToolResult.error("Device does not have a vibrator")
         }
 
@@ -53,6 +44,7 @@ class VibrateTool(private val context: Context) : McpTool {
                 } else {
                     VibrationEffect.createOneShot(duration.toLong(), VibrationEffect.DEFAULT_AMPLITUDE)
                 }
+                RepeatingVibrationWatchdog.disarm()
                 vibrator.vibrate(effect)
             } else {
                 @Suppress("DEPRECATION")

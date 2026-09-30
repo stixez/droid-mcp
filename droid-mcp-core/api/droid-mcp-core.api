@@ -1,0 +1,475 @@
+public abstract interface class io/droidmcp/core/AuditSink {
+	public static final field Companion Lio/droidmcp/core/AuditSink$Companion;
+	public abstract fun record (Lio/droidmcp/core/ToolCallAudit;)V
+}
+
+public final class io/droidmcp/core/AuditSink$Companion {
+	public final fun getNONE ()Lio/droidmcp/core/AuditSink;
+}
+
+public final class io/droidmcp/core/DroidMcp {
+	public static final field Companion Lio/droidmcp/core/DroidMcp$Companion;
+	public synthetic fun <init> (Lio/droidmcp/core/ToolRegistry;Lio/droidmcp/core/transport/HttpTransport;Lio/droidmcp/core/transport/InProcessTransport;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun disabledTools ()Ljava/util/Set;
+	public final fun getServerToken ()Ljava/lang/String;
+	public final fun getTlsFingerprint ()Ljava/lang/String;
+	public final fun isServerRunning ()Z
+	public final fun listTools ()Ljava/util/List;
+	public final fun listToolsJson ()Ljava/lang/String;
+	public final fun pairClient (Ljava/lang/String;)Ljava/lang/String;
+	public final fun pairedClients ()Ljava/util/List;
+	public final fun revokeClient (Ljava/lang/String;)Z
+	public final fun rotateToken ()Ljava/lang/String;
+	public final fun setDisabledTools (Ljava/util/Set;)V
+	public final fun setToolEnabled (Ljava/lang/String;Z)V
+	public final fun startServer ()V
+	public final fun stopServer ()V
+}
+
+public final class io/droidmcp/core/DroidMcp$Builder {
+	public fun <init> ()V
+	public final fun addTool (Lio/droidmcp/core/McpTool;)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun addTools (Ljava/util/List;)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun build ()Lio/droidmcp/core/DroidMcp;
+	public final fun confirmToolCalls (Lkotlin/jvm/functions/Function1;Lio/droidmcp/core/ToolCallConfirmer;)Lio/droidmcp/core/DroidMcp$Builder;
+	public static synthetic fun confirmToolCalls$default (Lio/droidmcp/core/DroidMcp$Builder;Lkotlin/jvm/functions/Function1;Lio/droidmcp/core/ToolCallConfirmer;ILjava/lang/Object;)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun enableHttpServer (ILjava/lang/String;ZZLandroid/content/Context;Ljava/util/Set;)Lio/droidmcp/core/DroidMcp$Builder;
+	public static synthetic fun enableHttpServer$default (Lio/droidmcp/core/DroidMcp$Builder;ILjava/lang/String;ZZLandroid/content/Context;Ljava/util/Set;ILjava/lang/Object;)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun enableTls (Lio/droidmcp/core/transport/TlsConfig;)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun toolTimeout (J)Lio/droidmcp/core/DroidMcp$Builder;
+	public final fun withAuditSink (Lio/droidmcp/core/AuditSink;)Lio/droidmcp/core/DroidMcp$Builder;
+}
+
+public final class io/droidmcp/core/DroidMcp$Companion {
+	public final fun builder ()Lio/droidmcp/core/DroidMcp$Builder;
+}
+
+public final class io/droidmcp/core/ElicitationResult {
+	public fun <init> (Lio/droidmcp/core/ElicitationResult$Action;Ljava/util/Map;)V
+	public synthetic fun <init> (Lio/droidmcp/core/ElicitationResult$Action;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lio/droidmcp/core/ElicitationResult$Action;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Lio/droidmcp/core/ElicitationResult$Action;Ljava/util/Map;)Lio/droidmcp/core/ElicitationResult;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ElicitationResult;Lio/droidmcp/core/ElicitationResult$Action;Ljava/util/Map;ILjava/lang/Object;)Lio/droidmcp/core/ElicitationResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAction ()Lio/droidmcp/core/ElicitationResult$Action;
+	public final fun getContent ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ElicitationResult$Action : java/lang/Enum {
+	public static final field ACCEPT Lio/droidmcp/core/ElicitationResult$Action;
+	public static final field CANCEL Lio/droidmcp/core/ElicitationResult$Action;
+	public static final field DECLINE Lio/droidmcp/core/ElicitationResult$Action;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/droidmcp/core/ElicitationResult$Action;
+	public static fun values ()[Lio/droidmcp/core/ElicitationResult$Action;
+}
+
+public abstract interface class io/droidmcp/core/McpTool {
+	public abstract fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public abstract fun getDescription ()Ljava/lang/String;
+	public abstract fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public abstract fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/core/McpTool$DefaultImpls {
+	public static fun getAnnotations (Lio/droidmcp/core/McpTool;)Lio/droidmcp/core/ToolAnnotations;
+	public static fun getOutputSchema (Lio/droidmcp/core/McpTool;)Ljava/util/Map;
+}
+
+public final class io/droidmcp/core/ParameterType : java/lang/Enum {
+	public static final field ARRAY Lio/droidmcp/core/ParameterType;
+	public static final field BOOLEAN Lio/droidmcp/core/ParameterType;
+	public static final field INTEGER Lio/droidmcp/core/ParameterType;
+	public static final field NUMBER Lio/droidmcp/core/ParameterType;
+	public static final field OBJECT Lio/droidmcp/core/ParameterType;
+	public static final field STRING Lio/droidmcp/core/ParameterType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getJsonType ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lio/droidmcp/core/ParameterType;
+	public static fun values ()[Lio/droidmcp/core/ParameterType;
+}
+
+public final class io/droidmcp/core/PermissionHelper {
+	public static final field INSTANCE Lio/droidmcp/core/PermissionHelper;
+	public final fun hasPermissions (Landroid/content/Context;Ljava/util/List;)Z
+	public final fun missingPermissions (Landroid/content/Context;Ljava/util/List;)Ljava/util/List;
+}
+
+public abstract class io/droidmcp/core/PermissionStatus {
+	public abstract fun getGranted ()Z
+	public abstract fun getIntent ()Landroid/content/Intent;
+	public abstract fun getMessage ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/PermissionStatus$Granted : io/droidmcp/core/PermissionStatus {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lio/droidmcp/core/PermissionStatus$Granted;
+	public static synthetic fun copy$default (Lio/droidmcp/core/PermissionStatus$Granted;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/PermissionStatus$Granted;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getGranted ()Z
+	public fun getIntent ()Landroid/content/Intent;
+	public fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/PermissionStatus$NotGranted : io/droidmcp/core/PermissionStatus {
+	public fun <init> (Ljava/lang/String;Landroid/content/Intent;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Landroid/content/Intent;
+	public final fun copy (Ljava/lang/String;Landroid/content/Intent;)Lio/droidmcp/core/PermissionStatus$NotGranted;
+	public static synthetic fun copy$default (Lio/droidmcp/core/PermissionStatus$NotGranted;Ljava/lang/String;Landroid/content/Intent;ILjava/lang/Object;)Lio/droidmcp/core/PermissionStatus$NotGranted;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getGranted ()Z
+	public fun getIntent ()Landroid/content/Intent;
+	public fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/PermissionStatus$Unavailable : io/droidmcp/core/PermissionStatus {
+	public fun <init> (Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy (Ljava/lang/String;I)Lio/droidmcp/core/PermissionStatus$Unavailable;
+	public static synthetic fun copy$default (Lio/droidmcp/core/PermissionStatus$Unavailable;Ljava/lang/String;IILjava/lang/Object;)Lio/droidmcp/core/PermissionStatus$Unavailable;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getGranted ()Z
+	public fun getIntent ()Landroid/content/Intent;
+	public fun getMessage ()Ljava/lang/String;
+	public final fun getRequiredApiLevel ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ProgressUpdate {
+	public fun <init> (DLjava/lang/Double;Ljava/lang/String;)V
+	public synthetic fun <init> (DLjava/lang/Double;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()Ljava/lang/Double;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (DLjava/lang/Double;Ljava/lang/String;)Lio/droidmcp/core/ProgressUpdate;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ProgressUpdate;DLjava/lang/Double;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ProgressUpdate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getProgress ()D
+	public final fun getTotal ()Ljava/lang/Double;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ToolAnnotations {
+	public fun <init> ()V
+	public fun <init> (ZZZZLjava/lang/String;)V
+	public synthetic fun <init> (ZZZZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (ZZZZLjava/lang/String;)Lio/droidmcp/core/ToolAnnotations;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolAnnotations;ZZZZLjava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ToolAnnotations;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDestructiveHint ()Z
+	public final fun getIdempotentHint ()Z
+	public final fun getOpenWorldHint ()Z
+	public final fun getReadOnlyHint ()Z
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ToolCallAudit {
+	public fun <init> (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;J)V
+	public final fun component1 ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Z
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()J
+	public final fun copy (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;J)Lio/droidmcp/core/ToolCallAudit;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolCallAudit;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;JILjava/lang/Object;)Lio/droidmcp/core/ToolCallAudit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgumentsJson ()Ljava/lang/String;
+	public final fun getClientLabel ()Ljava/lang/String;
+	public final fun getDurationMs ()J
+	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getSuccess ()Z
+	public final fun getTimestamp ()J
+	public final fun getToolName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class io/droidmcp/core/ToolCallConfirmer {
+	public static final field Companion Lio/droidmcp/core/ToolCallConfirmer$Companion;
+	public abstract fun confirm (Lio/droidmcp/core/ToolCallRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/ToolCallConfirmer$Companion {
+	public final fun viaClientElicitation (Lio/droidmcp/core/ToolCallConfirmer;)Lio/droidmcp/core/ToolCallConfirmer;
+	public static synthetic fun viaClientElicitation$default (Lio/droidmcp/core/ToolCallConfirmer$Companion;Lio/droidmcp/core/ToolCallConfirmer;ILjava/lang/Object;)Lio/droidmcp/core/ToolCallConfirmer;
+}
+
+public final class io/droidmcp/core/ToolCallContextKt {
+	public static final fun elicit (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun reportProgress (DLjava/lang/Double;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun reportProgress$default (DLjava/lang/Double;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/ToolCallRequest {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;Lio/droidmcp/core/ToolAnnotations;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Lio/droidmcp/core/ToolAnnotations;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;Lio/droidmcp/core/ToolAnnotations;Ljava/lang/String;)Lio/droidmcp/core/ToolCallRequest;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolCallRequest;Ljava/lang/String;Ljava/util/Map;Lio/droidmcp/core/ToolAnnotations;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ToolCallRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public final fun getArguments ()Ljava/util/Map;
+	public final fun getClientLabel ()Ljava/lang/String;
+	public final fun getToolName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ToolImage {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/droidmcp/core/ToolImage;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolImage;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/droidmcp/core/ToolImage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBase64 ()Ljava/lang/String;
+	public final fun getDataKey ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/ToolParameter {
+	public static final field Companion Lio/droidmcp/core/ToolParameter$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/ParameterType;ZLio/droidmcp/core/ParameterType;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/ParameterType;ZLio/droidmcp/core/ParameterType;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lio/droidmcp/core/ParameterType;
+	public final fun component4 ()Z
+	public final fun component5 ()Lio/droidmcp/core/ParameterType;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/lang/Double;
+	public final fun component8 ()Ljava/lang/Double;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/ParameterType;ZLio/droidmcp/core/ParameterType;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;)Lio/droidmcp/core/ToolParameter;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolParameter;Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/ParameterType;ZLio/droidmcp/core/ParameterType;Ljava/util/List;Ljava/lang/Double;Ljava/lang/Double;ILjava/lang/Object;)Lio/droidmcp/core/ToolParameter;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getEnumValues ()Ljava/util/List;
+	public final fun getItemsType ()Lio/droidmcp/core/ParameterType;
+	public final fun getMaximum ()Ljava/lang/Double;
+	public final fun getMinimum ()Ljava/lang/Double;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRequired ()Z
+	public final fun getType ()Lio/droidmcp/core/ParameterType;
+	public fun hashCode ()I
+	public final fun toJsonSchema ()Ljava/util/Map;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class io/droidmcp/core/ToolParameter$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lio/droidmcp/core/ToolParameter$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/droidmcp/core/ToolParameter;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/droidmcp/core/ToolParameter;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/droidmcp/core/ToolParameter$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/droidmcp/core/ToolRegistry {
+	public static final field Companion Lio/droidmcp/core/ToolRegistry$Companion;
+	public static final field DEFAULT_TOOL_TIMEOUT_MS J
+	public fun <init> ()V
+	public fun <init> (JLio/droidmcp/core/ToolCallConfirmer;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (JLio/droidmcp/core/ToolCallConfirmer;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun disabledTools ()Ljava/util/Set;
+	public final fun executeTool (Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun executeTool$default (Lio/droidmcp/core/ToolRegistry;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun getTool (Ljava/lang/String;)Lio/droidmcp/core/McpTool;
+	public final fun getToolTimeoutMs ()J
+	public final fun isEnabled (Ljava/lang/String;)Z
+	public final fun listEnabledTools ()Ljava/util/List;
+	public final fun listTools ()Ljava/util/List;
+	public final fun register (Lio/droidmcp/core/McpTool;)V
+	public final fun registerAll (Ljava/util/List;)V
+	public final fun setDisabledTools (Ljava/util/Set;)V
+	public final fun setToolEnabled (Ljava/lang/String;Z)V
+}
+
+public final class io/droidmcp/core/ToolRegistry$Companion {
+}
+
+public final class io/droidmcp/core/ToolResult {
+	public static final field Companion Lio/droidmcp/core/ToolResult$Companion;
+	public fun <init> (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;)Lio/droidmcp/core/ToolResult;
+	public static synthetic fun copy$default (Lio/droidmcp/core/ToolResult;ZLjava/util/Map;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lio/droidmcp/core/ToolResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getData ()Ljava/util/Map;
+	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getImages ()Ljava/util/List;
+	public fun hashCode ()I
+	public final fun isSuccess ()Z
+	public fun toString ()Ljava/lang/String;
+	public final fun withImage (Ljava/lang/String;Ljava/lang/String;)Lio/droidmcp/core/ToolResult;
+}
+
+public final class io/droidmcp/core/ToolResult$Companion {
+	public final fun error (Ljava/lang/String;)Lio/droidmcp/core/ToolResult;
+	public final fun error (Ljava/lang/String;Ljava/lang/String;)Lio/droidmcp/core/ToolResult;
+	public final fun success (Ljava/util/Map;)Lio/droidmcp/core/ToolResult;
+}
+
+public final class io/droidmcp/core/VersionKt {
+	public static final field DROID_MCP_VERSION Ljava/lang/String;
+}
+
+public abstract interface class io/droidmcp/core/protocol/McpProtocol {
+	public fun handleMessage (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun handleMessage (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/protocol/McpProtocol$DefaultImpls {
+	public static fun handleMessage (Lio/droidmcp/core/protocol/McpProtocol;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/protocol/McpProtocolImpl : io/droidmcp/core/protocol/McpProtocol {
+	public static final field Companion Lio/droidmcp/core/protocol/McpProtocolImpl$Companion;
+	public fun <init> (Lio/droidmcp/core/ToolRegistry;Ljava/lang/String;Ljava/lang/String;ZLio/droidmcp/core/AuditSink;)V
+	public synthetic fun <init> (Lio/droidmcp/core/ToolRegistry;Ljava/lang/String;Ljava/lang/String;ZLio/droidmcp/core/AuditSink;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun handleMessage (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun handleMessage (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/protocol/McpProtocolImpl$Companion {
+	public final fun getSUPPORTED_PROTOCOL_VERSIONS ()Ljava/util/List;
+}
+
+public final class io/droidmcp/core/support/ActivityLaunch {
+	public static final field INSTANCE Lio/droidmcp/core/support/ActivityLaunch;
+	public final fun canStartActivity (Landroid/content/Context;)Z
+}
+
+public final class io/droidmcp/core/support/CalendarSupport {
+	public static final field INSTANCE Lio/droidmcp/core/support/CalendarSupport;
+	public final fun findWritableCalendarId (Landroid/content/Context;)Ljava/lang/Long;
+}
+
+public final class io/droidmcp/core/support/SqlLike {
+	public static final field INSTANCE Lio/droidmcp/core/support/SqlLike;
+	public final fun escape (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/support/StrictDates {
+	public static final field INSTANCE Lio/droidmcp/core/support/StrictDates;
+	public final fun parse (Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;)Ljava/util/Date;
+	public static synthetic fun parse$default (Lio/droidmcp/core/support/StrictDates;Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;ILjava/lang/Object;)Ljava/util/Date;
+}
+
+public final class io/droidmcp/core/transport/HttpTransport {
+	public static final field ANONYMOUS_LABEL Ljava/lang/String;
+	public static final field Companion Lio/droidmcp/core/transport/HttpTransport$Companion;
+	public static final field MAX_BODY_BYTES I
+	public static final field MIN_TOKEN_LENGTH I
+	public fun <init> (Lio/droidmcp/core/ToolRegistry;ILjava/lang/String;ZZLandroid/content/Context;Ljava/lang/String;Lio/droidmcp/core/AuditSink;Lio/droidmcp/core/transport/TlsConfig;Ljava/util/Set;)V
+	public synthetic fun <init> (Lio/droidmcp/core/ToolRegistry;ILjava/lang/String;ZZLandroid/content/Context;Ljava/lang/String;Lio/droidmcp/core/AuditSink;Lio/droidmcp/core/transport/TlsConfig;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getEffectiveToken ()Ljava/lang/String;
+	public final fun getMdnsServiceName ()Ljava/lang/String;
+	public final fun getTlsFingerprint ()Ljava/lang/String;
+	public final fun isRunning ()Z
+	public final fun isTlsEnabled ()Z
+	public final fun pairClient (Ljava/lang/String;)Ljava/lang/String;
+	public final fun pairedClients ()Ljava/util/List;
+	public final fun revokeClient (Ljava/lang/String;)Z
+	public final fun rotateToken ()Ljava/lang/String;
+	public final fun start ()V
+	public final fun stop ()V
+}
+
+public final class io/droidmcp/core/transport/HttpTransport$Companion {
+}
+
+public final class io/droidmcp/core/transport/InProcessTransport {
+	public fun <init> (Lio/droidmcp/core/ToolRegistry;)V
+	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun listTools ()Ljava/util/List;
+	public final fun listToolsJson ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/transport/TlsConfig {
+	public fun <init> (Ljava/security/KeyStore;Ljava/lang/String;[C[CI)V
+	public synthetic fun <init> (Ljava/security/KeyStore;Ljava/lang/String;[C[CIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCertFingerprintSha256 ()Ljava/lang/String;
+	public final fun getHttpsPort ()I
+	public final fun getKeyAlias ()Ljava/lang/String;
+	public final fun getKeyStore ()Ljava/security/KeyStore;
+	public final fun getKeyStorePassword ()[C
+	public final fun getPrivateKeyPassword ()[C
+}
+
+public final class io/droidmcp/core/transport/TokenStore {
+	public static final field Companion Lio/droidmcp/core/transport/TokenStore$Companion;
+	public static final field PRIMARY_LABEL Ljava/lang/String;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getPrimaryToken ()Ljava/lang/String;
+	public final fun pair (Ljava/lang/String;)Ljava/lang/String;
+	public final fun pairedClients ()Ljava/util/List;
+	public final fun revoke (Ljava/lang/String;)Z
+	public final fun rotatePrimary ()Ljava/lang/String;
+	public final fun verify (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class io/droidmcp/core/transport/TokenStore$Companion {
+}
+
+public final class io/droidmcp/core/transport/TokenStore$PairedClient {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;J)Lio/droidmcp/core/transport/TokenStore$PairedClient;
+	public static synthetic fun copy$default (Lio/droidmcp/core/transport/TokenStore$PairedClient;Ljava/lang/String;Ljava/lang/String;JILjava/lang/Object;)Lio/droidmcp/core/transport/TokenStore$PairedClient;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCreatedAt ()J
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getToken ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

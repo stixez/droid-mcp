@@ -6,8 +6,10 @@ import io.droidmcp.core.ToolResult
  * Shared availability + exception-handling wrapper so individual shell tools
  * stay one-screen long. Wraps a backend call with consistent error envelopes:
  *
- *  - `shell_unavailable: <backend>` when the backend reports not-available
- *  - `shell_permission_denied: <reason>` for [ShellException.PermissionDenied]
+ *  - `shell_unavailable: <reason>` for [ShellException.NotAvailable], including the
+ *    [ShellBackend.availabilityProblem] pre-check (not running / not checked yet)
+ *  - `shell_permission_denied: <reason>` for [ShellException.PermissionDenied], including
+ *    the pre-check (Shizuku permission or root not granted)
  *  - `shell_spawn_failed: <reason>` for [ShellException.SpawnFailed]
  *  - `shell_error: <reason>` for any other [ShellException]
  *
@@ -19,19 +21,11 @@ internal suspend inline fun ShellBackend.gatedExec(
     args: List<String> = emptyList(),
     onResult: (ShellResult) -> ToolResult,
 ): ToolResult {
-    if (!isAvailable()) {
-        return ToolResult.error("shell_unavailable", name)
-    }
+    availabilityProblem()?.let { return it.toToolResult(name) }
     return try {
         onResult(exec(command, args))
-    } catch (e: ShellException.NotAvailable) {
-        ToolResult.error("shell_unavailable", e.message ?: name)
-    } catch (e: ShellException.PermissionDenied) {
-        ToolResult.error("shell_permission_denied", e.message)
-    } catch (e: ShellException.SpawnFailed) {
-        ToolResult.error("shell_spawn_failed", e.message)
     } catch (e: ShellException) {
-        ToolResult.error("shell_error", e.message)
+        e.toToolResult(name)
     }
 }
 
@@ -46,18 +40,17 @@ internal suspend inline fun ShellBackend.gatedExecBinary(
     args: List<String> = emptyList(),
     onResult: (ShellResult) -> ToolResult,
 ): ToolResult {
-    if (!isAvailable()) {
-        return ToolResult.error("shell_unavailable", name)
-    }
+    availabilityProblem()?.let { return it.toToolResult(name) }
     return try {
         onResult(execBinary(command, args))
-    } catch (e: ShellException.NotAvailable) {
-        ToolResult.error("shell_unavailable", e.message ?: name)
-    } catch (e: ShellException.PermissionDenied) {
-        ToolResult.error("shell_permission_denied", e.message)
-    } catch (e: ShellException.SpawnFailed) {
-        ToolResult.error("shell_spawn_failed", e.message)
     } catch (e: ShellException) {
-        ToolResult.error("shell_error", e.message)
+        e.toToolResult(name)
     }
+}
+
+/** Maps a [ShellException] onto the shared shell error envelope. */
+internal fun ShellException.toToolResult(backendName: String): ToolResult = when (this) {
+    is ShellException.NotAvailable -> ToolResult.error("shell_unavailable", message ?: backendName)
+    is ShellException.PermissionDenied -> ToolResult.error("shell_permission_denied", message)
+    is ShellException.SpawnFailed -> ToolResult.error("shell_spawn_failed", message)
 }

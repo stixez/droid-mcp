@@ -1,0 +1,183 @@
+public final class io/droidmcp/accessibility/AccessibilityServiceHolder {
+	public static final field INSTANCE Lio/droidmcp/accessibility/AccessibilityServiceHolder;
+	public final fun getService ()Lio/droidmcp/accessibility/DroidMcpAccessibilityService;
+	public final fun isConnected ()Z
+}
+
+public final class io/droidmcp/accessibility/AccessibilityTools {
+	public static final field INSTANCE Lio/droidmcp/accessibility/AccessibilityTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun getIdempotentGlobalActions ()Ljava/util/Set;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun isAccessibilityEnabled ()Z
+	public final fun permissionStatus (Landroid/content/Context;)Lio/droidmcp/core/PermissionStatus;
+	public final fun requiredPermissions ()Ljava/util/List;
+	public final fun supportedTools (Landroid/content/Context;)Ljava/util/Set;
+}
+
+public final class io/droidmcp/accessibility/ClickNodeTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public abstract class io/droidmcp/accessibility/DroidMcpAccessibilityService : android/accessibilityservice/AccessibilityService {
+	public fun <init> ()V
+	public fun onAccessibilityEvent (Landroid/view/accessibility/AccessibilityEvent;)V
+	public fun onDestroy ()V
+	public fun onInterrupt ()V
+	protected fun onServiceConnected ()V
+	public fun onUnbind (Landroid/content/Intent;)Z
+}
+
+public final class io/droidmcp/accessibility/FindAndTapTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/FindNodeTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/GestureTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/GetActiveWindowInfoTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/GlobalActionTool : io/droidmcp/core/McpTool {
+	public static final field Companion Lio/droidmcp/accessibility/GlobalActionTool$Companion;
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/GlobalActionTool$Companion {
+}
+
+public final class io/droidmcp/accessibility/LongClickNodeTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/LongPressTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/QueryScreenTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/ScrollNodeTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/ScrollToFindTool : io/droidmcp/core/McpTool {
+	public static final field POLL_MS J
+	public static final field SETTLE_TIMEOUT_MS J
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/SetNodeTextTool : io/droidmcp/core/McpTool {
+	public static final field MATCH_TEXT_KEY Ljava/lang/String;
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/TakeScreenshotViaA11yTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/TapTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/accessibility/WaitForTextTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+

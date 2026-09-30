@@ -21,13 +21,13 @@ class ListRingtonesTool(private val context: Context) : McpTool {
     override val name = "list_ringtones"
     override val description = "List available ringtones on the device by type"
     override val parameters = listOf(
-        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
-        ToolParameter("limit", "Maximum number of results (1-100, default: 50)", ParameterType.INTEGER),
+        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),
+        ToolParameter("limit", "Maximum number of results (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val typeStr = params["type"]?.toString() ?: "ringtone"
+        val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50
 
         val type = when (typeStr) {

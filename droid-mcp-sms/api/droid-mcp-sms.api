@@ -1,0 +1,41 @@
+public final class io/droidmcp/sms/ReadMessagesTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sms/SearchMessagesTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sms/SendMessageTool : io/droidmcp/core/McpTool {
+	public static final field ACTION_SMS_SENT Ljava/lang/String;
+	public static final field EXTRA_PART_INDEX Ljava/lang/String;
+	public static final field PENDING I
+	public static final field SEND_TIMEOUT_MS J
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sms/SmsTools {
+	public static final field INSTANCE Lio/droidmcp/sms/SmsTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+

@@ -19,9 +19,9 @@ class ReadCallLogTool(private val context: Context) : McpTool {
     override val name = "read_call_log"
     override val description = "Read recent calls from the device call log. Returns phone number, contact name (if available), call type, date, and duration."
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of calls to return. Default 10.", ParameterType.INTEGER),
-        ToolParameter("type", "Filter by call type: 'all', 'incoming', 'outgoing', 'missed'. Default: 'all'", ParameterType.STRING),
-        ToolParameter("offset", "Number of calls to skip for pagination. Default 0.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max number of calls to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("type", "Filter by call type: 'all', 'incoming', 'outgoing', 'missed'. Default: 'all'", ParameterType.STRING, enumValues = listOf("all", "incoming", "outgoing", "missed")),
+        ToolParameter("offset", "Number of calls to skip for pagination. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

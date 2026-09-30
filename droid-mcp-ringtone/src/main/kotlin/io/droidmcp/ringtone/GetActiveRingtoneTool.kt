@@ -21,12 +21,12 @@ class GetActiveRingtoneTool(private val context: Context) : McpTool {
     override val name = "get_active_ringtone"
     override val description = "Get the currently active ringtone, notification, or alarm sound"
     override val parameters = listOf(
-        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING),
+        ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val typeStr = params["type"]?.toString() ?: "ringtone"
+        val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"
 
         val type = when (typeStr) {
             "ringtone" -> RingtoneManager.TYPE_RINGTONE

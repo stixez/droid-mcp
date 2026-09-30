@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- get_phone_number: line1Number on API 30+ (READ_PHONE_STATE still covers API <= 29) -->
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
 </manifest>

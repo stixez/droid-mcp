@@ -6,7 +6,9 @@ import io.droidmcp.core.McpTool
 /**
  * Provider for the intent-dispatch tools ([SendIntentTool], [ShareContentTool],
  * [OpenDeepLinkTool]). Declares no manifest permissions; [SendIntentTool] enforces a
- * safe-action allowlist.
+ * safe-action allowlist, and both URI-bearing tools enforce a data-URI scheme allowlist
+ * ([IntentGuards.ALLOWED_SCHEMES]). All three refuse to launch while the host is in the
+ * background on API 29+ unless it holds `SYSTEM_ALERT_WINDOW`.
  */
 object IntentTools {
 

@@ -7,9 +7,7 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
 import org.jsoup.Jsoup
 
 /**
@@ -18,21 +16,27 @@ import org.jsoup.Jsoup
  * (always-granted). Results depend on DuckDuckGo's HTML structure (`.result` / `.result__a` /
  * `.result__snippet`) — a markup change can yield zero parsed results without an error. Any HTTP or
  * parse failure is caught and returned as a [ToolResult.error]; a non-2xx status returns an error too.
+ * Shares the web module's client setup (15 s connect/read, 30 s call timeout, SSRF guard on every
+ * redirect hop — see [NetworkGuard]).
  *
  * Output map: `query` (echoed), `results` (`List<Map>` each with `title`/`url`/`snippet`),
  * `result_count` (Int).
+ *
+ * @param allowPrivateNetwork when true, disables the SSRF guard (default false).
  */
-class WebSearchTool : McpTool {
+class WebSearchTool @JvmOverloads constructor(
+    private val allowPrivateNetwork: Boolean = false,
+) : McpTool {
 
     override val name = "web_search"
     override val description = "Search the web using DuckDuckGo and return titles, URLs, and snippets"
     override val parameters = listOf(
         ToolParameter("query", "Search query", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER),
+        ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER, minimum = 1.0, maximum = 50.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 
-    private val client = OkHttpClient()
+    private val client = NetworkGuard.newClient(allowPrivateNetwork)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val query = params["query"]?.toString()
@@ -47,8 +51,10 @@ class WebSearchTool : McpTool {
             .build()
 
         try {
-            val response = client.newCall(request).execute()
-            val body = readBounded(response)
+            val (bounded, response) = client.newCall(request).execute().use { response ->
+                readBounded(response) to response
+            }
+            val body = bounded?.text
                 ?: return@withContext ToolResult.error("Empty response from DuckDuckGo")
 
             if (!response.isSuccessful) {

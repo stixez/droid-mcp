@@ -4,6 +4,7 @@ import android.content.Context
 import com.topjohnwu.superuser.Shell
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
+import io.droidmcp.shell.ShellPolicy
 import io.droidmcp.shell.ShellTools
 
 /**
@@ -18,13 +19,21 @@ import io.droidmcp.shell.ShellTools
  *
  * Root activation is a special-access flow: the user installs a superuser
  * manager (Magisk / KernelSU / SuperSU) and grants this app root access on
- * first request. See `docs/ROOT.md`.
+ * first request. See `docs/SHELL.md`.
  */
 object RootTools {
 
     private val backend = RootShellBackend()
 
-    fun all(context: Context): List<McpTool> = ShellTools.all(context, backend)
+    /**
+     * The shell-core tool set wired against the Root backend.
+     *
+     * @param policy optional host denylist for settings keys / grantable permissions
+     *   (see [ShellPolicy]). Defaults to [ShellPolicy.RECOMMENDED]; pass
+     *   [ShellPolicy.PERMISSIVE] only if the model is fully trusted.
+     */
+    fun all(context: Context, policy: ShellPolicy = ShellPolicy.RECOMMENDED): List<McpTool> =
+        ShellTools.all(context, backend, policy)
 
     /**
      * No `Manifest.permission.*` runtime grants — root access is checked at

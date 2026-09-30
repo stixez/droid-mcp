@@ -18,7 +18,7 @@ import kotlin.coroutines.resume
  * call returns only when the gesture completes (or is cancelled).
  *
  * The stroke is built from an ordered `points` array (each entry a 2-element
- * `[x, y]` array of screen pixels; minimum 2 points) traced over `duration_ms`.
+ * `[x, y]` array of finite, non-negative screen pixels; minimum 2 points) traced over `duration_ms`.
  * Use it for swipes, drags, or tap-by-coordinate when no node matches. Note:
  * this is a single continuous stroke — it cannot express multi-finger gestures
  * such as pinch.
@@ -28,7 +28,7 @@ import kotlin.coroutines.resume
  *
  * On success returns `success = true`, `points` (Int count traced), and
  * `duration_ms`. Errors are long-form messages: malformed/insufficient
- * `points`, the [notConnectedError] message when the service is not bound, and
+ * `points` (including negative / NaN / infinite coordinates), the [notConnectedError] message when the service is not bound, and
  * a "gesture canceled / could not be dispatched" message on dispatch failure.
  */
 class GestureTool(private val context: Context) : McpTool {
@@ -36,8 +36,8 @@ class GestureTool(private val context: Context) : McpTool {
     override val name = "gesture"
     override val description = "Dispatch a touch gesture on the screen via AccessibilityService.dispatchGesture. The gesture is described as a single ordered sequence of points and an optional duration; use this for swipes, drags, or tap-by-coordinate when no node matches. Single-stroke only — cannot express multi-finger gestures like pinch."
     override val parameters = listOf(
-        ToolParameter("points", "Array of [x, y] integer screen coordinates the stroke walks through, in order. Minimum 2 points (start, end). Each entry must be a 2-element array of numbers; malformed entries reject the entire call.", ParameterType.ARRAY, required = true),
-        ToolParameter("duration_ms", "Duration of the stroke in milliseconds (10-3000, default 300).", ParameterType.INTEGER, required = false),
+        ToolParameter("points", "Array of [x, y] integer screen coordinates the stroke walks through, in order. Minimum 2 points (start, end). Each entry must be a 2-element array of non-negative numbers; malformed entries reject the entire call.", ParameterType.ARRAY, required = true),
+        ToolParameter("duration_ms", "Duration of the stroke in milliseconds (10-3000, default 300).", ParameterType.INTEGER, required = false, minimum = 10.0, maximum = 3000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 
@@ -58,6 +58,9 @@ class GestureTool(private val context: Context) : McpTool {
                 ?: return ToolResult.error("points[$i][0] is not a number")
             val y = (pair[1] as? Number)?.toFloat()
                 ?: return ToolResult.error("points[$i][1] is not a number")
+            if (x < 0 || y < 0 || x.isNaN() || y.isNaN() || x.isInfinite() || y.isInfinite()) {
+                return ToolResult.error("points[$i] must be finite, non-negative screen coordinates")
+            }
             coords += x to y
         }
         if (coords.size < 2) return ToolResult.error("Need at least 2 [x, y] points (start + end).")

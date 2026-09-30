@@ -10,8 +10,9 @@ import io.droidmcp.core.PermissionHelper
  * Provider for device settings tools.
  *
  * Exposes a read tool ([GetSettingsTool]) that is always available, plus write tools that are
- * conditionally registered: [SetBrightnessTool] and [SetVolumeTool] require `WRITE_SETTINGS`
- * (gated via [Settings.System.canWrite]), and [ToggleWifiTool] requires `CHANGE_WIFI_STATE`.
+ * conditionally registered: [SetBrightnessTool] requires `WRITE_SETTINGS` (gated via
+ * [Settings.System.canWrite]) and [ToggleWifiTool] requires `CHANGE_WIFI_STATE`.
+ * [SetVolumeTool] needs no permission and is always registered.
  * The module itself reports no required permissions because the read surface needs none.
  */
 object SettingsTools {
@@ -20,10 +21,11 @@ object SettingsTools {
     fun all(context: Context): List<McpTool> = buildList {
         // Read-only tool always available
         add(GetSettingsTool(context))
-        // Write tools only if system write permission is granted
+        // AudioManager.setStreamVolume needs no permission
+        add(SetVolumeTool(context))
+        // Brightness writes Settings.System, which needs WRITE_SETTINGS
         if (Settings.System.canWrite(context)) {
             add(SetBrightnessTool(context))
-            add(SetVolumeTool(context))
         }
         // WiFi toggle needs its own permission
         if (PermissionHelper.hasPermissions(

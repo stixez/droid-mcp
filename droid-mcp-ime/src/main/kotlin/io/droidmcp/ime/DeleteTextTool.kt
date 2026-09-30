@@ -18,8 +18,8 @@ class DeleteTextTool(private val context: Context) : McpTool {
     override val name = "delete_text"
     override val description = "Delete text around the cursor via InputConnection.deleteSurroundingText."
     override val parameters = listOf(
-        ToolParameter("before", "Characters to delete before the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false),
-        ToolParameter("after", "Characters to delete after the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false),
+        ToolParameter("before", "Characters to delete before the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false, minimum = 0.0, maximum = 2000.0),
+        ToolParameter("after", "Characters to delete after the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false, minimum = 0.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

@@ -71,4 +71,14 @@ class ScrollDirectionMathTest {
         val rightDistance = (right.startX - right.endX)
         assertThat(rightDistance).isEqualTo(2 * dx)
     }
+
+    @Test
+    fun `swipes stay inside an offset container`() {
+        // A list occupying y 1870..2360 (height 490) below a header.
+        val s = swipeCoordsFor("down", 1080f, 490f, left = 0f, top = 1870f)
+        assertThat(s.startY).isWithin(0.5f).of(1870f + 245f + 490f * 0.35f)
+        assertThat(s.endY).isWithin(0.5f).of(1870f + 245f - 490f * 0.35f)
+        assertThat(minOf(s.startY, s.endY)).isAtLeast(1870f)
+        assertThat(maxOf(s.startY, s.endY)).isAtMost(2360f)
+    }
 }

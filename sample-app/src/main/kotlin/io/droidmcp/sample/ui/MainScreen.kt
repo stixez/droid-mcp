@@ -13,8 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import android.content.ClipData
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
@@ -34,6 +35,7 @@ fun MainScreen(
     onRequestSpecialPermission: (String) -> Unit = {},
     onToggleReadOnly: (Boolean) -> Unit = {},
     onToggleTls: (Boolean) -> Unit = {},
+    onToggleStrictShellPolicy: (Boolean) -> Unit = {},
     onToggleTool: (String, Boolean) -> Unit = { _, _ -> },
     onSetToolsEnabled: (Set<String>, Boolean) -> Unit = { _, _ -> },
     onClearAuditLog: () -> Unit = {},
@@ -42,7 +44,7 @@ fun MainScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     var qrExpanded by remember { mutableStateOf(true) }
 
     Column(
@@ -159,6 +161,33 @@ fun MainScreen(
                     }
                 }
 
+                // Shell policy toggle (disabled while server is running)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Switch(
+                        checked = state.strictShellPolicy,
+                        onCheckedChange = onToggleStrictShellPolicy,
+                        enabled = !state.serverRunning,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Strict shell policy",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Text(
+                            if (state.serverRunning) "Stop the server to change"
+                            else if (state.strictShellPolicy) "Shizuku/root tools deny risky settings keys and grants"
+                            else "Permissive — Shizuku/root tools may write any key or grant",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 // TLS fingerprint pill (shown whenever a cert is configured)
                 state.tlsFingerprint?.let { fingerprint ->
                     Spacer(Modifier.height(6.dp))
@@ -185,7 +214,7 @@ fun MainScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             IconButton(
-                                onClick = { clipboard.setText(AnnotatedString(fingerprint)) },
+                                onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("fingerprint", fingerprint))) } },
                                 modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
@@ -289,7 +318,7 @@ fun MainScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             IconButton(
-                                onClick = { clipboard.setText(AnnotatedString(token)) },
+                                onClick = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", token))) } },
                                 modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
@@ -306,7 +335,7 @@ fun MainScreen(
         }
 
         // ── Tab Row ─────────────────────────────────────────────────────────
-        TabRow(selectedTabIndex = pagerState.currentPage) {
+        PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
             Tab(
                 selected = pagerState.currentPage == 0,
                 onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
@@ -370,7 +399,12 @@ fun MainScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { page ->
             when (page) {
-                0 -> ToolsPage(onCallTool = onCallTool, onRequestSpecialPermission = onRequestSpecialPermission)
+                0 -> ToolsPage(
+                    onCallTool = onCallTool,
+                    onRequestSpecialPermission = onRequestSpecialPermission,
+                    lastWatchId = state.lastWatchId,
+                    lastEventId = state.lastEventId,
+                )
                 1 -> GatingPage(
                     tools = state.tools,
                     disabledTools = state.disabledTools,

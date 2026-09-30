@@ -13,24 +13,25 @@ import kotlinx.coroutines.withContext
 /**
  * Reads the `TYPE_ACCELEROMETER` sensor (x/y/z acceleration in m/s2). No permissions. With
  * `duration_ms` (1-5000) it collects a series of samples; otherwise it captures a single
- * reading. See [readSensor] for the sampling/timeout mechanics. Output: latest `x`, `y`, `z`,
+ * reading. See [sampleSensor] for the sampling/timeout mechanics. Output: latest `x`, `y`, `z`,
  * `accuracy`, `timestamp`, plus a `readings` list of `{x,y,z,timestamp}`. Returns
- * [ToolResult.error] when the device has no accelerometer.
+ * [ToolResult.error] (with distinct messages) if no reading arrives in time or when the device has no accelerometer.
  */
 class GetAccelerometerTool(private val context: Context) : McpTool {
 
     override val name = "get_accelerometer"
     override val description = "Read accelerometer data (x, y, z acceleration in m/s\u00B2)"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)
 
-        val readings = readSensor(context, Sensor.TYPE_ACCELEROMETER, durationMs)
-            ?: return@withContext ToolResult.error("Accelerometer not available on this device")
+        val result = sampleSensor(context, Sensor.TYPE_ACCELEROMETER, durationMs)
+        result.toErrorOrNull("Accelerometer")?.let { return@withContext it }
+        val readings = (result as SensorSampleResult.Readings).readings
 
         val latest = readings.lastOrNull()
 

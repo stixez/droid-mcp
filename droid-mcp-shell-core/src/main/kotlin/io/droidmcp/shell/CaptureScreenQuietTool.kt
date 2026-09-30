@@ -31,12 +31,13 @@ class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
     override val name = "capture_screen_quiet"
     override val description = "Capture the screen via `screencap -p` through the shell backend — no MediaProjection consent prompt, no status-bar indicator. Returns a base64-encoded PNG. Lighter than `take_screenshot_via_a11y` (Accessibility) and distinct from `capture_screen` (MediaProjection)."
     override val parameters = listOf(
-        ToolParameter("display", "Display id to capture (0 = primary, default).", ParameterType.INTEGER, required = false),
+        ToolParameter("display", "Display id to capture (0 = primary, default).", ParameterType.INTEGER, required = false, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val display = (params["display"] as? Number)?.toInt() ?: 0
+        if (display < 0) return ToolResult.error("invalid_args", "display must be >= 0")
         val args = buildList {
             add("-p")
             if (display != 0) {
@@ -57,7 +58,7 @@ class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
                 "format" to "png",
                 "size_bytes" to bytes.size,
                 "image_base64" to b64,
-            ))
+            )).withImage("image_base64", "image/png")
         }
     }
 

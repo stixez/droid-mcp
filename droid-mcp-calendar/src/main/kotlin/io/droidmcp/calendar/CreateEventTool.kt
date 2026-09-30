@@ -4,14 +4,17 @@ import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.*
-import java.text.SimpleDateFormat
+import io.droidmcp.core.support.CalendarSupport
+import io.droidmcp.core.support.StrictDates
 import java.util.*
 
 /**
  * Inserts a new event into `CalendarContract.Events` via `ContentResolver`. Requires
- * `WRITE_CALENDAR`. `start`/`end` are parsed as `yyyy-MM-dd HH:mm` (device timezone); when
- * `calendar_id` is omitted it falls back to the primary calendar (or first available, see
- * [getPrimaryCalendarId]). Output: `event_id` (the inserted row id, may be null if the URI
+ * `WRITE_CALENDAR` (plus `READ_CALENDAR` for the default-calendar lookup). `start`/`end` are
+ * parsed strictly as `yyyy-MM-dd HH:mm` (device timezone; impossible dates and trailing text are
+ * rejected) and `end` must be after `start`. When `calendar_id` is omitted it falls back to the
+ * primary calendar, else the first visible calendar with at least contributor access (see
+ * [CalendarSupport.findWritableCalendarId]). Output: `event_id` (the inserted row id, may be null if the URI
  * lacks a numeric segment), plus echoed `title`, `start`, and `end`.
  */
 class CreateEventTool(private val context: Context) : McpTool {
@@ -36,20 +39,16 @@ class CreateEventTool(private val context: Context) : McpTool {
         val endStr = params["end"]?.toString()
             ?: return ToolResult.error("end is required")
 
-        val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-        val startMillis = try {
-            format.parse(startStr)?.time ?: return ToolResult.error("Invalid start format")
-        } catch (e: Exception) {
-            return ToolResult.error("Invalid start: ${e.message}")
-        }
-        val endMillis = try {
-            format.parse(endStr)?.time ?: return ToolResult.error("Invalid end format")
-        } catch (e: Exception) {
-            return ToolResult.error("Invalid end: ${e.message}")
+        val startMillis = StrictDates.parse("yyyy-MM-dd HH:mm", startStr)?.time
+            ?: return ToolResult.error("Invalid start '$startStr'. Use format: YYYY-MM-DD HH:mm")
+        val endMillis = StrictDates.parse("yyyy-MM-dd HH:mm", endStr)?.time
+            ?: return ToolResult.error("Invalid end '$endStr'. Use format: YYYY-MM-DD HH:mm")
+        if (endMillis <= startMillis) {
+            return ToolResult.error("end must be after start")
         }
 
-        val calendarId = (params["calendar_id"] as? Number)?.toLong() ?: getPrimaryCalendarId()
-            ?: return ToolResult.error("No calendar found on device")
+        val calendarId = (params["calendar_id"] as? Number)?.toLong() ?: CalendarSupport.findWritableCalendarId(context)
+            ?: return ToolResult.error("No writable calendar found on device")
 
         val values = ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendarId)
@@ -72,34 +71,5 @@ class CreateEventTool(private val context: Context) : McpTool {
             "start" to startStr,
             "end" to endStr,
         ))
-    }
-
-    /** Returns the primary calendar id, falling back to the first available calendar, or null if none exist. */
-    private fun getPrimaryCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID)
-        val selection = "${CalendarContract.Calendars.IS_PRIMARY} = 1"
-        // IS_PRIMARY is a computed alias on some providers, not a real column — several OEM
-        // calendar providers throw SQLiteException ("no such column") for it. Uncaught, that
-        // would abort create_event entirely despite the perfectly good fallback query below.
-        try {
-            context.contentResolver.query(
-                CalendarContract.Calendars.CONTENT_URI, projection, selection, null, null
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return cursor.getLong(0)
-                }
-            }
-        } catch (e: Exception) {
-            // Fall through to the unfiltered query below.
-        }
-        // Fallback: get first available calendar
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI, projection, null, null, null
-        )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                return cursor.getLong(0)
-            }
-        }
-        return null
     }
 }

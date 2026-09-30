@@ -8,9 +8,12 @@ import io.droidmcp.core.ToolResult
 
 /**
  * `pm install [-r] <path>` — silently install an APK from a local file path,
- * with no user prompt. The host is trusted to vet the path; we don't sandbox
- * here (the [ShellBackend] already provides the privilege boundary). Success
- * is detected by `"Success"` in stdout.
+ * with no user prompt. The path must be absolute, end in `.apk`, and contain no
+ * `..` segments (so it can't be mistaken for a `pm` option); beyond that the
+ * host is trusted to vet it — there is no storage sandbox here (the
+ * [ShellBackend] is the privilege boundary), and ANY readable APK can be
+ * installed, including ones that request dangerous permissions. Success is
+ * detected by `"Success"` in stdout.
  *
  * Privilege: requires a working [ShellBackend] (Shizuku shell-UID or root).
  *
@@ -31,6 +34,7 @@ class InstallApkTool(private val shell: ShellBackend) : McpTool {
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()?.takeIf { it.isNotBlank() }
             ?: return ToolResult.error("invalid_args", "path is required")
+        validateApkPath(path)?.let { return ToolResult.error("invalid_args", it) }
         val replace = (params["replace"] as? Boolean) ?: true
         val args = buildList {
             add("install")
@@ -44,6 +48,20 @@ class InstallApkTool(private val shell: ShellBackend) : McpTool {
                 ToolResult.error("install_failed", result.output.lineSequence().firstOrNull()?.take(200) ?: "unknown")
             }
         }
+    }
+
+    /**
+     * Returns a rejection reason, or `null` if [path] is acceptable. The path is
+     * handed to `pm` as a discrete argv entry, so this isn't about shell injection —
+     * it stops a value like `-g` or `--user 10` from being parsed as a `pm install`
+     * option, and keeps the tool to what it advertises (a single local `.apk` file).
+     */
+    private fun validateApkPath(path: String): String? = when {
+        !path.startsWith("/") -> "path must be absolute (start with '/')"
+        !path.endsWith(".apk", ignoreCase = true) -> "path must end in .apk"
+        path.any { it == '\u0000' || it == '\n' || it == '\r' } -> "path contains control characters"
+        path.split('/').any { it == ".." } -> "path must not contain '..' segments"
+        else -> null
     }
 }
 

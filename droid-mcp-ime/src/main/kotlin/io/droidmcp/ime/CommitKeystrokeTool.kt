@@ -20,7 +20,7 @@ class CommitKeystrokeTool(private val context: Context) : McpTool {
     override val name = "commit_keystroke"
     override val description = "Send a single named key event to the focused editor — for Enter, Backspace, Tab, arrow keys, Escape, etc. Use type_text for character input."
     override val parameters = listOf(
-        ToolParameter("key", "One of: enter, backspace, del, tab, escape, up, down, left, right, home, end, page_up, page_down.", ParameterType.STRING, required = true),
+        ToolParameter("key", "One of: enter, backspace, del, tab, escape, up, down, left, right, home, end, page_up, page_down.", ParameterType.STRING, required = true, enumValues = listOf("enter", "backspace", "del", "tab", "escape", "up", "down", "left", "right", "home", "end", "page_up", "page_down")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 

@@ -8,6 +8,7 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Launches an installed app via its main launch intent (`FLAG_ACTIVITY_NEW_TASK`),
@@ -15,6 +16,8 @@ import io.droidmcp.core.ToolResult
  * activity. No permissions; the module's manifest declares a `<queries>` element for
  * `MAIN`/`LAUNCHER` intents so API 30+ package-visibility filtering doesn't hide launchable
  * targets (a package with no launcher activity — background-only — is still invisible).
+ * On API 29+ the host must be in the foreground (or hold `SYSTEM_ALERT_WINDOW`), otherwise the
+ * system silently blocks the launch; the tool detects this up front and returns an error.
  * Output: `success` (true) and `package_name`.
  */
 class LaunchAppTool(private val context: Context) : McpTool {
@@ -41,6 +44,14 @@ class LaunchAppTool(private val context: Context) : McpTool {
 
         val launchIntent = pm.getLaunchIntentForPackage(packageName)
             ?: return ToolResult.error("No launch intent available for: $packageName")
+
+        if (!ActivityLaunch.canStartActivity(context)) {
+            return ToolResult.error(
+                "Cannot launch $packageName while the host app is in the background: Android 10+ " +
+                    "blocks background activity starts. Bring the host app to the foreground or grant " +
+                    "it 'Display over other apps' (SYSTEM_ALERT_WINDOW).",
+            )
+        }
 
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 

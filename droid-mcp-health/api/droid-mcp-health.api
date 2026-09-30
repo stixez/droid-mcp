@@ -1,0 +1,27 @@
+public final class io/droidmcp/health/GetActivityInfoTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/health/GetStepCountTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/health/HealthTools {
+	public static final field INSTANCE Lio/droidmcp/health/HealthTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+

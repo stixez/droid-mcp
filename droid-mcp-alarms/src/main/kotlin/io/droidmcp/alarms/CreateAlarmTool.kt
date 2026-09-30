@@ -8,24 +8,30 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.ActivityLaunch
 
 /**
  * Creates a clock alarm by firing an [AlarmClock.ACTION_SET_ALARM] intent at the system clock app
  * (with `EXTRA_SKIP_UI`, so no UI is shown). Optional `message` label and `days` (comma-separated
  * `mon`..`sun`) for a repeating alarm; omit `days` for a one-time alarm.
  *
+ * On Android 10+ the intent can only be delivered while the host app is in the foreground or
+ * holds `SYSTEM_ALERT_WINDOW`; otherwise the platform silently blocks the launch, so the tool
+ * returns an error up front (see [ActivityLaunch.canStartActivity]).
+ *
  * Requires the `com.android.alarm.permission.SET_ALARM` permission (declared in the manifest;
- * a normal install-time permission). Reading existing alarms is not possible via any standard API.
+ * a normal install-time permission). Listing existing alarms is not possible via any standard API;
+ * [GetNextAlarmTool] reports only the next one.
  *
  * Result keys: `success`, `hour`, `minute`, `message`, `days`.
  */
 class CreateAlarmTool(private val context: Context) : McpTool {
 
     override val name = "create_alarm"
-    override val description = "Create an alarm at the specified time. Note: Reading existing alarms is not supported by a standard Android API — each clock app stores them differently."
+    override val description = "Create an alarm at the specified time. Note: Listing existing alarms is not supported by a standard Android API — each clock app stores them differently; get_next_alarm reports the next one."
     override val parameters = listOf(
-        ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true),
-        ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true),
+        ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 23.0),
+        ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 59.0),
         ToolParameter("message", "Label/message for the alarm", ParameterType.STRING),
         ToolParameter("days", "Comma-separated days to repeat (e.g. mon,tue,wed). Leave empty for one-time alarm.", ParameterType.STRING),
     )
@@ -68,6 +74,12 @@ class CreateAlarmTool(private val context: Context) : McpTool {
                     putExtra(AlarmClock.EXTRA_DAYS, ArrayList(days.toList()))
                 }
             }
+        }
+
+        // On API 29+ a background startActivity is silently dropped — fail loudly instead of
+        // reporting success for an alarm that was never set.
+        if (!ActivityLaunch.canStartActivity(context)) {
+            return ToolResult.error(AlarmsUtils.BACKGROUND_LAUNCH_ERROR)
         }
 
         return try {

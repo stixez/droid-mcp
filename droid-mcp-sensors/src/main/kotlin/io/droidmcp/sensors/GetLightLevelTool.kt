@@ -13,23 +13,24 @@ import kotlinx.coroutines.withContext
 /**
  * Reads the `TYPE_LIGHT` ambient-light sensor (illuminance in lux). No permissions. With
  * `duration_ms` (1-5000) it collects a series of samples; otherwise a single reading. See
- * [readSensor]. Output: latest `lux`, `accuracy`, `timestamp`, plus a `readings` list of
- * `{lux,timestamp}`. Returns [ToolResult.error] when the device has no light sensor.
+ * [sampleSensor]. Output: latest `lux`, `accuracy`, `timestamp`, plus a `readings` list of
+ * `{lux,timestamp}`. Returns [ToolResult.error] (with distinct messages) if no reading arrives in time or when the device has no light sensor.
  */
 class GetLightLevelTool(private val context: Context) : McpTool {
 
     override val name = "get_light_level"
     override val description = "Read ambient light level in lux"
     override val parameters = listOf(
-        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false),
+        ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)
 
-        val readings = readSensor(context, Sensor.TYPE_LIGHT, durationMs)
-            ?: return@withContext ToolResult.error("Light sensor not available on this device")
+        val result = sampleSensor(context, Sensor.TYPE_LIGHT, durationMs)
+        result.toErrorOrNull("Light sensor")?.let { return@withContext it }
+        val readings = (result as SensorSampleResult.Readings).readings
 
         val latest = readings.lastOrNull()
 

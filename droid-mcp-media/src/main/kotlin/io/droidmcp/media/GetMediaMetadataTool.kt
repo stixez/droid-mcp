@@ -28,7 +28,7 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
     override val description = "Get detailed metadata for a specific media file by its MediaStore ID. Returns full details including date, dimensions, size, location (if available), and video duration."
     override val parameters = listOf(
         ToolParameter("media_id", "MediaStore media ID (from search_media results)", ParameterType.INTEGER, required = true),
-        ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING),
+        ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING, enumValues = listOf("image", "video")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -58,8 +58,9 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
             add(MediaStore.MediaColumns.WIDTH)
             add(MediaStore.MediaColumns.HEIGHT)
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                add(MediaStore.Images.ImageColumns.LATITUDE)
-                add(MediaStore.Images.ImageColumns.LONGITUDE)
+                // Removed from MediaStore on Q+ (location now lives only in EXIF); still valid below.
+                @Suppress("DEPRECATION") add(MediaStore.Images.ImageColumns.LATITUDE)
+                @Suppress("DEPRECATION") add(MediaStore.Images.ImageColumns.LONGITUDE)
             }
             add(MediaStore.Images.ImageColumns.DESCRIPTION)
         }.toTypedArray()
@@ -104,7 +105,10 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
                         base["duration_seconds"] = if (durationMs > 0) durationMs / 1000.0 else null
                         base["resolution"] = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.VideoColumns.RESOLUTION))
                     } else {
+                        // Only projected below Q (see imageProjection); getColumnIndex is -1 otherwise.
+                        @Suppress("DEPRECATION")
                         val latIdx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.LATITUDE)
+                        @Suppress("DEPRECATION")
                         val lngIdx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.LONGITUDE)
                         if (latIdx >= 0 && lngIdx >= 0) {
                             val lat = cursor.getDouble(latIdx)
@@ -120,7 +124,7 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
             }
 
         return if (metadata != null) {
-            ToolResult.success(metadata!!)
+            ToolResult.success(metadata)
         } else {
             ToolResult.error("No media found with id $mediaId (type=$mediaType)")
         }

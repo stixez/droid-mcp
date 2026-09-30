@@ -1,0 +1,30 @@
+public final class io/droidmcp/print/ListPrintersTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/print/PrintContentTool : io/droidmcp/core/McpTool {
+	public static final field LOAD_TIMEOUT_MS J
+	public fun <init> (Landroid/content/Context;Lkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Landroid/content/Context;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/print/PrintTools {
+	public static final field INSTANCE Lio/droidmcp/print/PrintTools;
+	public final fun all (Landroid/content/Context;Lkotlin/jvm/functions/Function0;)Ljava/util/List;
+	public static synthetic fun all$default (Lio/droidmcp/print/PrintTools;Landroid/content/Context;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+

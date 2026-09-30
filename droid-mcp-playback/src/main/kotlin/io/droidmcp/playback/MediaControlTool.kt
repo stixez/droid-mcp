@@ -25,13 +25,13 @@ class MediaControlTool(private val context: Context) : McpTool {
     override val name = "media_control"
     override val description = "Send playback control commands to the active media session. Requires notification listener access."
     override val parameters = listOf(
-        ToolParameter("command", "Command: 'play', 'pause', 'stop', 'next', 'previous'", ParameterType.STRING, required = true),
+        ToolParameter("command", "Command: 'play', 'pause', 'stop', 'next', 'previous'", ParameterType.STRING, required = true, enumValues = listOf("play", "pause", "stop", "next", "previous")),
         ToolParameter("package_name", "Target a specific app's media session by package name", ParameterType.STRING),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val command = params["command"]?.toString()
+        val command = params["command"]?.toString()?.trim()?.lowercase()
             ?: return ToolResult.error("command is required")
         val targetPackage = params["package_name"]?.toString()
 

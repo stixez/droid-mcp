@@ -7,56 +7,71 @@ import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.jsoup.Jsoup
-import java.util.concurrent.TimeUnit
 
 /**
- * Fetches a URL with OkHttp (15s connect/read timeouts) and extracts readable body text via Jsoup,
- * stripping script/style/noscript/nav/footer/header before extraction. Reaches the network
- * (`openWorldHint`); requires `INTERNET` (always-granted). A malformed URL returns an "Invalid URL"
- * error; non-2xx status, empty body, or any other failure returns a [ToolResult.error]. The response
- * body is capped at 5 MB while reading (see [readBounded]) regardless of `max_length`.
+ * Fetches a URL with OkHttp (15s connect/read timeouts, 30s overall call timeout) and extracts
+ * readable body text via Jsoup, stripping script/style/noscript/nav/footer/header before
+ * extraction. Reaches the network (`openWorldHint`); requires `INTERNET` (always-granted). Only
+ * `http`/`https` URLs are accepted; a malformed URL returns an "Invalid URL" error; non-2xx status,
+ * empty body, or any other failure returns a [ToolResult.error]. The response body is capped at
+ * 5 MB while reading and decoded with the `Content-Type` charset (see [readBounded]) regardless of
+ * `max_length`.
  *
- * No URL scheme/host restriction: this can fetch `http://` targets on the phone's own LAN
- * (including `localhost`) same as any browser would. Whoever holds the bearer token can direct
- * the phone to probe its local network through this tool — consistent with this SDK's general
- * trust model (the host app / token holder is the trust boundary), but worth knowing before
- * exposing the HTTP transport beyond a trusted network.
+ * SSRF protection: by default the tool refuses loopback, private (RFC 1918 / fc00::/7),
+ * link-local (incl. the 169.254.169.254 metadata address), CGNAT, unspecified and multicast
+ * targets — checked at DNS resolution and again on every redirect hop (see [NetworkGuard]), so a
+ * public URL can't redirect into the LAN either. Pass `allowPrivateNetwork = true` (or use
+ * `WebTools.all(context, allowPrivateNetwork = true)`) to let the token holder reach the phone's
+ * local network deliberately.
  *
  * Output map: `title` (String), `url` (echoed), `content` (text truncated to `max_length`),
- * `content_length` (Int — full untruncated length).
+ * `content_length` (Int — full untruncated length of the extracted text), `response_truncated`
+ * (Boolean — the raw body exceeded the 5 MB read cap).
+ *
+ * @param allowPrivateNetwork when true, disables the SSRF guard (default false).
  */
-class FetchWebpageTool : McpTool {
+class FetchWebpageTool @JvmOverloads constructor(
+    private val allowPrivateNetwork: Boolean = false,
+) : McpTool {
 
     override val name = "fetch_webpage"
-    override val description = "Fetch a URL and extract readable text content from the page"
+    override val description = "Fetch an http(s) URL and extract readable text content from the page. Private/local network addresses are blocked by default."
     override val parameters = listOf(
         ToolParameter("url", "URL to fetch", ParameterType.STRING, required = true),
-        ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER),
+        ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER, minimum = 1.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val client = NetworkGuard.newClient(allowPrivateNetwork)
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val url = params["url"]?.toString()
             ?: return@withContext ToolResult.error("url is required")
         val maxLength = (params["max_length"] as? Number)?.toInt()?.coerceAtLeast(1) ?: 2000
 
+        val httpUrl = url.toHttpUrlOrNull()
+            ?: return@withContext if (url.contains("://") && !url.startsWith("http://", ignoreCase = true) &&
+                !url.startsWith("https://", ignoreCase = true)
+            ) {
+                ToolResult.error("Invalid URL: $url — only http and https URLs are supported")
+            } else {
+                ToolResult.error("Invalid URL: $url")
+            }
+
         val request = Request.Builder()
-            .url(url)
+            .url(httpUrl)
             .header("User-Agent", "Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36")
             .build()
 
         try {
-            val response = client.newCall(request).execute()
-            val body = readBounded(response)
-                ?: return@withContext ToolResult.error("Empty response from $url")
+            val (bounded, response) = client.newCall(request).execute().use { response ->
+                readBounded(response) to response
+            }
+            bounded ?: return@withContext ToolResult.error("Empty response from $url")
+            val body = bounded.text
 
             if (!response.isSuccessful) {
                 return@withContext ToolResult.error("Server returned HTTP ${response.code} for $url")
@@ -69,7 +84,7 @@ class FetchWebpageTool : McpTool {
             doc.select("script, style, noscript, nav, footer, header").remove()
 
             val bodyEl = doc.body()
-            val fullText = bodyEl?.text()?.trim() ?: ""
+            val fullText = bodyEl.text().trim()
             val truncated = if (fullText.length > maxLength) fullText.substring(0, maxLength) else fullText
 
             ToolResult.success(mapOf(
@@ -77,6 +92,7 @@ class FetchWebpageTool : McpTool {
                 "url" to url,
                 "content" to truncated,
                 "content_length" to fullText.length,
+                "response_truncated" to bounded.truncated,
             ))
         } catch (e: IllegalArgumentException) {
             ToolResult.error("Invalid URL: $url")

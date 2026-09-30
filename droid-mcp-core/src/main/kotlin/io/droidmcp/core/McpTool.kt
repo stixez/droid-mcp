@@ -53,6 +53,14 @@ interface McpTool {
     val annotations: ToolAnnotations get() = ToolAnnotations()
 
     /**
+     * Optional JSON Schema (MCP 2025-06-18 `outputSchema`) describing the map returned in
+     * [ToolResult.data], as nested maps/lists (e.g. `mapOf("type" to "object", "properties" to …)`).
+     * When set, clients may validate `structuredContent` against it, so it must match every
+     * successful result exactly. Null (the default) advertises no output schema.
+     */
+    val outputSchema: Map<String, Any>? get() = null
+
+    /**
      * Run the tool. Called on a background dispatcher in response to a `tools/call`.
      *
      * @param params Caller-supplied arguments keyed by [ToolParameter.name]. Values arrive

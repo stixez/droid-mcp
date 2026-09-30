@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
-import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -22,11 +23,18 @@ import kotlin.math.abs
  * toggle; no LLM tools expose it directly. Uses `TYPE_APPLICATION_OVERLAY` so
  * it survives on top of other apps (requires `SYSTEM_ALERT_WINDOW` permission
  * granted via [permissionIntent]).
+ *
+ * **Threading.** [show] and [hide] may be called from any thread: WindowManager
+ * view operations must run on the main thread, so off-main calls are posted to
+ * the main looper (and therefore take effect asynchronously). Calls made on the
+ * main thread run synchronously.
  */
 class OverlayController(private val context: Context) {
 
     private val windowManager: WindowManager =
         context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     @Volatile
     private var current: View? = null
@@ -51,21 +59,42 @@ class OverlayController(private val context: Context) {
 
     /**
      * Show the overlay. Idempotent — calling while already showing replaces
-     * the existing overlay with the new config.
+     * the existing overlay with the new config. Safe to call from any thread
+     * (off-main calls are posted to the main looper). No-op when the overlay
+     * permission is missing, or when the previous overlay could not be removed
+     * (so overlays never stack).
      */
     fun show(config: OverlayConfig) {
+        runOnMain { showOnMain(config) }
+    }
+
+    /** Convenience overload — equivalent to `show(OverlayConfig(label = label, onClick = onClick))`. */
+    fun show(label: String, onClick: () -> Unit) = show(OverlayConfig(label = label, onClick = onClick))
+
+    /**
+     * Remove the overlay if showing. Safe to call from any thread (off-main
+     * calls are posted to the main looper). The controller only forgets the
+     * view once `WindowManager.removeView` succeeds (or the view is already
+     * detached), so a failed removal can be retried.
+     */
+    fun hide() {
+        runOnMain { hideOnMain() }
+    }
+
+    private inline fun runOnMain(crossinline block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post { block() }
+    }
+
+    private fun showOnMain(config: OverlayConfig) {
         if (!isPermissionGranted()) return
-        hide()
+        hideOnMain()
+        if (current != null) return // previous overlay couldn't be removed; don't stack
 
         val view = buildView(config)
         val params = WindowManager.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
@@ -76,27 +105,30 @@ class OverlayController(private val context: Context) {
         }
 
         wireDragAndClick(view, params, config)
-        windowManager.addView(view, params)
-        current = view
-        currentParams = params
+        val added = runCatching { windowManager.addView(view, params) }.isSuccess
+        if (added) {
+            current = view
+            currentParams = params
+        } else {
+            pendingLongPress = null
+        }
     }
 
-    /** Convenience overload — equivalent to `show(OverlayConfig(label = label, onClick = onClick))`. */
-    fun show(label: String, onClick: () -> Unit) = show(OverlayConfig(label = label, onClick = onClick))
-
-    fun hide() {
-        val view = current
+    private fun hideOnMain() {
+        val view = current ?: return
         // Cancel a pending long-press timer before removing the view so the
         // runnable can't fire on a detached overlay.
         pendingLongPress?.let { runnable ->
-            view?.removeCallbacks(runnable)
+            view.removeCallbacks(runnable)
         }
         pendingLongPress = null
-        view?.let {
-            runCatching { windowManager.removeView(it) }
+        val removed = runCatching { windowManager.removeView(view) }.isSuccess
+        // removeView throws IllegalArgumentException for a view that is no
+        // longer attached — in that case there's nothing left to remove.
+        if (removed || !view.isAttachedToWindow) {
+            current = null
+            currentParams = null
         }
-        current = null
-        currentParams = null
     }
 
     private fun buildView(config: OverlayConfig): View {

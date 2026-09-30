@@ -1,0 +1,98 @@
+public final class io/droidmcp/sensors/GetAccelerometerTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sensors/GetGyroscopeTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sensors/GetLightLevelTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sensors/GetProximityTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/sensors/SensorHelperKt {
+	public static final fun readSensor (Landroid/content/Context;ILjava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun readSensor$default (Landroid/content/Context;ILjava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun sampleSensor (Landroid/content/Context;ILjava/lang/Integer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sampleSensor$default (Landroid/content/Context;ILjava/lang/Integer;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/sensors/SensorReading {
+	public fun <init> ([FIJ)V
+	public final fun component1 ()[F
+	public final fun component2 ()I
+	public final fun component3 ()J
+	public final fun copy ([FIJ)Lio/droidmcp/sensors/SensorReading;
+	public static synthetic fun copy$default (Lio/droidmcp/sensors/SensorReading;[FIJILjava/lang/Object;)Lio/droidmcp/sensors/SensorReading;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccuracy ()I
+	public final fun getTimestamp ()J
+	public final fun getValues ()[F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class io/droidmcp/sensors/SensorSampleResult {
+}
+
+public final class io/droidmcp/sensors/SensorSampleResult$NoReading : io/droidmcp/sensors/SensorSampleResult {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lio/droidmcp/sensors/SensorSampleResult$NoReading;
+	public static synthetic fun copy$default (Lio/droidmcp/sensors/SensorSampleResult$NoReading;JILjava/lang/Object;)Lio/droidmcp/sensors/SensorSampleResult$NoReading;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWaitedMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/sensors/SensorSampleResult$NoSensor : io/droidmcp/sensors/SensorSampleResult {
+	public static final field INSTANCE Lio/droidmcp/sensors/SensorSampleResult$NoSensor;
+}
+
+public final class io/droidmcp/sensors/SensorSampleResult$Readings : io/droidmcp/sensors/SensorSampleResult {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lio/droidmcp/sensors/SensorSampleResult$Readings;
+	public static synthetic fun copy$default (Lio/droidmcp/sensors/SensorSampleResult$Readings;Ljava/util/List;ILjava/lang/Object;)Lio/droidmcp/sensors/SensorSampleResult$Readings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReadings ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/sensors/SensorTools {
+	public static final field INSTANCE Lio/droidmcp/sensors/SensorTools;
+	public final fun all (Landroid/content/Context;)Ljava/util/List;
+	public final fun hasPermissions (Landroid/content/Context;)Z
+	public final fun requiredPermissions ()Ljava/util/List;
+}
+

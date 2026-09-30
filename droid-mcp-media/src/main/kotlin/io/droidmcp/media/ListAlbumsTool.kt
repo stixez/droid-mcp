@@ -18,8 +18,8 @@ class ListAlbumsTool(private val context: Context) : McpTool {
     override val name = "list_albums"
     override val description = "List media albums (MediaStore bucket/folders) on the device for the selected media_type. Returns album name, item count, and cover media ID."
     override val parameters = listOf(
-        ToolParameter("limit", "Max number of albums to return. Default 10.", ParameterType.INTEGER),
-        ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING),
+        ToolParameter("limit", "Max number of albums to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING, enumValues = listOf("images", "videos", "all")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 

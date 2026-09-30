@@ -1,1 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        Package visibility (API 30+): ShizukuTools.permissionStatus() and
+        installOrOpenIntent() look up the Shizuku manager app to tell "not installed"
+        from "installed but not activated" and to build its launch intent.
+    -->
+    <queries>
+        <package android:name="moe.shizuku.privileged.api" />
+    </queries>
+</manifest>

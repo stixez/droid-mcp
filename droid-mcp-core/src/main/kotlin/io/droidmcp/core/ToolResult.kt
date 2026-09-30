@@ -11,12 +11,26 @@ package io.droidmcp.core
  * @property data Result map on success; its keys are part of the tool's wire contract. Null on failure.
  * @property errorMessage Failure description on error; null on success. See the [error] overloads
  *   for the prose vs. short-form (`code: detail`) conventions.
+ * @property images Images to send to MCP clients as `image` content blocks. Attach them with
+ *   [withImage]; in-process callers still read the base64 from [data].
  */
 data class ToolResult(
     val isSuccess: Boolean,
     val data: Map<String, Any?>?,
     val errorMessage: String?,
+    val images: List<ToolImage> = emptyList(),
 ) {
+    /**
+     * Marks the base64 string at `data[dataKey]` as an image of [mimeType]. Over MCP it is sent as
+     * an `image` content block and [dataKey] is left out of the JSON text and `structuredContent`,
+     * so the payload travels once and clients render it as a picture. [data] is unchanged, so
+     * in-process callers keep reading `data[dataKey]`. No-op if the key isn't a string.
+     */
+    fun withImage(dataKey: String, mimeType: String): ToolResult {
+        val base64 = data?.get(dataKey) as? String ?: return this
+        return copy(images = images + ToolImage(base64, mimeType, dataKey))
+    }
+
     companion object {
         /** A successful result carrying [data]. The map's keys are the tool's documented output shape. */
         fun success(data: Map<String, Any?>): ToolResult =

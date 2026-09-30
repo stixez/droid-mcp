@@ -4,13 +4,19 @@
     DroidMcpAccessibilityService. Host can supply its own XML if it needs
     different flags (e.g., narrower package filter); just point the
     `android:resource` attribute on the manifest <meta-data> at it instead.
+
+    canTakeScreenshot is required on API 30+ for take_screenshot_via_a11y.
+    flagRequestTouchExplorationMode is deliberately NOT set: it would require
+    canRequestTouchExplorationMode and switches the device into explore-by-touch
+    (TalkBack-style) input, which breaks normal touch for the user.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeAllMask"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews|flagRequestTouchExplorationMode"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews"
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
+    android:canTakeScreenshot="true"
     android:notificationTimeout="100"
     android:summary="@string/droid_mcp_accessibility_summary"
     android:description="@string/droid_mcp_accessibility_description" />

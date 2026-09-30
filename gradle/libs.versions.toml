@@ -1,45 +1,58 @@
 [versions]
-kotlin = "2.1.20"
-agp = "8.9.1"
-compileSdk = "35"
+# Keep in step with the Netty that Ktor pulls in (see droid-mcp-core/build.gradle.kts).
+netty = "4.2.17.Final"
+classgraph = "4.8.196"
+bcv = "0.18.2"
+asm = "9.10.1"
+kotlin = "2.4.20"
+agp = "9.4.1"
+compileSdk = "36"
 minSdk = "28"
-targetSdk = "35"
-androidx-core = "1.16.0"
+targetSdk = "36"
+# The sample app alone compiles against 37 (latest Compose requires it); libraries stay on
+# compileSdk so consumers aren't forced onto a newer SDK.
+sampleCompileSdk = "37"
+androidx-core = "1.18.0"
 androidx-biometric = "1.1.0"
-ktor = "3.1.2"
-kotlinx-serialization = "1.8.1"
-kotlinx-coroutines = "1.10.2"
-mcp-kotlin-sdk = "0.11.1"
+ktor = "3.6.0"
+kotlinx-serialization = "1.11.0"
+kotlinx-coroutines = "1.11.0"
 mlkit = "17.3.0"
-mlkit-text = "16.0.0"
-mlkit-label = "17.0.8"
+mlkit-text = "16.0.1"
+mlkit-label = "17.0.9"
 mlkit-face = "16.1.7"
-camerax = "1.4.1"
-zxing = "3.5.3"
+camerax = "1.6.2"
+zxing = "3.5.4"
 junit = "4.13.2"
-junit5 = "5.11.4"
-mockk = "1.13.16"
-truth = "1.4.4"
+junit5 = "5.14.4"
+mockk = "1.14.11"
+truth = "1.4.5"
 shizuku = "13.1.5"
-libsu = "5.2.2"
-room = "2.6.1"
-ksp = "2.1.20-1.0.32"
-bouncycastle = "1.78.1"
-dokka = "2.1.0"
+libsu = "6.0.0"
+room = "2.8.5"
+ksp = "2.3.12"
+bouncycastle = "1.86"
+dokka = "2.2.0"
+compose-bom = "2026.09.00"
+activity = "1.13.0"
+lifecycle = "2.11.0"
 
 [libraries]
+# API dump tooling (tools/abi-dump, build-time only)
+bcv = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version.ref = "bcv" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
+
 # AndroidX Core
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidx-biometric" }
 
-# MCP SDK
-mcp-kotlin-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-kotlin-sdk" }
-
-# Shizuku (Tier 4 shell backend)
+# Shizuku (shell backend)
 shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 
-# libsu (Tier 5 shell backend — root via su)
+# libsu (root shell backend, via su)
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-io = { module = "com.github.topjohnwu.libsu:io", version.ref = "libsu" }
 
@@ -55,7 +68,8 @@ bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref 
 # Ktor Server
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
-ktor-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor" }
+netty-transport-classes-epoll = { module = "io.netty:netty-transport-classes-epoll", version.ref = "netty" }
+netty-transport-classes-kqueue = { module = "io.netty:netty-transport-classes-kqueue", version.ref = "netty" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
@@ -84,10 +98,25 @@ zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 # Dokka (API docs — Android documentation plugin enriches Android symbols)
 dokka-android-plugin = { module = "org.jetbrains.dokka:android-documentation-plugin", version.ref = "dokka" }
 
+# Compose / sample app
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+
 # Testing
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
 junit = { module = "junit:junit", version.ref = "junit" }
 junit5-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
 junit5-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
+# Gradle 9 no longer injects the launcher; version aligned via the engine's platform BOM.
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
@@ -97,6 +126,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

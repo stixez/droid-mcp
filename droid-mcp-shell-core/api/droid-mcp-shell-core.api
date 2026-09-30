@@ -1,0 +1,283 @@
+public final class io/droidmcp/shell/CaptureScreenQuietTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/ClearAppDataTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/DisableAppTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/EnableAppTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/ForceStopAppTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/GetTopWindowTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/GrantPermissionTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;)V
+	public synthetic fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/InstallApkTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/ListAppPermissionsTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/MakeAppInactiveTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/NoOpShellBackend : io/droidmcp/shell/ShellBackend {
+	public static final field INSTANCE Lio/droidmcp/shell/NoOpShellBackend;
+	public fun availabilityProblem ()Lio/droidmcp/shell/ShellException;
+	public fun exec (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun execBinary (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getName ()Ljava/lang/String;
+	public fun isAvailable ()Z
+}
+
+public final class io/droidmcp/shell/PutGlobalSettingTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;)V
+	public synthetic fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/PutSecureSettingTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;)V
+	public synthetic fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/PutSystemSettingTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;)V
+	public synthetic fun <init> (Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/RevokePermissionTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/RunShellTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/SetAppStandbyBucketTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/shell/ShellAllowlist {
+	public static final field INSTANCE Lio/droidmcp/shell/ShellAllowlist;
+	public final fun getFORBIDDEN_LEADING_COMMANDS ()Ljava/util/Set;
+	public final fun isAllowed (Ljava/lang/String;)Z
+	public final fun isAllowed (Ljava/util/List;)Z
+	public final fun set (Ljava/util/Set;)V
+	public final fun snapshot ()Ljava/util/Set;
+}
+
+public abstract interface class io/droidmcp/shell/ShellBackend {
+	public fun availabilityProblem ()Lio/droidmcp/shell/ShellException;
+	public abstract fun exec (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun exec$default (Lio/droidmcp/shell/ShellBackend;Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun execBinary (Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun execBinary$default (Lio/droidmcp/shell/ShellBackend;Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun isAvailable ()Z
+}
+
+public final class io/droidmcp/shell/ShellBackend$DefaultImpls {
+	public static fun availabilityProblem (Lio/droidmcp/shell/ShellBackend;)Lio/droidmcp/shell/ShellException;
+	public static synthetic fun exec$default (Lio/droidmcp/shell/ShellBackend;Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static fun execBinary (Lio/droidmcp/shell/ShellBackend;Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun execBinary$default (Lio/droidmcp/shell/ShellBackend;Ljava/lang/String;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract class io/droidmcp/shell/ShellException : java/lang/Exception {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class io/droidmcp/shell/ShellException$NotAvailable : io/droidmcp/shell/ShellException {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class io/droidmcp/shell/ShellException$PermissionDenied : io/droidmcp/shell/ShellException {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class io/droidmcp/shell/ShellException$SpawnFailed : io/droidmcp/shell/ShellException {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class io/droidmcp/shell/ShellPolicy {
+	public static final field Companion Lio/droidmcp/shell/ShellPolicy$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Set;
+	public final fun component2 ()Ljava/util/Set;
+	public final fun copy (Ljava/util/Set;Ljava/util/Set;)Lio/droidmcp/shell/ShellPolicy;
+	public static synthetic fun copy$default (Lio/droidmcp/shell/ShellPolicy;Ljava/util/Set;Ljava/util/Set;ILjava/lang/Object;)Lio/droidmcp/shell/ShellPolicy;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDeniedPermissions ()Ljava/util/Set;
+	public final fun getDeniedSettingKeys ()Ljava/util/Set;
+	public fun hashCode ()I
+	public final fun isPermissionDenied (Ljava/lang/String;)Z
+	public final fun isSettingKeyDenied (Ljava/lang/String;)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/shell/ShellPolicy$Companion {
+	public final fun getPERMISSIVE ()Lio/droidmcp/shell/ShellPolicy;
+	public final fun getRECOMMENDED ()Lio/droidmcp/shell/ShellPolicy;
+	public final fun getRECOMMENDED_DENIED_PERMISSIONS ()Ljava/util/Set;
+	public final fun getRECOMMENDED_DENIED_SETTING_KEYS ()Ljava/util/Set;
+}
+
+public final class io/droidmcp/shell/ShellResult {
+	public static final field Companion Lio/droidmcp/shell/ShellResult$Companion;
+	public fun <init> (I[BLjava/lang/String;Z)V
+	public synthetic fun <init> (I[BLjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()[B
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun copy (I[BLjava/lang/String;Z)Lio/droidmcp/shell/ShellResult;
+	public static synthetic fun copy$default (Lio/droidmcp/shell/ShellResult;I[BLjava/lang/String;ZILjava/lang/Object;)Lio/droidmcp/shell/ShellResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExitCode ()I
+	public final fun getOutput ()Ljava/lang/String;
+	public final fun getOutputTruncated ()Z
+	public final fun getStderr ()Ljava/lang/String;
+	public final fun getStdout ()Ljava/lang/String;
+	public final fun getStdoutBytes ()[B
+	public fun hashCode ()I
+	public final fun isSuccess ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/droidmcp/shell/ShellResult$Companion {
+	public final fun ofText (ILjava/lang/String;Ljava/lang/String;)Lio/droidmcp/shell/ShellResult;
+}
+
+public final class io/droidmcp/shell/ShellTools {
+	public static final field INSTANCE Lio/droidmcp/shell/ShellTools;
+	public final fun all (Landroid/content/Context;Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;)Ljava/util/List;
+	public static synthetic fun all$default (Lio/droidmcp/shell/ShellTools;Landroid/content/Context;Lio/droidmcp/shell/ShellBackend;Lio/droidmcp/shell/ShellPolicy;ILjava/lang/Object;)Ljava/util/List;
+	public final fun allNames ()Ljava/util/Set;
+}
+
+public final class io/droidmcp/shell/UninstallAppTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/shell/ShellBackend;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+

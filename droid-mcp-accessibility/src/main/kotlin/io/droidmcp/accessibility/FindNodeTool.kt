@@ -23,7 +23,9 @@ import io.droidmcp.core.ToolResult
  *
  * On success returns `count` (Int) and `nodes` (List of node projection maps).
  * Returns a validation error when no selector is supplied, and the long-form
- * [notConnectedError] message when the service is not bound.
+ * [notConnectedError] message when the service is not bound (or
+ * `no_active_window` when bound without an active root; see
+ * [rootUnavailableError]).
  */
 class FindNodeTool(private val context: Context) : McpTool {
 
@@ -34,7 +36,7 @@ class FindNodeTool(private val context: Context) : McpTool {
         ToolParameter("view_id", "Exact match against the node's view-id resource name (e.g. com.app:id/button).", ParameterType.STRING, required = false),
         ToolParameter("class_name", "Exact match against the node's class (e.g. android.widget.Button).", ParameterType.STRING, required = false),
         ToolParameter("package_name", "Exact match against the node's package name. Use to scope a query to a single foreground app (e.g. 'com.whatsapp').", ParameterType.STRING, required = false),
-        ToolParameter("limit", "Max matches to return (1-200, default 20).", ParameterType.INTEGER, required = false),
+        ToolParameter("limit", "Max matches to return (1-200, default 20).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 200.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -60,7 +62,7 @@ class FindNodeTool(private val context: Context) : McpTool {
                 "count" to matches.size,
                 "nodes" to matches,
             )
-        } ?: return ToolResult.error(notConnectedError())
+        } ?: return rootUnavailableError(shortForm = false)
 
         return ToolResult.success(payload)
     }

@@ -3,11 +3,13 @@ package io.droidmcp.sms
 import android.content.Context
 import android.provider.Telephony
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Searches all SMS (across boxes) whose `BODY` matches `query` (SQL `LIKE` substring) via
+ * Searches all SMS (across boxes) whose `BODY` matches `query` (SQL `LIKE` substring;
+ * `%`, `_` and `\` in `query` match literally) via
  * `ContentResolver` on `Telephony.Sms`, newest first. Requires `READ_SMS`. Output: `messages`
  * (list of {id, address, body, date formatted `yyyy-MM-dd HH:mm`}), `count`, and the echoed
  * `query`, capped at `limit` (1–100, default 10).
@@ -18,7 +20,7 @@ class SearchMessagesTool(private val context: Context) : McpTool {
     override val description = "Search SMS messages by keyword in message body"
     override val parameters = listOf(
         ToolParameter("query", "Search keyword", ParameterType.STRING, required = true),
-        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER),
+        ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -27,15 +29,17 @@ class SearchMessagesTool(private val context: Context) : McpTool {
             ?: return ToolResult.error("query is required")
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
 
-        val selection = "${Telephony.Sms.BODY} LIKE ?"
-        val selectionArgs = arrayOf("%$query%")
+        val selection = "${Telephony.Sms.BODY} LIKE ? ESCAPE '\\'"
+        val selectionArgs = arrayOf("%${SqlLike.escape(query)}%")
         val sortOrder = "${Telephony.Sms.DATE} DESC"
 
         val messages = mutableListOf<Map<String, Any?>>()
         val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         context.contentResolver.query(
-            Telephony.Sms.CONTENT_URI, null, selection, selectionArgs, sortOrder
+            Telephony.Sms.CONTENT_URI,
+            arrayOf(Telephony.Sms._ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
+            selection, selectionArgs, sortOrder
         )?.use { cursor ->
             var count = 0
             while (cursor.moveToNext() && count < limit) {

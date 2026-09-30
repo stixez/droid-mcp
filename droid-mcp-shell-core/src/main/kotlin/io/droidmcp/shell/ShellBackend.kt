@@ -3,16 +3,15 @@ package io.droidmcp.shell
 /**
  * Abstraction over a privileged shell-command pipeline.
  *
- * Two concrete implementations are planned:
- *  - `ShizukuShellBackend` (in `:droid-mcp-shizuku`, ships 0.8.0) — wraps
- *    `Shizuku.newProcess` for `shell`-UID execution without root.
- *  - `RootShellBackend` (in `:droid-mcp-root`, ships 0.9.0) — wraps `libsu` for
- *    `root`-UID execution. Same surface, broader capabilities (writes to
- *    `/system`, etc.).
+ * Implementations:
+ *  - `ShizukuShellBackend` (`:droid-mcp-shizuku`) — `shell`-UID execution via
+ *    `Shizuku.newProcess`, no root needed.
+ *  - `RootShellBackend` (`:droid-mcp-root`) — `root`-UID execution via a
+ *    per-call `libsu` shell.
  *
  * Tools in `:droid-mcp-shell-core` are parameterised over [ShellBackend] so
- * the LLM-facing surface is identical across backends; the host app picks
- * which one (or both) to register at startup.
+ * the LLM-facing surface is identical across backends. Register one backend's
+ * tool set — the tool names are the same, so a second set replaces the first.
  */
 interface ShellBackend {
 
@@ -24,6 +23,15 @@ interface ShellBackend {
     fun isAvailable(): Boolean
 
     /**
+     * Why the backend can't run commands right now, or null when it can. Lets tools
+     * tell "not running / not checked" ([ShellException.NotAvailable] →
+     * `shell_unavailable`) apart from "access denied" ([ShellException.PermissionDenied]
+     * → `shell_permission_denied`). The default only knows [isAvailable].
+     */
+    fun availabilityProblem(): ShellException? =
+        if (isAvailable()) null else ShellException.NotAvailable(name)
+
+    /**
      * Run [command] with [args] as a shell process. Returns stdout/stderr/exit.
      * Implementations should NOT throw on non-zero exit codes — surface them
      * via [ShellResult.exitCode] so tools can decide whether that's an error.
@@ -31,6 +39,11 @@ interface ShellBackend {
      * Throws [ShellException] only on infrastructure failures (binder down,
      * permission denied, process spawn failed). Tools translate that into a
      * `shell_unavailable: <reason>` MCP error.
+     *
+     * Implementations should bound both wall-clock time (throwing
+     * [ShellException.SpawnFailed] on timeout, after killing the process) and
+     * captured output size (reporting [ShellResult.outputTruncated]), and must
+     * honour coroutine cancellation by killing the process.
      *
      * **Output format is implementation-dependent for binary commands.**
      * The Shizuku backend returns raw bytes (it reads `process.inputStream`
@@ -54,7 +67,7 @@ interface ShellBackend {
 
     /**
      * One-line description of what this backend is, surfaced in tool errors
-     * (e.g. `"Shizuku"`, `"libsu (root)"`). Helps the LLM disambiguate when
+     * (`"Shizuku"`, `"Root (libsu)"`). Helps the LLM disambiguate when
      * one tool errors with "shell_unavailable" and the host registered
      * multiple backends.
      */
@@ -69,11 +82,17 @@ interface ShellBackend {
  * [stdoutBytes] is the raw byte stream — needed for binary commands like
  * `screencap -p` which emit PNG bytes. [stdout] is the UTF-8 decode of those
  * bytes for text use. [stderr] is always text.
+ *
+ * [outputTruncated] is `true` when the backend stopped collecting output because
+ * stdout or stderr exceeded its per-stream capture cap (the process is killed at
+ * that point, so [exitCode] is then `-1` and the captured output is a prefix).
+ * Backends that don't cap leave it `false`.
  */
 data class ShellResult(
     val exitCode: Int,
     val stdoutBytes: ByteArray,
     val stderr: String,
+    val outputTruncated: Boolean = false,
 ) {
     val stdout: String by lazy { stdoutBytes.toString(Charsets.UTF_8) }
     val isSuccess: Boolean get() = exitCode == 0
@@ -92,6 +111,7 @@ data class ShellResult(
         if (other !is ShellResult) return false
         return exitCode == other.exitCode &&
             stderr == other.stderr &&
+            outputTruncated == other.outputTruncated &&
             stdoutBytes.contentEquals(other.stdoutBytes)
     }
 
@@ -99,6 +119,7 @@ data class ShellResult(
         var result = exitCode
         result = 31 * result + stdoutBytes.contentHashCode()
         result = 31 * result + stderr.hashCode()
+        result = 31 * result + outputTruncated.hashCode()
         return result
     }
 }
@@ -108,6 +129,10 @@ data class ShellResult(
  * from a non-zero exit code returned by the spawned process.
  */
 sealed class ShellException(message: String) : Exception(message) {
+    /**
+     * Backend unreachable — Shizuku binder down / died mid-call, `su` shell could not be
+     * created, etc. Tools report it as `shell_unavailable`.
+     */
     class NotAvailable(reason: String) : ShellException("shell backend not available: $reason")
     class PermissionDenied(reason: String) : ShellException("shell permission denied: $reason")
     class SpawnFailed(reason: String) : ShellException("shell spawn failed: $reason")

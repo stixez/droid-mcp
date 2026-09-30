@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.4.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.4.1)" variant="all" version="9.4.1">
+
+    <issue
+        id="ClickableViewAccessibility"
+        message="`onTouch` lambda should call `View#performClick` when a click is detected"
+        errorLine1="        view.setOnTouchListener { _, event ->"
+        errorLine2="                                ^">
+        <location
+            file="src/main/kotlin/io/droidmcp/overlay/OverlayController.kt"
+            line="179"
+            column="33"/>
+    </issue>
+
+</issues>

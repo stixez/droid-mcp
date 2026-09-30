@@ -3,6 +3,7 @@
 package io.droidmcp.accessibility
 
 import android.graphics.Rect
+import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 
 /**
@@ -30,7 +31,11 @@ internal object NodeQuery {
     /**
      * Run [block] with the active-window root, recycling the node afterwards.
      * Returns null when no accessibility service is bound or the root is
-     * unavailable.
+     * unavailable. Callers distinguish the two null causes via
+     * [rootUnavailableError] / [AccessibilityServiceHolder.isConnected]: a
+     * bound service with a null `rootInActiveWindow` is a transient
+     * "no active window" state (e.g. during window transitions or when the
+     * foreground window is not exposed), not a disabled service.
      */
     inline fun <T> withRoot(block: (AccessibilityNodeInfo) -> T): T? {
         val root = AccessibilityServiceHolder.service?.rootInActiveWindow ?: return null
@@ -191,5 +196,40 @@ internal object NodeQuery {
             // via exception) must be recycled.
             while (queue.isNotEmpty()) queue.removeFirst().recycle()
         }
+    }
+
+    /** How far [performOnSelfOrCapableAncestor] climbs looking for a parent that supports the action. */
+    private const val MAX_ACTION_ANCESTORS = 8
+
+    /**
+     * Performs [action] on [node]; for click, long-click and scroll, if the node rejects it,
+     * retries on the nearest ancestor that supports it (clickable / long-clickable / scrollable),
+     * up to [MAX_ACTION_ANCESTORS] levels. The visible text is often not the node that acts: a
+     * Compose `Tab`'s label, a TextView inside a clickable row, an item inside a scrolling list.
+     * Ancestors fetched here are recycled; [node] stays owned by the caller.
+     */
+    fun performOnSelfOrCapableAncestor(node: AccessibilityNodeInfo, action: Int, arguments: Bundle? = null): Boolean {
+        val ok = if (arguments != null) node.performAction(action, arguments) else node.performAction(action)
+        if (ok) return true
+        val supports: (AccessibilityNodeInfo) -> Boolean = when (action) {
+            AccessibilityNodeInfo.ACTION_CLICK -> { n -> n.isClickable }
+            AccessibilityNodeInfo.ACTION_LONG_CLICK -> { n -> n.isLongClickable }
+            AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD -> { n -> n.isScrollable }
+            else -> return false
+        }
+        var current = node.parent
+        var depth = 0
+        while (current != null && depth < MAX_ACTION_ANCESTORS) {
+            if (supports(current) && current.performAction(action)) {
+                current.recycle()
+                return true
+            }
+            val next = current.parent
+            current.recycle()
+            current = next
+            depth++
+        }
+        current?.recycle()
+        return false
     }
 }

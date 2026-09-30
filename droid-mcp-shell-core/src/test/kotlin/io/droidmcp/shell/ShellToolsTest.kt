@@ -27,6 +27,26 @@ class ShellToolsTest {
     }
 
     @Test
+    fun `shell tools error with shell_permission_denied when access was refused`() = runTest {
+        val shell = object : ShellBackend by FakeShellBackend() {
+            override fun isAvailable() = false
+            override fun availabilityProblem() = ShellException.PermissionDenied("not granted")
+        }
+        val result = ForceStopAppTool(shell).execute(mapOf("package_name" to "com.x"))
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).contains("shell_permission_denied")
+    }
+
+    @Test
+    fun `capture_screen_quiet rejects a negative display id without spawning`() = runTest {
+        val shell = FakeShellBackend()
+        val result = CaptureScreenQuietTool(shell).execute(mapOf("display" to -1))
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).contains("invalid_args")
+        assertThat(shell.invocations).isEmpty()
+    }
+
+    @Test
     fun `force_stop_app validates package name`() = runTest {
         val shell = FakeShellBackend()
         val result = ForceStopAppTool(shell).execute(mapOf("package_name" to "not a valid pkg!"))
@@ -61,6 +81,33 @@ class ShellToolsTest {
         val shell = FakeShellBackend().apply { stubAlwaysSucceed("Success: \n") }
         InstallApkTool(shell).execute(mapOf("path" to "/sdcard/test.apk"))
         assertThat(shell.invocations.single()).isEqualTo("pm" to listOf("install", "-r", "/sdcard/test.apk"))
+    }
+
+    @Test
+    fun `install_apk rejects option-like, relative, and non-apk paths`() = runTest {
+        val shell = FakeShellBackend().apply { stubAlwaysSucceed("Success") }
+        for (bad in listOf("-g", "--user 10", "sdcard/test.apk", "/sdcard/test.zip", "/sdcard/../data/x.apk")) {
+            val result = InstallApkTool(shell).execute(mapOf("path" to bad))
+            assertThat(result.isSuccess).isFalse()
+            assertThat(result.errorMessage).contains("invalid_args")
+        }
+        assertThat(shell.invocations).isEmpty()
+    }
+
+    @Test
+    fun `policy denies listed settings keys and permissions without spawning`() = runTest {
+        val shell = FakeShellBackend().apply { stubAlwaysSucceed("") }
+        val policy = ShellPolicy.RECOMMENDED
+        val put = PutSecureSettingTool(shell, policy).execute(mapOf("key" to "ENABLED_ACCESSIBILITY_SERVICES", "value" to "x/y"))
+        assertThat(put.errorMessage).contains("denied_by_policy")
+        val grant = GrantPermissionTool(shell, policy).execute(mapOf(
+            "package_name" to "com.x",
+            "permission" to "android.permission.WRITE_SECURE_SETTINGS",
+        ))
+        assertThat(grant.errorMessage).contains("denied_by_policy")
+        assertThat(shell.invocations).isEmpty()
+        // Non-denied key still goes through.
+        assertThat(PutSecureSettingTool(shell, policy).execute(mapOf("key" to "mock_location", "value" to "1")).isSuccess).isTrue()
     }
 
     @Test

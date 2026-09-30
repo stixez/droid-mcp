@@ -6,15 +6,17 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
 
 /**
- * Provider for vibration tools: [VibrateTool] and [VibratePatternTool]. Requires the `VIBRATE`
+ * Provider for vibration tools: [VibrateTool], [VibratePatternTool] and [CancelVibrationTool]
+ * (stops a looping pattern early). Requires the `VIBRATE`
  * permission (a normal install-time permission).
  */
 object VibrationTools {
 
-    /** Both vibration tools. */
+    /** All vibration tools. */
     fun all(context: Context): List<McpTool> = listOf(
         VibrateTool(context),
         VibratePatternTool(context),
+        CancelVibrationTool(context),
     )
 
     /** The `VIBRATE` permission. */

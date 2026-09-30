@@ -19,12 +19,12 @@ import io.droidmcp.core.ToolResult
  *  - **String form** (legacy / convenience): pass only `command` containing
  *    the full command line. The tool whitespace-splits — quotes are NOT
  *    honoured, so this form is unsuitable for arguments containing spaces.
- *    Allowlist matching is against the full string.
+ *    Allowlist matching is against the split tokens.
  *
- * **Allowlist enforcement**: a candidate "allowlist key" is built from the
- * request — the raw command line in string form, or `command` + space-joined
- * `args` in argv form — and checked against [ShellAllowlist.isAllowed] (a
- * prefix match against the host-registered set). If it doesn't match (including
+ * **Allowlist enforcement**: the request's argv — the whitespace-split command
+ * line in string form, or `[command] + args` verbatim in argv form — is checked
+ * against [ShellAllowlist.isAllowed], a token-by-token prefix match against the
+ * host-registered entries (see [ShellAllowlist]). If it doesn't match (including
  * the default empty allowlist, which disables the tool entirely), `execute`
  * short-circuits with a `run_shell_not_enabled` [ToolResult.error] whose detail
  * lists the current allowlist snapshot — the command is never spawned.
@@ -37,7 +37,9 @@ import io.droidmcp.core.ToolResult
  * stderr).
  *
  * On success the result map carries `exit_code`, `stdout`, `stderr`,
- * `stdout_truncated`, and `stderr_truncated`. Note the raw process `exit_code`
+ * `stdout_truncated`, and `stderr_truncated`. The `*_truncated` flags are also
+ * set when the backend itself killed the process for exceeding its capture cap
+ * (then `exit_code` is `-1`). Note the raw process `exit_code`
  * is reported as data: a non-zero exit is still a successful tool call.
  */
 class RunShellTool(private val shell: ShellBackend) : McpTool {
@@ -45,9 +47,9 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
     override val name = "run_shell"
     override val description = "Run an arbitrary shell command via the backend. **Host-gated** — refuses unless the host has allowlisted a matching command prefix via `ShellAllowlist.set(...)`. Prefer the argv form (`args` array) for anything containing whitespace or quotes; the legacy string form whitespace-splits naively."
     override val parameters = listOf(
-        ToolParameter("command", "Bin name (argv form) or full command line (string form). String form: first token is matched against the host's allowlist. Argv form: allowlist is matched against `command` + space-joined `args` — note that spaces inside arg values are flattened into the reconstruction, so a host using long prefixes like `\"settings put global X \"` sees `args` joined with single spaces and cannot distinguish arg-internal spaces from argv separators.", ParameterType.STRING, required = true),
+        ToolParameter("command", "Bin name (argv form) or full command line (string form). The host allowlist is matched token-by-token against the leading argv entries: in string form the whitespace-split command line, in argv form `command` followed by `args` verbatim (an arg containing a space never matches an allowlist token).", ParameterType.STRING, required = true),
         ToolParameter("args", "Optional argv array. When set, each entry is passed as a discrete argument with no shell tokenisation (so quoted strings, paths with spaces, etc. just work).", ParameterType.ARRAY, required = false),
-        ToolParameter("max_stdout_bytes", "Truncate stdout above this many bytes (1024-65536, default 8192). Same cap is applied to stderr (bytes, not characters).", ParameterType.INTEGER, required = false),
+        ToolParameter("max_stdout_bytes", "Truncate stdout above this many bytes (1024-65536, default 8192). Same cap is applied to stderr (bytes, not characters).", ParameterType.INTEGER, required = false, minimum = 1024.0, maximum = 65536.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
 
@@ -57,7 +59,7 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
             ?: return ToolResult.error("invalid_args", "command is required")
 
         val argvParam = params["args"] as? List<*>
-        val (binName, argv, allowlistKey) = if (argvParam != null) {
+        val (binName, argv, allowlistArgv) = if (argvParam != null) {
             // Argv form: `command` must be a single bin name, not a full command
             // line — a whitespace-containing "bin name" would let the allowlist
             // check see one string while the backend's shell sees several tokens
@@ -70,7 +72,7 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
             val args = argvParam.mapIndexed { i, entry ->
                 entry as? String ?: return ToolResult.error("invalid_args", "args[$i] is not a string")
             }
-            Triple(rawCommand, args, "$rawCommand ${args.joinToString(" ")}")
+            Triple(rawCommand, args, listOf(rawCommand) + args)
         } else {
             // String form: whitespace-split (legacy, quote-unaware).
             val firstSpace = rawCommand.indexOf(' ')
@@ -82,10 +84,10 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
                         .split(Regex("""\s+"""))
                         .filter { it.isNotEmpty() }
             }
-            Triple(bin, args, rawCommand)
+            Triple(bin, args, listOf(bin) + args)
         }
 
-        if (!ShellAllowlist.isAllowed(allowlistKey)) {
+        if (!ShellAllowlist.isAllowed(allowlistArgv)) {
             return ToolResult.error(
                 "run_shell_not_enabled",
                 "host has not allowlisted this command prefix; current allowlist: ${ShellAllowlist.snapshot().joinToString(prefix = "[", postfix = "]")}",
@@ -96,16 +98,17 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
 
         return shell.gatedExec(binName, argv) { result ->
             val outBytes = result.stdoutBytes
-            val truncatedOut = outBytes.size > cap
-            val outString = if (truncatedOut) {
+            // outputTruncated: the backend hit its own capture cap and killed the process.
+            val truncatedOut = outBytes.size > cap || result.outputTruncated
+            val outString = if (outBytes.size > cap) {
                 outBytes.copyOf(cap).toString(Charsets.UTF_8) + "\n…[truncated ${outBytes.size - cap} bytes]"
             } else {
                 result.stdout
             }
             // Apply the same byte-cap to stderr so the units stay consistent.
             val errBytes = result.stderr.toByteArray(Charsets.UTF_8)
-            val truncatedErr = errBytes.size > cap
-            val errString = if (truncatedErr) {
+            val truncatedErr = errBytes.size > cap || result.outputTruncated
+            val errString = if (errBytes.size > cap) {
                 errBytes.copyOf(cap).toString(Charsets.UTF_8) + "\n…[truncated ${errBytes.size - cap} bytes]"
             } else {
                 result.stderr
@@ -122,9 +125,26 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
 }
 
 /**
- * Process-global allowlist for `run_shell`. The host sets a set of command-line
- * prefixes (e.g. `"pm "`, `"am "`, `"settings put global "`) at startup; the
- * tool refuses any command not starting with one of those prefixes.
+ * Process-global allowlist for `run_shell`. The host sets a set of command
+ * prefixes (e.g. `"pm list packages"`, `"dumpsys battery"`, `"settings get global"`)
+ * at startup; the tool refuses any command whose argv doesn't start with one of
+ * them.
+ *
+ * **Token matching.** Each entry is whitespace-tokenized; it matches a request
+ * only if its tokens are exactly equal to the request's first N argv entries
+ * (N = entry token count). `"pm list"` matches argv `[pm, list, packages]` but
+ * NOT `[pmx, ...]`, `[pm, listx]` or `[pm, "list packages"]`. Entries therefore
+ * can't express an argument containing whitespace. Trailing arguments beyond the
+ * entry are unrestricted — so allowlist the narrowest prefix that works.
+ *
+ * **Interpreter entries are rejected.** An entry whose first token (or its
+ * basename, e.g. `/system/bin/sh`) is in [FORBIDDEN_LEADING_COMMANDS] — shells,
+ * `toybox`/`busybox`, `su`, `app_process`, `env`, `xargs`, `nohup`, `timeout`,
+ * etc. — would let any command run as the shell/root UID, defeating the
+ * allowlist. [set] throws [IllegalArgumentException] for such entries (and for
+ * blank entries). Commands that can themselves spawn subprocesses given the right
+ * arguments (`find -exec`, `awk 'BEGIN{system(...)}'`, `am`-started
+ * instrumentation) are not all enumerable — review each entry with that in mind.
  *
  * Conservative by design: empty allowlist = `run_shell` is disabled. The LLM
  * cannot extend the allowlist; only host code can.
@@ -138,17 +158,72 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
  */
 object ShellAllowlist {
 
+    /**
+     * Leading commands that are refused as allowlist entries because they execute
+     * arbitrary other commands (or a script) from their arguments.
+     */
+    val FORBIDDEN_LEADING_COMMANDS: Set<String> = setOf(
+        // shells
+        "sh", "bash", "zsh", "ash", "dash", "mksh", "ksh", "csh", "tcsh", "fish",
+        // multi-call binaries (`toybox sh`, `busybox sh`)
+        "toybox", "toolbox", "busybox",
+        // privilege / identity / namespace changers
+        "su", "sudo", "run-as", "runcon", "chroot", "nsenter", "unshare", "setsid", "magisk",
+        // Java / dex launchers
+        "app_process", "app_process32", "app_process64", "dalvikvm", "dalvikvm32", "dalvikvm64",
+        // wrappers that exec their argv
+        "env", "nohup", "xargs", "eval", "exec", "command", "builtin", "nice", "ionice", "chrt",
+        "taskset", "timeout", "time", "stdbuf", "watch", "flock", "strace", "ltrace", "script",
+        // script interpreters
+        "awk", "gawk", "mawk", "nawk", "perl", "python", "python2", "python3", "lua", "ruby", "php", "node",
+    )
+
     @Volatile
     private var prefixes: Set<String> = emptySet()
 
+    @Volatile
+    private var tokenized: List<List<String>> = emptyList()
+
+    /**
+     * Replace the allowlist.
+     *
+     * @throws IllegalArgumentException if any entry is blank or starts with a command
+     *   in [FORBIDDEN_LEADING_COMMANDS]. The previous allowlist is kept in that case.
+     */
     fun set(allowed: Set<String>) {
+        val parsed = allowed.map { entry ->
+            val tokens = tokenize(entry)
+            require(tokens.isNotEmpty()) { "ShellAllowlist entry must not be blank" }
+            val lead = tokens.first().substringAfterLast('/')
+            require(lead !in FORBIDDEN_LEADING_COMMANDS) {
+                "ShellAllowlist entry '$entry' starts with '$lead', which executes arbitrary commands and would defeat run_shell gating"
+            }
+            tokens
+        }
+        // Publish both together-ish: `tokenized` is what isAllowed consults.
+        tokenized = parsed
         prefixes = allowed.toSet()
     }
 
     fun snapshot(): Set<String> = prefixes
 
-    fun isAllowed(command: String): Boolean {
-        if (prefixes.isEmpty()) return false
-        return prefixes.any { command.startsWith(it) }
+    /** String form: whitespace-tokenizes [command] and delegates to the argv overload. */
+    fun isAllowed(command: String): Boolean = isAllowed(tokenize(command))
+
+    /**
+     * True if some entry's tokens equal the first N entries of [argv] (argv[0] is the
+     * bin name). Always false for an empty allowlist.
+     */
+    fun isAllowed(argv: List<String>): Boolean {
+        val entries = tokenized
+        if (entries.isEmpty() || argv.isEmpty()) return false
+        return entries.any { entry ->
+            entry.size <= argv.size && entry.indices.all { i -> entry[i] == argv[i] }
+        }
     }
+
+    private fun tokenize(value: String): List<String> =
+        value.trim().split(WHITESPACE).filter { it.isNotEmpty() }
+
+    private val WHITESPACE = Regex("""\s+""")
 }

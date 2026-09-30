@@ -1,19 +1,18 @@
 package io.droidmcp.tts
 
 import android.content.Context
-import android.speech.tts.TextToSpeech
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.Locale
-import kotlin.coroutines.resume
 
 /**
- * Reports the default [TextToSpeech] engine and its supported languages. No permissions required.
- * Initializes a one-shot engine, reads its default engine and available languages (as BCP-47 tags),
- * then shuts it down.
+ * Reports the default [android.speech.tts.TextToSpeech] engine and its supported languages. No
+ * permissions required. Initializes a one-shot engine (bounded by [TTS_INIT_TIMEOUT_MS]), reads
+ * its default engine and available languages (as BCP-47 tags) with a single
+ * `getAvailableLanguages()` call made from the tool coroutine rather than the init callback, then
+ * shuts it down — on every path, including init error, timeout, and cancellation (see
+ * [useTtsEngine]).
  *
  * Output map: `default_engine` (String package, "unknown" if unavailable), `available_languages`
  * (sorted `List<String>`), `language_count` (Int).
@@ -25,46 +24,24 @@ class GetTtsInfoTool(private val context: Context) : McpTool {
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
-        return suspendCancellableCoroutine { continuation ->
-            var tts: TextToSpeech? = null
+    override suspend fun execute(params: Map<String, Any>): ToolResult =
+        useTtsEngine(context, onError = { ToolResult.error(it) }) { engine ->
+            val defaultEngine = engine.defaultEngine ?: "unknown"
 
-            tts = TextToSpeech(context) { status ->
-                if (status == TextToSpeech.ERROR) {
-                    continuation.resume(ToolResult.error("Failed to initialize TTS engine"))
-                    return@TextToSpeech
-                }
-
-                val engine = tts ?: run {
-                    continuation.resume(ToolResult.error("TTS engine not available"))
-                    return@TextToSpeech
-                }
-
-                val defaultEngine = engine.defaultEngine ?: "unknown"
-
-                val availableLanguages = try {
-                    engine.availableLanguages
-                        ?.map { locale -> locale.toLanguageTag() }
-                        ?.sorted()
-                        ?: emptyList()
-                } catch (e: Exception) {
-                    emptyList()
-                }
-
-                engine.shutdown()
-
-                if (continuation.isActive) {
-                    continuation.resume(ToolResult.success(mapOf(
-                        "default_engine" to defaultEngine,
-                        "available_languages" to availableLanguages,
-                        "language_count" to availableLanguages.size,
-                    )))
-                }
+            val availableLanguages = try {
+                engine.availableLanguages
+                    ?.map { locale -> locale.toLanguageTag() }
+                    ?.distinct()
+                    ?.sorted()
+                    ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
             }
 
-            continuation.invokeOnCancellation {
-                tts?.shutdown()
-            }
+            ToolResult.success(mapOf(
+                "default_engine" to defaultEngine,
+                "available_languages" to availableLanguages,
+                "language_count" to availableLanguages.size,
+            ))
         }
-    }
 }

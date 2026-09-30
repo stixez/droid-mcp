@@ -26,12 +26,13 @@ class NotificationWatchToolsTest {
     }
 
     @Test
-    fun `provider exposes the three watch tools`() {
+    fun `provider exposes the four watch tools`() {
         val names = NotificationWatchTools.all(context).map { it.name }
         assertThat(names).containsExactly(
             "watch_notifications",
             "unwatch_notifications",
             "list_notification_watches",
+            "poll_notification_watch",
         )
     }
 

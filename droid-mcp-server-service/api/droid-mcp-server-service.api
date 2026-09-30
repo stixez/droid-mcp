@@ -1,0 +1,22 @@
+public abstract class io/droidmcp/server/DroidMcpServerService : android/app/Service {
+	public static final field CHANNEL_ID Ljava/lang/String;
+	public static final field Companion Lio/droidmcp/server/DroidMcpServerService$Companion;
+	public static final field NOTIFICATION_ID I
+	public fun <init> ()V
+	protected fun buildNotification ()Landroid/app/Notification;
+	protected abstract fun createServer ()Lio/droidmcp/core/DroidMcp;
+	protected fun getNotificationText ()Ljava/lang/String;
+	protected fun getNotificationTitle ()Ljava/lang/String;
+	protected fun getSmallIconRes ()I
+	public fun onBind (Landroid/content/Intent;)Landroid/os/IBinder;
+	public fun onDestroy ()V
+	protected fun onServerStartFailed (Ljava/lang/Exception;)V
+	protected fun onServerStopped ()V
+	public fun onStartCommand (Landroid/content/Intent;II)I
+}
+
+public final class io/droidmcp/server/DroidMcpServerService$Companion {
+	public final fun start (Landroid/content/Context;Ljava/lang/Class;)V
+	public final fun stop (Landroid/content/Context;Ljava/lang/Class;)V
+}
+

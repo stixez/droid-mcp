@@ -1,0 +1,6 @@
+public final class io/droidmcp/tls/SelfSignedCert {
+	public static final field INSTANCE Lio/droidmcp/tls/SelfSignedCert;
+	public final fun loadOrCreate (Ljava/io/File;Ljava/lang/String;[CIJ)Lio/droidmcp/core/transport/TlsConfig;
+	public static synthetic fun loadOrCreate$default (Lio/droidmcp/tls/SelfSignedCert;Ljava/io/File;Ljava/lang/String;[CIJILjava/lang/Object;)Lio/droidmcp/core/transport/TlsConfig;
+}
+

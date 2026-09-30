@@ -4,13 +4,17 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import io.droidmcp.core.*
+import io.droidmcp.core.support.SqlLike
+import io.droidmcp.core.support.StrictDates
 import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Searches the MediaStore for images and/or videos by `DISPLAY_NAME` substring and/or
- * `DATE_TAKEN` range, newest-first, with `limit`/`offset` paging. The `media_type` param
- * selects `images`, `videos`, or `all` (default).
+ * Searches the MediaStore for images and/or videos by `DISPLAY_NAME` substring (`%`, `_`, `\`
+ * match literally) and/or `DATE_TAKEN` range (strict `yyyy-MM-dd`, device timezone),
+ * newest-first, with `limit`/`offset` paging. The `media_type` param selects `images`,
+ * `videos`, or `all` (default); `all` runs one `MediaStore.Files` query filtered to image and
+ * video rows, so both kinds are merged by date and `offset` pages consistently across them.
  * Requires `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` on API 33+, else `READ_EXTERNAL_STORAGE`.
  * Output: `results` (each `{id, name, path, date_taken, size_bytes, mime_type, width,
  * height, media_type}`), `count`, and `media_type`.
@@ -23,9 +27,9 @@ class SearchMediaTool(private val context: Context) : McpTool {
         ToolParameter("query", "Filename keyword to search for (case-insensitive substring). Optional.", ParameterType.STRING),
         ToolParameter("start_date", "Filter by date taken from (YYYY-MM-DD). Optional.", ParameterType.STRING),
         ToolParameter("end_date", "Filter by date taken until (YYYY-MM-DD, inclusive). Optional.", ParameterType.STRING),
-        ToolParameter("media_type", "Type of media to search: 'images', 'videos', or 'all'. Default: 'all'", ParameterType.STRING),
-        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER),
-        ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER),
+        ToolParameter("media_type", "Type of media to search: 'images', 'videos', or 'all'. Default: 'all'", ParameterType.STRING, enumValues = listOf("images", "videos", "all")),
+        ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
+        ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
@@ -37,93 +41,103 @@ class SearchMediaTool(private val context: Context) : McpTool {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10
         val offset = (params["offset"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0
 
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val displayFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         val startMillis = startDateStr?.let {
-            try { dateFormat.parse(it)?.time?.div(1000) } catch (_: Exception) {
-                return ToolResult.error("Invalid start_date format. Use YYYY-MM-DD")
-            }
+            (StrictDates.parse("yyyy-MM-dd", it) ?: return ToolResult.error("Invalid start_date format. Use YYYY-MM-DD")).time
         }
         val endMillis = endDateStr?.let {
-            try {
-                val parsed = dateFormat.parse(it) ?: return ToolResult.error("Invalid end_date format")
-                (parsed.time + 86_400_000L) / 1000 // end of day in seconds
-            } catch (_: Exception) {
-                return ToolResult.error("Invalid end_date format. Use YYYY-MM-DD")
-            }
+            val parsed = StrictDates.parse("yyyy-MM-dd", it) ?: return ToolResult.error("Invalid end_date format. Use YYYY-MM-DD")
+            // End of day; Calendar.add rather than +86_400_000 so a DST switch doesn't shift it.
+            Calendar.getInstance().apply {
+                time = parsed
+                add(Calendar.DAY_OF_MONTH, 1)
+            }.timeInMillis
         }
 
-        val results = mutableListOf<Map<String, Any?>>()
-
-        fun queryUri(uri: Uri, isVideo: Boolean) {
-            if (results.size >= limit + offset) return
-
-            val projection = arrayOf(
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DISPLAY_NAME,
-                MediaStore.MediaColumns.DATA,
-                MediaStore.MediaColumns.DATE_TAKEN,
-                MediaStore.MediaColumns.SIZE,
-                MediaStore.MediaColumns.MIME_TYPE,
-                MediaStore.MediaColumns.WIDTH,
-                MediaStore.MediaColumns.HEIGHT,
-            )
-
-            val conditions = mutableListOf<String>()
-            val args = mutableListOf<String>()
-
-            query?.let {
-                conditions.add("${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?")
-                args.add("%$it%")
-            }
-            startMillis?.let {
-                conditions.add("${MediaStore.MediaColumns.DATE_TAKEN} >= ?")
-                args.add((it * 1000).toString())
-            }
-            endMillis?.let {
-                conditions.add("${MediaStore.MediaColumns.DATE_TAKEN} <= ?")
-                args.add((it * 1000).toString())
-            }
-
-            val selection = if (conditions.isEmpty()) null else conditions.joinToString(" AND ")
-            val selectionArgs = if (args.isEmpty()) null else args.toTypedArray()
-            val sortOrder = "${MediaStore.MediaColumns.DATE_TAKEN} DESC"
-
-            context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
-                ?.use { cursor ->
-                    while (cursor.moveToNext() && results.size < limit + offset) {
-                        val dateTaken = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN))
-                        results.add(mapOf(
-                            "id" to cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)),
-                            "name" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)),
-                            "path" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)),
-                            "date_taken" to if (dateTaken > 0) displayFormat.format(Date(dateTaken)) else null,
-                            "size_bytes" to cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)),
-                            "mime_type" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)),
-                            "width" to cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.WIDTH)),
-                            "height" to cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.HEIGHT)),
-                            "media_type" to if (isVideo) "video" else "image",
-                        ))
-                    }
-                }
-        }
-
+        // A single cursor per call: for 'all', MediaStore.Files filtered to image+video rows,
+        // so results interleave by date and `offset` pages through one consistent ordering
+        // (previously images and videos were queried back to back and concatenated).
+        val uri: Uri
+        val typeCondition: String?
         when (mediaType) {
-            "images" -> queryUri(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, false)
-            "videos" -> queryUri(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true)
+            "images" -> { uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI; typeCondition = null }
+            "videos" -> { uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI; typeCondition = null }
             "all" -> {
-                queryUri(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, false)
-                queryUri(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true)
+                uri = MediaStore.Files.getContentUri("external")
+                typeCondition = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (" +
+                    "${MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE}, ${MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO})"
             }
             else -> return ToolResult.error("Invalid media_type '$mediaType'. Use: images, videos, all")
         }
 
-        val paged = results.drop(offset).take(limit)
+        val projection = mutableListOf(
+            MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.DATE_TAKEN,
+            MediaStore.MediaColumns.SIZE,
+            MediaStore.MediaColumns.MIME_TYPE,
+            MediaStore.MediaColumns.WIDTH,
+            MediaStore.MediaColumns.HEIGHT,
+        )
+        if (mediaType == "all") projection.add(MediaStore.Files.FileColumns.MEDIA_TYPE)
+
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+        typeCondition?.let { conditions.add(it) }
+        query?.let {
+            conditions.add("${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? ESCAPE '\\'")
+            args.add("%${SqlLike.escape(it)}%")
+        }
+        startMillis?.let {
+            conditions.add("${MediaStore.MediaColumns.DATE_TAKEN} >= ?")
+            args.add(it.toString())
+        }
+        endMillis?.let {
+            conditions.add("${MediaStore.MediaColumns.DATE_TAKEN} <= ?")
+            args.add(it.toString())
+        }
+
+        val selection = if (conditions.isEmpty()) null else conditions.joinToString(" AND ")
+        val selectionArgs = if (args.isEmpty()) null else args.toTypedArray()
+        val sortOrder = "${MediaStore.MediaColumns.DATE_TAKEN} DESC"
+
+        val results = mutableListOf<Map<String, Any?>>()
+        context.contentResolver.query(uri, projection.toTypedArray(), selection, selectionArgs, sortOrder)
+            ?.use { cursor ->
+                val typeIdx = cursor.getColumnIndex(MediaStore.Files.FileColumns.MEDIA_TYPE)
+                var skipped = 0
+                while (cursor.moveToNext() && results.size < limit) {
+                    // Paging in the cursor loop — LIMIT/OFFSET in sortOrder isn't portable.
+                    if (skipped < offset) {
+                        skipped++
+                        continue
+                    }
+                    val dateTaken = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN))
+                    val isVideo = when (mediaType) {
+                        "videos" -> true
+                        "images" -> false
+                        else -> typeIdx >= 0 &&
+                            cursor.getInt(typeIdx) == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
+                    }
+                    results.add(mapOf(
+                        "id" to cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)),
+                        "name" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)),
+                        "path" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)),
+                        "date_taken" to if (dateTaken > 0) displayFormat.format(Date(dateTaken)) else null,
+                        "size_bytes" to cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)),
+                        "mime_type" to cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)),
+                        "width" to cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.WIDTH)),
+                        "height" to cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.HEIGHT)),
+                        "media_type" to if (isVideo) "video" else "image",
+                    ))
+                }
+            }
 
         return ToolResult.success(mapOf(
-            "results" to paged,
-            "count" to paged.size,
+            "results" to results,
+            "count" to results.size,
             "media_type" to mediaType,
         ))
     }

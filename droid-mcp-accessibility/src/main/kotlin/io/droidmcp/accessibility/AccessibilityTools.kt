@@ -94,11 +94,12 @@ object AccessibilityTools {
      * `idempotentHint = true` at call-site rather than splitting
      * `global_action` into one tool per action.
      *
-     * `power_dialog` is excluded (genuine user-facing modal, not idempotent).
-     * `screenshot` is also excluded — it's a capture action, not nav/state.
+     * Excluded: `back` (each call navigates one step further), `recents` (a toggle —
+     * a second call closes it), `power_dialog` (user-facing modal) and `screenshot`
+     * (a capture action, not nav/state).
      */
     val idempotentGlobalActions: Set<String> = setOf(
-        "back", "home", "recents", "notifications", "quick_settings", "lock_screen",
+        "home", "notifications", "quick_settings", "lock_screen",
     )
 
     /**

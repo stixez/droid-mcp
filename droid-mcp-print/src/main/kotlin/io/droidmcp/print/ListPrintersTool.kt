@@ -1,6 +1,7 @@
 package io.droidmcp.print
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.print.PrintManager
 import io.droidmcp.core.McpTool
@@ -13,7 +14,8 @@ import io.droidmcp.core.ToolResult
  * intent) and the host app's own active print jobs from [PrintManager.getPrintJobs]. Note: this
  * does NOT enumerate individual physical printers — discovery happens inside the system print UI.
  *
- * No permissions required. Returns an error if [PrintManager] is unavailable. Read-only.
+ * No permissions required (the module manifest declares a `<queries>` entry for the
+ * `PrintService` intent so plugins are visible under API 30+ package visibility). Returns an error if [PrintManager] is unavailable. Read-only.
  *
  * Output keys: `print_services` (each with `package`, `name`), `service_count`,
  * `active_jobs` (each with `id`, `label`, `state`), `active_job_count`.
@@ -32,7 +34,7 @@ class ListPrintersTool(private val context: Context) : McpTool {
         // Query installed print service packages
         val printServices = context.packageManager
             .queryIntentServices(
-                android.content.Intent("android.printservice.PrintService"),
+                Intent("android.printservice.PrintService"),
                 PackageManager.GET_META_DATA,
             )
             .map { resolveInfo ->

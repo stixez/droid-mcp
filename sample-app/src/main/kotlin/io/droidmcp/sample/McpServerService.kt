@@ -35,15 +35,11 @@ class McpServerService : DroidMcpServerService() {
     override val notificationText: String get() = "Listening for MCP tool calls over HTTP"
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // The server config is UI-driven and shared via the holder. If the
-        // process was restarted headless (e.g. START_STICKY after a kill), the
-        // holder is empty — there's nothing to run, so bail cleanly instead of
-        // letting createServer() throw. And don't ask to be auto-restarted:
-        // this sample's server is controlled from the activity, not headless.
-        if (McpServerHolder.server == null) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
+        // Always let the base enter the foreground first — stopping before startForeground()
+        // after startForegroundService() trips ForegroundServiceDidNotStartInTimeException.
+        // If the process was restarted headless the holder is empty, createServer() throws,
+        // and the base stops the service cleanly. Don't ask to be auto-restarted: this
+        // sample's server is controlled from the activity, not headless.
         super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }

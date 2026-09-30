@@ -26,7 +26,7 @@ class ListRepliableNotificationsTool(private val context: Context) : McpTool {
     override val name = "list_repliable_notifications"
     override val description = "List active notifications that expose a free-form RemoteInput reply action (WhatsApp, Signal, Messenger, Slack, SMS, Gmail, etc.). Requires notification listener access."
     override val parameters = listOf(
-        ToolParameter("limit", "Maximum notifications to return (1-100, default 20).", ParameterType.INTEGER, required = false),
+        ToolParameter("limit", "Maximum notifications to return (1-100, default 20).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
 
