@@ -630,6 +630,9 @@ Besides tools, the server answers MCP resource and prompt requests. Both are opt
 | `message_contact` | `contact` (required), `intent` (required) | `search_contacts`, then `send_message` only after the user confirms |
 | `device_health_check` | - | `get_battery_info`, `get_storage_info`, `get_connectivity` |
 
+> [!WARNING]
+> `daily_briefing` and `triage_notifications` read notifications through `get_active_notifications`, which only sees notifications the host app posted itself, not other apps'. Until this is fixed ([#11](https://github.com/stixez/droid-mcp/issues/11)), leave those two out or write your own prompt on `list_repliable_notifications` or `watch_notifications`.
+
 Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
 
 **Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).

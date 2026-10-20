@@ -150,7 +150,7 @@ DroidMcp.builder()
     .addTools(MediaTools.all(context))
     .addResourceProvider(MediaTools.resources(context))    // recent photos and videos
     .addResourceProvider(CalendarTools.resources(context)) // droidmcp://calendar/today
-    .addBuiltInPrompts()                                    // daily_briefing, triage_notifications, …
+    .addBuiltInPrompts()                                    // message_contact, device_health_check, …
 ```
 
 A prompt is listed only while the tools it uses are registered. Tools added later with `mcp.registerTools(...)`, for example after the user grants a permission, reach connected clients through `notifications/tools/list_changed`. Details are in [docs/TOOLS.md](docs/TOOLS.md#resources-and-prompts).
