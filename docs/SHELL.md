@@ -27,7 +27,7 @@ The 17 tools behave the same on both. What root adds (`pm hide`, writing to `/sy
 1. Add the dependency. It brings in `droid-mcp-shell-core` and the Shizuku API.
 
    ```kotlin
-   implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.12.0")
+   implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.12.1")
    ```
 
 2. Declare the Shizuku provider in the host manifest. The module does not declare it for you, because the authority must be scoped to your application ID:
@@ -95,7 +95,7 @@ The module ships `consumer-rules.pro`, so minified (R8) host builds need no extr
 1. Add the dependency. It brings in `droid-mcp-shell-core` and libsu. libsu is served from JitPack, so keep `maven { url = uri("https://jitpack.io") }` in your repositories. The module declares no Android permissions.
 
    ```kotlin
-   implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.12.0")
+   implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.12.1")
    ```
 
 2. Root the device with a superuser manager that provides `su`, such as Magisk or KernelSU. That setup is outside droid-mcp's scope.

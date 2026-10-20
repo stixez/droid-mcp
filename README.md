@@ -48,11 +48,11 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.12.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.12.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.12.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.12.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.12.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.12.1")
     // or everything except the opt-in modules:
-    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.12.0")
+    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.12.1")
 }
 ```
 
