@@ -26,7 +26,7 @@ import io.droidmcp.core.ToolResult
 class GetScreenStateTool(private val context: Context) : McpTool {
 
     override val name = "get_screen_state"
-    override val description = "Get current screen state including whether the screen is on, rotation, brightness, and lock state"
+    override val description = "Check whether the screen is on, its rotation and brightness, and whether the phone is locked."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

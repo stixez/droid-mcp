@@ -30,7 +30,7 @@ import io.droidmcp.core.ParameterType
  */
 class SetFlashlightBrightnessTool(private val context: Context) : McpTool {
     override val name = "set_flashlight_brightness"
-    override val description = "Set flashlight brightness level (Android 13+ only, API 33+)"
+    override val description = "Set flashlight brightness from 0 (off) to 255 (Android 13+). Phones without adjustable strength just turn on."
     override val parameters = listOf(
         ToolParameter(
             "level",

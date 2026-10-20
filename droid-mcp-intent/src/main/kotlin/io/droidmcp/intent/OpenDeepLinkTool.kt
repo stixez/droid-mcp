@@ -26,7 +26,7 @@ import io.droidmcp.core.ToolResult
 class OpenDeepLinkTool(private val context: Context) : McpTool {
 
     override val name = "open_deep_link"
-    override val description = "Open a URI via ACTION_VIEW. Allowed schemes: http, https, geo, tel, mailto, sms, smsto, mms, mmsto, market (app-specific / file / content / intent schemes are rejected). Use https app links with package_name to target a specific app. Requires the host app to be in the foreground (or hold 'Display over other apps') on Android 10+."
+    override val description = "Open a link in the app that handles it: http(s) URLs, maps (geo:), phone (tel:), email (mailto:), messages (sms:, mms:) or Play Store (market:). Pass package_name to choose the app. Needs the host app in the foreground on Android 10+."
     override val parameters = listOf(
         ToolParameter("uri", "The URI to open (e.g. 'https://maps.google.com/?q=...', 'geo:37.7749,-122.4194')", ParameterType.STRING, required = true),
         ToolParameter("package_name", "Optional: force open in a specific app", ParameterType.STRING),

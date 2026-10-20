@@ -1,6 +1,6 @@
 # Tool Reference
 
-Every tool droid-mcp ships: 157 tools in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools.
+All 157 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
 
 The generated contract [`droid-mcp-all/api/tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt) lists every tool's parameter types, ranges, enums and annotations. If this page and the contract disagree, the contract is right. Tools annotated `readOnly` there are the only ones listed and callable when the server runs with `readOnly = true`.
 
@@ -27,6 +27,7 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 | Web | [Web](#web) |
 | Other apps and UI | [Playback](#playback), [Notification Reply](#notification-reply), [Notification Watch](#notification-watch), [Accessibility](#accessibility), [IME](#ime), [Overlay](#overlay) |
 | Power tools (opt-in) | [Shell: Shizuku or root](#shell-shizuku-or-root) |
+| Beyond tools | [Resources and prompts](#resources-and-prompts) |
 
 ---
 
@@ -82,7 +83,13 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 
 ## Files
 
-**Needs:** `READ_EXTERNAL_STORAGE` on API 32 and below; nothing on API 33+. The write tools (`write_file`, `create_directory`, `move_file`, `delete_file`) are opt-in: `FilesTools.all(context, includeWriteTools = true)`. Even then they are registered only where file writes work: always on API 30+. On API 28 they need `WRITE_EXTERNAL_STORAGE`. Android 10 (API 29) blocks file writes to shared folders, so there they register only if the host declares `WRITE_EXTERNAL_STORAGE` up to API 29 itself (with `tools:replace="android:maxSdkVersion"`), sets `android:requestLegacyExternalStorage="true"`, and the permission is granted.
+**Needs:** `READ_EXTERNAL_STORAGE` on API 32 and below; nothing on API 33+.
+
+The write tools (`write_file`, `create_directory`, `move_file`, `delete_file`) are opt-in: `FilesTools.all(context, includeWriteTools = true)`. Even then they're registered only where file writes work:
+
+- API 30+: always.
+- API 28: once `WRITE_EXTERNAL_STORAGE` is granted.
+- API 29: Android 10 blocks file writes to shared folders, so the host must declare `WRITE_EXTERNAL_STORAGE` up to API 29 itself (`tools:replace="android:maxSdkVersion"`), set `android:requestLegacyExternalStorage="true"`, and have the permission granted.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
@@ -599,7 +606,13 @@ overlay.hide()
 
 Besides tools, the server answers MCP resource and prompt requests. Both are opt-in on the builder.
 
-**Resources.** Register a module's provider with `Builder.addResourceProvider(...)`, or at runtime with `DroidMcp.registerResourceProvider(...)`. Providers check their own permissions: without them they list nothing, and reads fail as not found (`-32002`). Each provider is also tied to the tool that serves the same data (`get_media_metadata`, `read_file`, `read_contact`, `read_calendar`): while that tool is unregistered, gated off or hidden by read-only mode, the provider is hidden too. A read also goes through the host's confirmer (`confirmToolCalls`) when that tool would, and a declined read returns `-32001`. Every `resources/read` is recorded to the audit sink as `resources/read`. Long listings are paginated from one snapshot, so pages don't shift.
+**Resources.** Register a module's provider with `Builder.addResourceProvider(...)`, or at runtime with `DroidMcp.registerResourceProvider(...)`.
+
+- Providers check their own permissions. Without them they list nothing, and reads fail as not found (`-32002`).
+- Each provider follows the tool that serves the same data (`get_media_metadata`, `read_file`, `read_contact`, `read_calendar`). While that tool is unregistered, gated off or hidden by read-only mode, the provider is hidden too.
+- A read goes through the host's confirmer (`confirmToolCalls`) whenever that tool would. A declined read returns `-32001`.
+- Every `resources/read` is recorded to the audit sink under the name `resources/read`.
+- Long listings are paginated from one snapshot, so pages don't shift.
 
 | Provider | URIs | Listed up front | Contents |
 |----------|------|-----------------|----------|

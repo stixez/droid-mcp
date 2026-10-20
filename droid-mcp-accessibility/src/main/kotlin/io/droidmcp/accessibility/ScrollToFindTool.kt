@@ -47,7 +47,7 @@ import kotlinx.coroutines.delay
 class ScrollToFindTool(private val context: Context) : McpTool {
 
     override val name = "scroll_to_find"
-    override val description = "Repeatedly swipe in `direction` (reading semantics: 'down' reveals content below, 'up' reveals content above, 'left'/'right' likewise) until `match` appears in the active window's UI tree or `max_scrolls` exhausts. Returns the matched node's selector fields on hit."
+    override val description = "Scroll until an element with matching text or description appears, then return it. `direction` is the way you'd read: 'down' reveals content below. Stops after `max_scrolls` with scroll_exhausted."
     override val parameters = listOf(
         ToolParameter("match", "Substring to find in the UI tree (matched against text + contentDescription, case-insensitive).", ParameterType.STRING, required = true),
         ToolParameter("direction", "'down' (default) / 'up' / 'left' / 'right'. Uses reading semantics: 'down' reveals content below.", ParameterType.STRING, required = false, enumValues = listOf("down", "up", "left", "right")),

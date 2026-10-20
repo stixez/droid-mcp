@@ -35,7 +35,7 @@ import kotlin.coroutines.resume
 class GestureTool(private val context: Context) : McpTool {
 
     override val name = "gesture"
-    override val description = "Dispatch a touch gesture on the screen via AccessibilityService.dispatchGesture. The gesture is described as a single ordered sequence of points and an optional duration; use this for swipes, drags, or tap-by-coordinate when no node matches. Single-stroke only — cannot express multi-finger gestures like pinch."
+    override val description = "Draw a single-finger stroke through a list of [x, y] points, for swipes and drags. Multi-finger gestures such as pinch aren't supported. For scrolling lists, scroll_node or scroll_to_find is more reliable."
     override val parameters = listOf(
         ToolParameter("points", "Array of [x, y] integer screen coordinates the stroke walks through, in order. Minimum 2 points (start, end). Each entry must be a 2-element array of non-negative numbers; malformed entries reject the entire call.", ParameterType.ARRAY, required = true),
         ToolParameter("duration_ms", "Duration of the stroke in milliseconds (10-3000, default 300).", ParameterType.INTEGER, required = false, minimum = 10.0, maximum = 3000.0),

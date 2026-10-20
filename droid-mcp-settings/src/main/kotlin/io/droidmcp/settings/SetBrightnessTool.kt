@@ -23,7 +23,7 @@ import io.droidmcp.core.support.ActivityLaunch
 class SetBrightnessTool(private val context: Context) : McpTool {
 
     override val name = "set_brightness"
-    override val description = "Set screen brightness level (0-255). Requires WRITE_SETTINGS permission."
+    override val description = "Set the screen brightness from 0 to 255 (turns off auto-brightness)."
     override val parameters = listOf(
         ToolParameter("level", "Brightness level (0-255)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 255.0),
     )

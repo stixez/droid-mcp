@@ -36,7 +36,7 @@ import java.util.Locale
 class SpeakTextTool(private val context: Context) : McpTool {
 
     override val name = "speak_text"
-    override val description = "Speak text aloud using the device's text-to-speech engine"
+    override val description = "Read text aloud with the phone's text-to-speech voice, in a given language, pitch and speed. Waits until it finishes speaking."
     override val parameters = listOf(
         ToolParameter("text", "Text to speak aloud", ParameterType.STRING, required = true),
         ToolParameter("language", "BCP-47 language code (default: en)", ParameterType.STRING),

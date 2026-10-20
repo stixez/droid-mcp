@@ -22,7 +22,7 @@ import io.droidmcp.core.ToolResult
 class GetActiveWindowInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_active_window_info"
-    override val description = "Return the foreground package name plus the root node's class (typically the foreground activity's view-root class). Cheap; safe to poll."
+    override val description = "Get the foreground app's package and its root view class. Cheap enough to poll."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

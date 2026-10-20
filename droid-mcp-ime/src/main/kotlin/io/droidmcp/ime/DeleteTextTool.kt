@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class DeleteTextTool(private val context: Context) : McpTool {
 
     override val name = "delete_text"
-    override val description = "Delete text around the cursor via InputConnection.deleteSurroundingText."
+    override val description = "Delete a number of characters before and/or after the cursor in the focused text field."
     override val parameters = listOf(
         ToolParameter("before", "Characters to delete before the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false, minimum = 0.0, maximum = 2000.0),
         ToolParameter("after", "Characters to delete after the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false, minimum = 0.0, maximum = 2000.0),

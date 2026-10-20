@@ -33,7 +33,7 @@ import java.io.File
 class SetWallpaperTool(private val context: Context) : McpTool {
 
     override val name = "set_wallpaper"
-    override val description = "Set the wallpaper from an image file. Supports setting for home screen, lock screen, or both."
+    override val description = "Set the home screen and/or lock screen wallpaper from an image file on shared storage."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path to the image file", ParameterType.STRING, required = true),
         ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING, enumValues = listOf("home", "lock", "both")),

@@ -12,6 +12,7 @@ Android MCP SDK: 157 phone capabilities as tools, across 53 modules, for on-devi
 ## Key Conventions
 
 - Every tool implements `McpTool` interface: `name`, `description`, `parameters`, `suspend fun execute()`
+- `description` is what a model reads to pick a tool: one or two plain sentences that start with a verb, say what comes back, and name the sibling tool to use instead when two overlap (e.g. `tap` vs `find_and_tap`). Leave out Android API names unless the model needs them; descriptions aren't part of the frozen wire contract
 - Every tool declares `outputSchema = OutputSchema.obj { ... }` matching exactly what `execute()` returns on success: `nullable = true` for values that can be null, `optional = true` for keys only sometimes present, and no entry for a key passed to `withImage()` (it isn't in `structuredContent`)
 - Every module has a provider object (e.g. `CalendarTools`) with `all(context)`, `requiredPermissions()`, `hasPermissions(context)`
 - Modules with browsable data also expose `resources(...)`: a `ResourceProvider` that checks its own permissions, returns empty / null instead of throwing, and sets `requiredTools` to the tool serving the same data so gating that tool hides the resource too (media, files, contacts, calendar)

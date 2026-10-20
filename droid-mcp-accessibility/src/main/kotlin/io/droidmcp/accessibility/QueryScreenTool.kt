@@ -38,7 +38,7 @@ import io.droidmcp.core.ToolResult
 class QueryScreenTool(private val context: Context) : McpTool {
 
     override val name = "query_screen"
-    override val description = "Dump the active window's AccessibilityNodeInfo tree as a flat list of nodes with text / bounds / class / view-id / action capabilities. **Returns nodes ranked by usefulness:** clickable > has-text > scrollable > rest. When truncated to `max_nodes`, the highest-ranked nodes are kept — token-bound callers can trust the order. Password-flagged nodes report `is_password = true` with text / content_description masked."
+    override val description = "List the UI elements on screen (text, content description, view id, class, bounds, what each can do), most useful first: clickable, then with text, then scrollable. Start here to see what's on screen before tapping or typing. Password text is masked."
     override val parameters = listOf(
         ToolParameter("max_nodes", "Cap on the number of nodes to return (1-2000, default 500).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
     )

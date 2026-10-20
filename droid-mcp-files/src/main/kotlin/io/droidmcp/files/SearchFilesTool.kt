@@ -24,7 +24,7 @@ import java.util.*
 class SearchFilesTool(private val context: Context) : McpTool {
 
     override val name = "search_files"
-    override val description = "Search for files and directories by name pattern (case-insensitive substring match) recursively under a given directory (depth 5, bounded time budget). Returns matching paths with metadata. On Android 11+ non-media files created by other apps are not visible."
+    override val description = "Find files and folders whose name contains the query, searching up to 5 levels below `path` (default the storage root). Returns paths for read_file or move_file."
     override val parameters = listOf(
         ToolParameter("query", "Filename pattern to search for (case-insensitive substring)", ParameterType.STRING, required = true),
         ToolParameter("path", "Root directory to search in. Default: /sdcard", ParameterType.STRING),

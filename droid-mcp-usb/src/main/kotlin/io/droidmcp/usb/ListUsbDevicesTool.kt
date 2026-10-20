@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class ListUsbDevicesTool(private val context: Context) : McpTool {
 
     override val name = "list_usb_devices"
-    override val description = "List all connected USB devices"
+    override val description = "List connected USB devices with vendor and product ids and names."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

@@ -22,7 +22,7 @@ import java.util.Date
 class GetAppInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_app_info"
-    override val description = "Get detailed information for a specific installed app"
+    override val description = "Get details for one installed app by package name: name, version, install and update dates, requested permissions."
     override val parameters = listOf(
         ToolParameter("package_name", "Package name of the app (e.g. com.example.app)", ParameterType.STRING, required = true),
     )

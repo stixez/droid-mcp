@@ -23,7 +23,7 @@ import io.droidmcp.core.ToolResult
 class GetBiometricEnrollmentsTool(private val context: Context) : McpTool {
 
     override val name = "get_biometric_enrollments"
-    override val description = "Get information about present/enrolled biometric modalities (fingerprint, face)"
+    override val description = "Check which biometric sensors are present and enrolled (fingerprint, face)."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

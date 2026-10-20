@@ -30,7 +30,7 @@ import io.droidmcp.core.ToolResult
 class CreateContactTool(private val context: Context) : McpTool {
 
     override val name = "create_contact"
-    override val description = "Create a new contact on the device with a name and optional phone number and email"
+    override val description = "Add a contact with a name and optional phone number and email. Returns its contact_id."
     override val parameters = listOf(
         ToolParameter("name", "Full display name of the contact", ParameterType.STRING, required = true),
         ToolParameter("phone", "Phone number", ParameterType.STRING),

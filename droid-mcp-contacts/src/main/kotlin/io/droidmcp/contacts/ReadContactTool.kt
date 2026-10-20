@@ -15,7 +15,7 @@ import io.droidmcp.core.*
 class ReadContactTool(private val context: Context) : McpTool {
 
     override val name = "read_contact"
-    override val description = "Get full details for a specific contact by ID"
+    override val description = "Get one contact's full details by id: name, phone numbers and emails with their labels, and postal addresses."
     override val parameters = listOf(
         ToolParameter("contact_id", "The contact ID", ParameterType.INTEGER, required = true),
     )

@@ -25,7 +25,7 @@ import io.droidmcp.notification.RepliableNotification
 class ListRepliableNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "list_repliable_notifications"
-    override val description = "List active notifications that expose a free-form RemoteInput reply action (WhatsApp, Signal, Messenger, Slack, SMS, Gmail, etc.). Requires notification listener access."
+    override val description = "List active notifications you can reply to (messages from WhatsApp, Signal, SMS, Slack, Gmail and similar), newest first. Returns each one's key for reply_to_notification."
     override val parameters = listOf(
         ToolParameter("limit", "Maximum notifications to return (1-100, default 20).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
     )

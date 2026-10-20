@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 class GetProximityTool(private val context: Context) : McpTool {
 
     override val name = "get_proximity"
-    override val description = "Read proximity sensor distance (typically 0-5cm for near/far)"
+    override val description = "Read the proximity sensor: distance in cm and whether something is near (under 5 cm), e.g. the phone is in a pocket or against an ear."
     override val parameters = listOf(
         ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )

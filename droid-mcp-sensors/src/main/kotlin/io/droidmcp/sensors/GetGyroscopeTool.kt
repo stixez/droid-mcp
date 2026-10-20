@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 class GetGyroscopeTool(private val context: Context) : McpTool {
 
     override val name = "get_gyroscope"
-    override val description = "Read gyroscope data (x, y, z rotation in rad/s)"
+    override val description = "Read the gyroscope (rotation x, y, z in rad/s), once or over `duration_ms`."
     override val parameters = listOf(
         ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )

@@ -28,7 +28,7 @@ import java.io.File
 class RecognizeTextTool(private val context: Context) : McpTool {
 
     override val name = "recognize_text"
-    override val description = "Extract text from an image on device using ML Kit text recognition"
+    override val description = "Read the text in an image file (OCR) on the device. Returns the full text and each line with its position."
     override val parameters = listOf(
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
     )

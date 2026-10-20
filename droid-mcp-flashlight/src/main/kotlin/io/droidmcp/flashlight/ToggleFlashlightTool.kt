@@ -20,7 +20,7 @@ import io.droidmcp.core.ParameterType
  */
 class ToggleFlashlightTool(private val context: Context) : McpTool {
     override val name = "toggle_flashlight"
-    override val description = "Toggle the flashlight on or off"
+    override val description = "Turn the flashlight on or off."
     override val parameters = listOf(
         ToolParameter(
             "enabled",

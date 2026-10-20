@@ -21,12 +21,7 @@ import java.util.*
 class GetActiveNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "get_active_notifications"
-    override val description = """
-        Read currently active (visible in the status bar) notifications.
-        LIMITATION: This tool only reads notifications posted by this app itself.
-        To read other apps' notifications, use list_repliable_notifications or watch_notifications
-        if they are registered (they need notification access granted in Settings).
-    """.trimIndent()
+    override val description = "List the notifications this app itself is showing. It can't see other apps' notifications; for those use list_repliable_notifications or watch_notifications."
     override val parameters = listOf(
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )

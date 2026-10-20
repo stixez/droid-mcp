@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class ShareContentTool(private val context: Context) : McpTool {
 
     override val name = "share_content"
-    override val description = "Share text content via the Android share sheet (ACTION_SEND). Requires the host app to be in the foreground (or hold 'Display over other apps') on Android 10+."
+    override val description = "Open the system share sheet with some text, so the user can send it to another app."
     override val parameters = listOf(
         ToolParameter("text", "Text content to share", ParameterType.STRING, required = true),
         ToolParameter("subject", "Optional subject line (used by email apps)", ParameterType.STRING),

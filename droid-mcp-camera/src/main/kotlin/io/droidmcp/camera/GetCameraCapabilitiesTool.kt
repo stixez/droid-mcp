@@ -23,7 +23,7 @@ import kotlinx.coroutines.withContext
 class GetCameraCapabilitiesTool(private val context: Context) : McpTool {
 
     override val name = "get_camera_capabilities"
-    override val description = "Get information about available cameras and their capabilities"
+    override val description = "List the device's cameras: which way each faces, whether it has a flash, and its maximum resolution."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

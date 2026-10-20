@@ -29,7 +29,7 @@ import io.droidmcp.core.support.ActivityLaunch
 class CreateAlarmTool(private val context: Context) : McpTool {
 
     override val name = "create_alarm"
-    override val description = "Create an alarm at the specified time. Note: Listing existing alarms is not supported by a standard Android API — each clock app stores them differently; get_next_alarm reports the next one."
+    override val description = "Set an alarm in the clock app at a time of day, optionally repeating on given weekdays. Android has no API to list alarms; get_next_alarm shows only the next one."
     override val parameters = listOf(
         ToolParameter("hour", "Hour of the alarm (0-23)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 23.0),
         ToolParameter("minute", "Minute of the alarm (0-59)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 59.0),

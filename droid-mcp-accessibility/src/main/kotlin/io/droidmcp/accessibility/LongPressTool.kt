@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class LongPressTool(private val context: Context) : McpTool {
 
     override val name = "long_press"
-    override val description = "Dispatch a long-press gesture at the given screen coordinates. Holds for `duration_ms` (default 800ms)."
+    override val description = "Long-press at screen coordinates for `duration_ms` (default 800 ms). Prefer long_click_node when the element can be matched."
     override val parameters = listOf(
         ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
         ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),

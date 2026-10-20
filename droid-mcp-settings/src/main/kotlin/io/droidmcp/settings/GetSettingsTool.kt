@@ -22,7 +22,7 @@ import io.droidmcp.core.ToolResult
 class GetSettingsTool(private val context: Context) : McpTool {
 
     override val name = "get_settings"
-    override val description = "Read current device settings including brightness, volume, WiFi, Bluetooth, airplane mode, and auto-rotate"
+    override val description = "Read the current brightness, ring, media and alarm volume, WiFi, Bluetooth, airplane mode and auto-rotate settings."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

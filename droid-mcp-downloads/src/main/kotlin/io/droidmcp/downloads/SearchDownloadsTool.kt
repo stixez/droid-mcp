@@ -29,7 +29,7 @@ import java.util.Locale
 class SearchDownloadsTool(private val context: Context) : McpTool {
 
     override val name = "search_downloads"
-    override val description = "Search files in the Downloads directory by filename. On Android 11+ scoped storage hides non-media files created by other apps."
+    override val description = "Find files in the Downloads folder whose name contains the query. Android 11+ hides non-media files other apps saved there."
     override val parameters = listOf(
         ToolParameter("query", "Search query to match against filenames (case-insensitive)", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class GetNetworkOperatorTool(private val context: Context) : McpTool {
 
     override val name = "get_network_operator"
-    override val description = "Get network operator information including name, ID, MCC, and MNC"
+    override val description = "Get the mobile network operator's name and codes (MCC, MNC)."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

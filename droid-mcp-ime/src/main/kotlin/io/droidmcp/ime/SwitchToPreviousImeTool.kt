@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class SwitchToPreviousImeTool(private val context: Context) : McpTool {
 
     override val name = "switch_to_previous_ime"
-    override val description = "Switch back to the user's previous keyboard via InputMethodService.switchToPreviousInputMethod. Call this when the LLM is done driving the editor so normal typing resumes."
+    override val description = "Switch back to the user's previous keyboard. Call when you're done typing so the user's normal keyboard returns."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(destructiveHint = true)
     override val outputSchema = OutputSchema.obj {

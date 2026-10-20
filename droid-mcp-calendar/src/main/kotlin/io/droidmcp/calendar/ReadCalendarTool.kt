@@ -28,7 +28,7 @@ import java.util.*
 class ReadCalendarTool(private val context: Context) : McpTool {
 
     override val name = "read_calendar"
-    override val description = "Read calendar events for a given date or date range, including occurrences of recurring events and multi-day events overlapping the range. Returns title, start/end time, location, and description."
+    override val description = "List calendar events on a date or in a date range, including recurring and multi-day events. Returns each event's id, title, start, end, location and description. Use search_events to find an event by keyword."
     override val parameters = listOf(
         ToolParameter("start_date", "Start date in YYYY-MM-DD format", ParameterType.STRING, required = true),
         ToolParameter("end_date", "End date in YYYY-MM-DD format. Defaults to start_date.", ParameterType.STRING),

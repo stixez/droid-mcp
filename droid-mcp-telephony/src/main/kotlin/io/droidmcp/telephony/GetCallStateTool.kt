@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class GetCallStateTool(private val context: Context) : McpTool {
 
     override val name = "get_call_state"
-    override val description = "Get the current call state of the device"
+    override val description = "Check whether the phone is idle, ringing or in a call."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

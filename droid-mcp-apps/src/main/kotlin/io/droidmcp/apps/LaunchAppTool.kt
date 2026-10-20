@@ -24,7 +24,7 @@ import io.droidmcp.core.support.ActivityLaunch
 class LaunchAppTool(private val context: Context) : McpTool {
 
     override val name = "launch_app"
-    override val description = "Launch an installed app by package name"
+    override val description = "Open an installed app by package name (find it with list_installed_apps). Needs the host app in the foreground on Android 10+."
     override val parameters = listOf(
         ToolParameter("package_name", "Package name of the app to launch (e.g. com.example.app)", ParameterType.STRING, required = true),
     )

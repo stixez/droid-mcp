@@ -45,7 +45,7 @@ class SendMessageTool(private val context: Context) : McpTool {
     }
 
     override val name = "send_message"
-    override val description = "Send an SMS message to a phone number. Waits up to 15s for the radio to confirm; `sent` is true only when every part was confirmed sent. A radio-reported failure is an error. A timeout returns `sent: false` with `status: \"timeout\"`: the message may still arrive, so do not resend it automatically."
+    override val description = "Send an SMS to a phone number. Waits up to 15 s for the network to confirm; `sent` is true only when every part was confirmed. On timeout (`status: \"timeout\"`) the message may still arrive, so don't resend it automatically."
     override val parameters = listOf(
         ToolParameter("to", "Recipient phone number", ParameterType.STRING, required = true),
         ToolParameter("body", "Message text", ParameterType.STRING, required = true),

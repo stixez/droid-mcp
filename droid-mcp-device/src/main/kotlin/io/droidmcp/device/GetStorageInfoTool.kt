@@ -17,7 +17,7 @@ import java.util.Locale
 class GetStorageInfoTool : McpTool {
 
     override val name = "get_storage_info"
-    override val description = "Get device storage information: total, available, and used space in bytes"
+    override val description = "Get the device's total, free and used internal storage."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

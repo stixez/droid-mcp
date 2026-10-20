@@ -21,7 +21,7 @@ import io.droidmcp.core.ToolResult
 class GetWifiInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_wifi_info"
-    override val description = "Get current WiFi connection information including SSID, signal strength, and IP address. Note: SSID requires location permission on API 26+."
+    override val description = "Get the current WiFi connection: network name (needs location permission), signal strength, link speed, frequency and IP address."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

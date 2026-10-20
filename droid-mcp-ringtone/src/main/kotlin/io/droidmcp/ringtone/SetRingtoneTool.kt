@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class SetRingtoneTool(private val context: Context) : McpTool {
 
     override val name = "set_ringtone"
-    override val description = "Set the default ringtone, notification, or alarm sound. Requires WRITE_SETTINGS permission."
+    override val description = "Change the ringtone, notification or alarm sound to a URI from list_ringtones, or 'silent'. Needs Modify system settings access."
     override val parameters = listOf(
         ToolParameter("uri", "Ringtone URI (from list_ringtones). Pass 'silent' to set to silent.", ParameterType.STRING, required = true),
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),

@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class TapTool(private val context: Context) : McpTool {
 
     override val name = "tap"
-    override val description = "Dispatch a single-tap gesture at the given screen coordinates via the accessibility service. Use when no node matches the selector or for raw coord-based input."
+    override val description = "Tap at screen coordinates. Use only when no element can be matched by text or id; prefer find_and_tap."
     override val parameters = listOf(
         ToolParameter("x", "Screen X coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),
         ToolParameter("y", "Screen Y coordinate in pixels.", ParameterType.NUMBER, required = true, minimum = 0.0),

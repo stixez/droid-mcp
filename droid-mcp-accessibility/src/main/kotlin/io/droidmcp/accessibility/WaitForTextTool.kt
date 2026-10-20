@@ -37,7 +37,7 @@ import kotlinx.coroutines.delay
 class WaitForTextTool(private val context: Context) : McpTool {
 
     override val name = "wait_for_text"
-    override val description = "Block (with timeout) until a text substring appears on screen, or the active window changes. Returns a structured result with status='matched' or status='timeout'. Timeout is NOT an error — branch on status."
+    override val description = "Wait until text appears on screen, or until the foreground window changes. Returns status 'matched' or 'timeout'; a timeout is not an error. Use after an action that loads a new screen."
     override val parameters = listOf(
         ToolParameter("condition", "'text' (default) waits for `text` to appear; 'window_change' waits for the foreground package or root activity to change.", ParameterType.STRING, required = false, enumValues = listOf("text", "window_change")),
         ToolParameter("text", "Substring to wait for (required when condition='text'; matched against text + contentDescription, case-insensitive).", ParameterType.STRING, required = false),

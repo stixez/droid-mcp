@@ -20,7 +20,7 @@ import java.util.*
 class CreateEventTool(private val context: Context) : McpTool {
 
     override val name = "create_event"
-    override val description = "Create a new calendar event with title, date/time, optional location and description"
+    override val description = "Create a calendar event with a title, start and end time, and optional location and description. Returns the new event's id."
     override val parameters = listOf(
         ToolParameter("title", "Event title", ParameterType.STRING, required = true),
         ToolParameter("start", "Start date/time in YYYY-MM-DD HH:mm format", ParameterType.STRING, required = true),

@@ -25,7 +25,7 @@ import io.droidmcp.notification.NotificationStore
 class InvokeNotificationActionTool(private val context: Context) : McpTool {
 
     override val name = "invoke_notification_action"
-    override val description = "Trigger a non-reply action on an active notification (e.g. Mark as read, Snooze, Archive) without writing per-app PendingIntent shims. Provide exactly one of action_label or action_index. Returns the resolved action label on success."
+    override val description = "Press one of a notification's buttons, such as Mark as read, Archive or Snooze, by its label or position."
     override val parameters = listOf(
         ToolParameter("key", "Notification key from list_repliable_notifications or notification-watch event.", ParameterType.STRING, required = true),
         ToolParameter("action_label", "Case-insensitive substring match against the action title.", ParameterType.STRING, required = false),

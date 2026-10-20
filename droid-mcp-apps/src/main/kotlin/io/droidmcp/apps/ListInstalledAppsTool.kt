@@ -21,7 +21,7 @@ import io.droidmcp.core.ToolResult
 class ListInstalledAppsTool(private val context: Context) : McpTool {
 
     override val name = "list_installed_apps"
-    override val description = "List installed apps on the device"
+    override val description = "List installed apps with their names, package names and versions. Use it to find the package name for launch_app or get_app_info."
     override val parameters = listOf(
         ToolParameter("include_system", "Include system apps in results (default: false)", ParameterType.BOOLEAN),
         ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class CancelVibrationTool(private val context: Context) : McpTool {
 
     override val name = "cancel_vibration"
-    override val description = "Stop any ongoing vibration started by this app (e.g. a repeating vibrate_pattern)"
+    override val description = "Stop a vibration this app started, such as a repeating pattern."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

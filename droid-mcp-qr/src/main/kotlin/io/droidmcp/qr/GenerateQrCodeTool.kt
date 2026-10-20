@@ -26,7 +26,7 @@ import java.io.ByteArrayOutputStream
 class GenerateQrCodeTool : McpTool {
 
     override val name = "generate_qr_code"
-    override val description = "Generate a QR code from text, returned as base64-encoded PNG"
+    override val description = "Create a QR code image for some text or a URL, returned as an image."
     override val parameters = listOf(
         ToolParameter("text", "Text content to encode in the QR code", ParameterType.STRING, required = true),
         ToolParameter("size", "Image size in pixels (100-1000, default 300)", ParameterType.INTEGER, required = false, minimum = 100.0, maximum = 1000.0),

@@ -30,7 +30,7 @@ import io.droidmcp.core.ToolResult
 class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
 
     override val name = "capture_screen_quiet"
-    override val description = "Capture the screen via `screencap -p` through the shell backend — no MediaProjection consent prompt, no status-bar indicator. Returns a base64-encoded PNG. Lighter than `take_screenshot_via_a11y` (Accessibility) and distinct from `capture_screen` (MediaProjection)."
+    override val description = "Take a screenshot through the shell and return it as an image, with no consent prompt or indicator. Needs Shizuku or root."
     override val parameters = listOf(
         ToolParameter("display", "Display id to capture (0 = primary, default).", ParameterType.INTEGER, required = false, minimum = 0.0),
     )

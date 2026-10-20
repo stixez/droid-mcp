@@ -22,7 +22,7 @@ import io.droidmcp.core.ToolResult
 class GetDisplayInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_display_info"
-    override val description = "Get display details including resolution, density, refresh rate, and HDR capabilities"
+    override val description = "Get the display's resolution, density, refresh rate and HDR support."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

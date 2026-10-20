@@ -31,7 +31,7 @@ import io.droidmcp.core.ToolResult
 class GetUsbDeviceInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_usb_device_info"
-    override val description = "Get detailed information about a specific connected USB device"
+    override val description = "Get one USB device's full descriptor (interfaces and endpoints) by the name from list_usb_devices."
     override val parameters = listOf(
         ToolParameter("device_name", "Device name from list_usb_devices (e.g. '/dev/bus/usb/001/002')", ParameterType.STRING, required = true),
     )

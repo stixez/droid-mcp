@@ -18,7 +18,7 @@ import io.droidmcp.core.ToolResult
 class GetBatteryInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_battery_info"
-    override val description = "Get battery level, charging status, and charging source"
+    override val description = "Get the battery level (percent), whether it's charging, and the charging source."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

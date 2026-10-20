@@ -27,7 +27,7 @@ import io.droidmcp.core.support.ActivityLaunch
 class CreateTimerTool(private val context: Context) : McpTool {
 
     override val name = "create_timer"
-    override val description = "Create a countdown timer"
+    override val description = "Start a countdown timer in the clock app for a number of seconds, with an optional label."
     override val parameters = listOf(
         ToolParameter("seconds", "Duration of the timer in seconds", ParameterType.INTEGER, required = true, minimum = 1.0),
         ToolParameter("message", "Label/message for the timer", ParameterType.STRING),

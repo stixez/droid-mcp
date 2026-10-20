@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class ListPrintersTool(private val context: Context) : McpTool {
 
     override val name = "list_printers"
-    override val description = "List installed print service plugins and whether printing is available"
+    override val description = "List installed print services and current print jobs."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

@@ -18,7 +18,7 @@ import io.droidmcp.core.ToolResult
 class GetPhoneNumberTool(private val context: Context) : McpTool {
 
     override val name = "get_phone_number"
-    override val description = "Get the phone number of the device"
+    override val description = "Get this phone's own number, when the SIM provides it (many don't)."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

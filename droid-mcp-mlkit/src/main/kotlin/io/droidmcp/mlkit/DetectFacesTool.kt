@@ -30,7 +30,7 @@ import java.io.File
 class DetectFacesTool(private val context: Context) : McpTool {
 
     override val name = "detect_faces"
-    override val description = "Detect faces in an image using ML Kit. Returns bounding boxes and expression probabilities. Does NOT perform identification."
+    override val description = "Find faces in an image file: their positions, smile and eyes-open probabilities, and head angles. Does not recognize who they are."
     override val parameters = listOf(
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
     )

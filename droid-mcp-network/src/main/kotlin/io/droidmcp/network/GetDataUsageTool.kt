@@ -29,7 +29,7 @@ import java.util.Calendar
  */
 class GetDataUsageTool(private val context: Context) : McpTool {
     override val name = "get_data_usage"
-    override val description = "Get mobile (cellular) data usage statistics over a specified time period; falls back to cumulative since-boot totals if usage-access is not granted"
+    override val description = "Get mobile data received and sent over the last `days` days. Without Usage access it reports totals since boot instead, with a note."
     override val parameters = listOf(
         ToolParameter(
             name = "days",

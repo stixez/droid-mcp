@@ -16,7 +16,7 @@ import io.droidmcp.core.*
 class GetActivityInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_activity_info"
-    override val description = "Get basic activity and fitness sensor information for the device. Returns which motion sensors are available (step counter, step detector, accelerometer, etc.) and their specifications. Does not require any permissions."
+    override val description = "List which motion and fitness sensors the device has (step counter, heart rate, accelerometer, …) and their specs."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

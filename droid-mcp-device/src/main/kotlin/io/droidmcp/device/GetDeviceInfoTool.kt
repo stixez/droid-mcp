@@ -15,7 +15,7 @@ import io.droidmcp.core.ToolResult
 class GetDeviceInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_device_info"
-    override val description = "Get device information: model, manufacturer, OS version, screen size"
+    override val description = "Get the phone's manufacturer, model, Android version, SDK level and screen size."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

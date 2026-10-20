@@ -1,0 +1,4 @@
+# Generated API and tool-contract snapshots are compared byte-for-byte by apiCheck and
+# ToolContractTest, so keep them LF on every platform (a CRLF checkout fails both).
+*.api text eol=lf
+droid-mcp-all/api/tool-contract.txt text eol=lf

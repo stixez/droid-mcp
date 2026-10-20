@@ -22,7 +22,7 @@ import io.droidmcp.core.ToolResult
 class GetTopWindowTool(private val shell: ShellBackend) : McpTool {
 
     override val name = "get_top_window"
-    override val description = "Get the current foreground window/activity from `dumpsys window`. Returns package name + activity class. Faster + lighter than accessibility's `get_active_window_info` for callers that just need to know which app is on top."
+    override val description = "Get the foreground app's package and activity. Needs Shizuku or root; without them use get_active_window_info."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

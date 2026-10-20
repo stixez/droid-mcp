@@ -22,7 +22,7 @@ import java.util.*
 class SearchMediaTool(private val context: Context) : McpTool {
 
     override val name = "search_media"
-    override val description = "Search photos and videos by keyword in display name, or by date range. Returns file name, path, date taken, size, mime type, and dimensions."
+    override val description = "Find photos and videos in the gallery by file name or date range, newest first. Returns each item's id (for get_media_metadata), path, date, size and dimensions."
     override val parameters = listOf(
         ToolParameter("query", "Filename keyword to search for (case-insensitive substring). Optional.", ParameterType.STRING),
         ToolParameter("start_date", "Filter by date taken from (YYYY-MM-DD). Optional.", ParameterType.STRING),

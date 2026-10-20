@@ -71,7 +71,7 @@ import kotlin.coroutines.resumeWithException
 class TakePhotoTool(private val context: Context) : McpTool {
 
     override val name = "take_photo"
-    override val description = "Capture a photo using the device camera (headless, no preview required). Saves the full-resolution JPEG to the gallery; with return_data=true also returns a downscaled base64 copy (max_dimension, format, quality)."
+    override val description = "Take a photo with the back camera (no preview) and save it to the gallery. With return_data=true, the photo is also returned as an image so you can look at it."
     override val parameters = listOf(
         ToolParameter("return_data", "Return image as base64 data (downscaled; see max_dimension)", ParameterType.BOOLEAN, required = false),
         ToolParameter("max_dimension", "Longest side in pixels of the returned image (64-4096, default 1280). Only used with return_data.", ParameterType.INTEGER, required = false, minimum = 64.0, maximum = 4096.0),
