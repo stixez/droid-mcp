@@ -25,6 +25,7 @@ import android.provider.MediaStore
 import android.util.Base64
 import android.util.Size
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -78,6 +79,14 @@ class TakePhotoTool(private val context: Context) : McpTool {
         ToolParameter("quality", "JPEG quality 1-100 for the returned image (default 85). Ignored for PNG.", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("file_path", "content:// URI of the saved photo")
+        integer("width")
+        integer("height")
+        string("data_format", "With return_data; the image itself is sent as an image block", optional = true)
+        integer("data_width", optional = true)
+        integer("data_height", optional = true)
+    }
 
     @Suppress("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {

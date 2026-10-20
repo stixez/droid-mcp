@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -27,6 +28,10 @@ class SetBrightnessTool(private val context: Context) : McpTool {
         ToolParameter("level", "Brightness level (0-255)", ParameterType.INTEGER, required = true, minimum = 0.0, maximum = 255.0),
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("brightness")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!Settings.System.canWrite(context)) {

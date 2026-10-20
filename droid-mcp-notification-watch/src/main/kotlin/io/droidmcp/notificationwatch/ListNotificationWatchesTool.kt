@@ -2,6 +2,7 @@ package io.droidmcp.notificationwatch
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -18,6 +19,19 @@ class ListNotificationWatchesTool(private val context: Context) : McpTool {
     override val description = "List currently-active notification watches with TTL countdown. Expired watches are swept before the list is returned."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("count")
+        array("watches") {
+            string("watch_id")
+            string("package_name", nullable = true)
+            string("sender_pattern", nullable = true)
+            string("keyword", nullable = true)
+            boolean("fire_on_update")
+            integer("fired_count")
+            integer("expires_at", "Epoch millis")
+            integer("expires_in_seconds")
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val now = System.currentTimeMillis()

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
+import io.droidmcp.core.ResourceProvider
 
 /**
  * Provider for the calendar tool module. Wires up [ReadCalendarTool], [SearchEventsTool],
@@ -28,6 +29,9 @@ object CalendarTools {
             add(DeleteEventTool(context))
         }
     }
+
+    /** Day agendas as MCP resources; register with `DroidMcp.Builder.addResourceProvider`. */
+    fun resources(context: Context): ResourceProvider = CalendarResourceProvider(context)
 
     /** Permissions needed to register this module at all: `READ_CALENDAR` (write access is gated per tool in [all]). */
     fun requiredPermissions(): List<String> = listOf(

@@ -2,6 +2,9 @@ package io.droidmcp.core.transport
 
 import com.google.common.truth.Truth.assertThat
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.ResourceContents
+import io.droidmcp.core.ResourceProvider
+import io.droidmcp.core.ResourceRegistry
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
@@ -41,10 +44,14 @@ class HttpTransportStreamingTest {
         }
     }
 
+    private val registry = ToolRegistry().apply { register(askTool) }
+    private val resources = ResourceRegistry()
+
     private val transport = HttpTransport(
-        registry = ToolRegistry().apply { register(askTool) },
+        registry = registry,
         port = port,
         bearerToken = token,
+        resources = resources,
     ).also { it.start() }
 
     private val http = HttpClient.newHttpClient()
@@ -162,5 +169,63 @@ class HttpTransportStreamingTest {
         val result = data.next()
         assertThat(result).contains("DECLINE")
         assertThat(result).doesNotContain("hacked")
+    }
+
+    private fun openServerStream(session: String): Iterator<String> {
+        val stream = http.send(
+            HttpRequest.newBuilder(URI("http://127.0.0.1:$port/mcp"))
+                .header("Authorization", "Bearer $token")
+                .header("Accept", "text/event-stream")
+                .header("Mcp-Session-Id", session)
+                .GET().build(),
+            HttpResponse.BodyHandlers.ofLines(),
+        )
+        assertThat(stream.statusCode()).isEqualTo(200)
+        assertThat(stream.headers().firstValue("Content-Type").get()).startsWith("text/event-stream")
+        return stream.body().iterator().asSequence().filter { it.startsWith("data: ") }.map { it.removePrefix("data: ") }.iterator()
+    }
+
+    private fun initSession(): String =
+        http.send(post("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"""), HttpResponse.BodyHandlers.ofString())
+            .headers().firstValue("Mcp-Session-Id").get()
+
+    @Test
+    @Timeout(20, unit = TimeUnit.SECONDS)
+    fun `server stream carries list_changed for tools, resources and gate edits`() {
+        val events = openServerStream(initSession())
+
+        registry.register(object : McpTool {
+            override val name = "late"
+            override val description = "registered after start"
+            override val parameters = emptyList<ToolParameter>()
+            override suspend fun execute(params: Map<String, Any>) = ToolResult.success(emptyMap())
+        })
+        assertThat(events.next()).contains("notifications/tools/list_changed")
+
+        resources.register(object : ResourceProvider {
+            override fun handles(uri: String) = false
+            override suspend fun read(uri: String): List<ResourceContents>? = null
+        })
+        assertThat(events.next()).contains("notifications/resources/list_changed")
+
+        // Provider visibility follows tool visibility, so a tool change now refreshes resources too.
+        registry.setToolEnabled("ask", false)
+        assertThat(events.next()).contains("notifications/tools/list_changed")
+        assertThat(events.next()).contains("notifications/resources/list_changed")
+    }
+
+    @Test
+    @Timeout(20, unit = TimeUnit.SECONDS)
+    fun `deleting the session ends its server stream`() {
+        val session = initSession()
+        val events = openServerStream(session)
+        http.send(
+            HttpRequest.newBuilder(URI("http://127.0.0.1:$port/mcp"))
+                .header("Authorization", "Bearer $token")
+                .header("Mcp-Session-Id", session)
+                .DELETE().build(),
+            HttpResponse.BodyHandlers.discarding(),
+        )
+        assertThat(events.hasNext()).isFalse()
     }
 }

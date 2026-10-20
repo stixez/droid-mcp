@@ -35,6 +35,19 @@ class ReadCalendarTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max number of events to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("events") {
+
+        integer("id")
+        string("title", nullable = true)
+        string("start")
+        string("end", nullable = true)
+        string("location", nullable = true)
+        string("description", nullable = true)
+        boolean("all_day")
+        }
+        integer("count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val startDate = params["start_date"]?.toString()

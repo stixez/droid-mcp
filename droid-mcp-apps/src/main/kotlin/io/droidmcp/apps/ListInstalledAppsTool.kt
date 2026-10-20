@@ -3,6 +3,7 @@ package io.droidmcp.apps
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -26,6 +27,16 @@ class ListInstalledAppsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Maximum number of apps to return (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("apps") {
+            string("app_name")
+            string("package_name")
+            string("version")
+            boolean("is_system_app")
+        }
+        integer("count")
+        boolean("include_system")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val includeSystem = params["include_system"] as? Boolean ?: false

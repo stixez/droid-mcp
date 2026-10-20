@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -29,6 +30,10 @@ class ToggleFlashlightTool(private val context: Context) : McpTool {
         )
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("status", "on or off")
+        boolean("enabled")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val enabled = params["enabled"] as? Boolean

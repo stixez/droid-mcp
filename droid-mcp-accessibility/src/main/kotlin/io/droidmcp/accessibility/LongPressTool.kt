@@ -3,6 +3,7 @@ package io.droidmcp.accessibility
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -30,6 +31,12 @@ class LongPressTool(private val context: Context) : McpTool {
         ToolParameter("duration_ms", "Hold duration in milliseconds (100-5000, default 800).", ParameterType.INTEGER, required = false, minimum = 100.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        number("x")
+        number("y")
+        integer("duration_ms")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val svc = AccessibilityServiceHolder.service

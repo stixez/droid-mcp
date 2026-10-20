@@ -2,6 +2,7 @@ package io.droidmcp.notificationsreply
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -27,6 +28,10 @@ class DismissNotificationTool(private val context: Context) : McpTool {
         ToolParameter("key", "Notification key from list_repliable_notifications.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("key")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (NotificationListenerHolder.componentName == null) {

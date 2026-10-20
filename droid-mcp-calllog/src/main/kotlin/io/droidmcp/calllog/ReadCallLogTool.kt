@@ -24,6 +24,19 @@ class ReadCallLogTool(private val context: Context) : McpTool {
         ToolParameter("offset", "Number of calls to skip for pagination. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("calls") {
+
+        integer("id")
+        string("number", nullable = true)
+        string("name", nullable = true)
+        string("type")
+        string("date")
+        integer("duration_seconds")
+        }
+        integer("count")
+        string("filter")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!CallLogTools.hasPermissions(context)) {

@@ -6,6 +6,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -34,6 +35,22 @@ class DetectFacesTool(private val context: Context) : McpTool {
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("face_count")
+        array("faces") {
+            obj("bounding_box") {
+                integer("left")
+                integer("top")
+                integer("right")
+                integer("bottom")
+            }
+            number("smiling_probability", nullable = true)
+            number("left_eye_open_probability", nullable = true)
+            number("right_eye_open_probability", nullable = true)
+            number("head_euler_angle_y")
+            number("head_euler_angle_z")
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()

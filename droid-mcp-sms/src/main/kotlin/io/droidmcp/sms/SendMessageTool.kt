@@ -51,6 +51,14 @@ class SendMessageTool(private val context: Context) : McpTool {
         ToolParameter("body", "Message text", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("sent", "Whether the radio confirmed every part")
+        string("to")
+        integer("body_length")
+        integer("parts")
+        string("status", "sent or timeout")
+        string("error", "Present when status is timeout", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val to = params["to"]?.toString()

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -37,6 +38,14 @@ class CheckBiometricAvailabilityTool(private val context: Context) : McpTool {
     override val description = "Check which authenticator classes are available: strong (Class 3) biometric, weak (Class 2) biometric, and device credential (PIN/pattern/password)"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("can_authenticate")
+        string("hardware_type")
+        boolean("strong_available")
+        boolean("weak_available")
+        boolean("device_credential_available")
+        string("biometric_status")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val biometricManager = BiometricManager.from(context)

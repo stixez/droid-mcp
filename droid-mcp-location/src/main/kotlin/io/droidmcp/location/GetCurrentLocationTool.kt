@@ -37,6 +37,16 @@ class GetCurrentLocationTool(private val context: Context) : McpTool {
         ToolParameter("accuracy", "Location accuracy preference: 'fine' (GPS) or 'coarse' (network). Default: 'coarse'", ParameterType.STRING, enumValues = listOf("fine", "coarse")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        number("latitude")
+        number("longitude")
+        number("accuracy_meters")
+        number("altitude", nullable = true)
+        number("speed_mps", nullable = true)
+        string("timestamp")
+        string("provider", nullable = true)
+        string("source", "cache or fresh")
+    }
 
     @SuppressLint("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult {

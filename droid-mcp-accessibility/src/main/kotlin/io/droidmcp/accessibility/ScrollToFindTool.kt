@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -53,6 +54,11 @@ class ScrollToFindTool(private val context: Context) : McpTool {
         ToolParameter("max_scrolls", "Max scroll iterations (1-20, default 5).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 20.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("found")
+        integer("scrolls")
+        obj("node") { nodeFields() }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val svc = AccessibilityServiceHolder.service

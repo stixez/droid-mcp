@@ -23,6 +23,19 @@ class SearchCallLogTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("query")
+        array("calls") {
+
+        integer("id")
+        string("number", nullable = true)
+        string("name", nullable = true)
+        string("type")
+        string("date")
+        integer("duration_seconds")
+        }
+        integer("count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!CallLogTools.hasPermissions(context)) {

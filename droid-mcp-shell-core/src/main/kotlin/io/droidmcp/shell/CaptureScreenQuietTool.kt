@@ -2,6 +2,7 @@ package io.droidmcp.shell
 
 import android.util.Base64
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -34,6 +35,10 @@ class CaptureScreenQuietTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("display", "Display id to capture (0 = primary, default).", ParameterType.INTEGER, required = false, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("format")
+        integer("size_bytes")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val display = (params["display"] as? Number)?.toInt() ?: 0

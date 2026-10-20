@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -46,6 +47,14 @@ class UpdateEventTool(private val context: Context) : McpTool {
         ToolParameter("all_day", "Make the event all-day (true) or timed (false). Changing it requires both start and end.", ParameterType.BOOLEAN),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("event_id")
+        arrayOf("updated_fields", OutputSchema.string())
+        string("title", nullable = true)
+        string("start")
+        string("end", nullable = true)
+        boolean("all_day")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val eventId = CalendarUtils.parseId(params["event_id"])

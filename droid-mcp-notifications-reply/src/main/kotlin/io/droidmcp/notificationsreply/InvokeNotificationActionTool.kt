@@ -3,6 +3,7 @@ package io.droidmcp.notificationsreply
 import android.app.PendingIntent
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -31,6 +32,12 @@ class InvokeNotificationActionTool(private val context: Context) : McpTool {
         ToolParameter("action_index", "Zero-indexed action position.", ParameterType.INTEGER, required = false, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("key")
+        string("action_label", nullable = true)
+        string("package_name")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (NotificationListenerHolder.componentName == null) {

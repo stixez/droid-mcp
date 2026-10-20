@@ -6,6 +6,8 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DROID_MCP_VERSION
+import io.droidmcp.core.PromptRegistry
+import io.droidmcp.core.ResourceRegistry
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.protocol.McpOutbound
 import io.droidmcp.core.protocol.McpProtocolImpl
@@ -22,8 +24,11 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readBuffer
 import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
@@ -32,10 +37,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import java.util.Collections
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Ktor/Netty MCP server for desktop clients, speaking the Streamable HTTP transport. Exposes the
- * JSON-RPC surface at `POST /mcp` (plus `DELETE /mcp` to end a session and a `/health` probe),
+ * JSON-RPC surface at `POST /mcp` (plus `GET /mcp` for the server stream, `DELETE /mcp` to end a
+ * session, and a `/health` probe),
  * enforces bearer auth via a [TokenStore] when [requireAuth] is set, optionally terminates TLS,
  * and advertises itself over mDNS (`_mcp._tcp`). Prefer building one through
  * [DroidMcp.Builder.enableHttpServer][io.droidmcp.core.DroidMcp.Builder.enableHttpServer]
@@ -51,8 +58,10 @@ import java.util.UUID
  *   (400 when missing, 404 when unknown or owned by another client).
  *
  * A `tools/call` that reports progress or asks for elicitation answers with an SSE stream (when the
- * client accepts `text/event-stream`); every other reply is plain JSON. There is no standalone
- * server stream, so `GET /mcp` answers 405 as the spec allows.
+ * client accepts `text/event-stream`); every other reply is plain JSON. `GET /mcp` opens the
+ * session's standalone SSE stream (one per session; a new one replaces the old), which carries
+ * `notifications/{tools,resources,prompts}/list_changed` whenever [registry], [resources] or
+ * [prompts] change, plus a keep-alive comment every [KEEPALIVE_MS] ms.
  *
  * @param registry Tools to serve.
  * @param port Plaintext port; overridden by [TlsConfig.httpsPort] when [tls] is set.
@@ -66,6 +75,8 @@ import java.util.UUID
  * @param auditSink Optional per-call audit hook.
  * @param tls TLS material; when set the server binds HTTPS and exposes [tlsFingerprint].
  * @param allowedOrigins Exact `Origin` values (scheme://host[:port]) permitted to call the server.
+ * @param resources Resource providers served by the `resources/...` methods.
+ * @param prompts Prompts served by the `prompts/...` methods.
  */
 class HttpTransport(
     private val registry: ToolRegistry,
@@ -78,6 +89,8 @@ class HttpTransport(
     auditSink: AuditSink? = null,
     private val tls: TlsConfig? = null,
     private val allowedOrigins: Set<String> = emptySet(),
+    private val resources: ResourceRegistry = ResourceRegistry(),
+    private val prompts: PromptRegistry = PromptRegistry(),
 ) {
     init {
         require(bearerToken == null || bearerToken.length >= MIN_TOKEN_LENGTH) {
@@ -115,7 +128,34 @@ class HttpTransport(
 
     @Volatile private var server: EmbeddedServer<*, *>? = null
     @Volatile private var nsdRegistration: NsdManager.RegistrationListener? = null
-    private val protocol = McpProtocolImpl(registry, readOnly = readOnly, auditSink = auditSink)
+    private val protocol = McpProtocolImpl(
+        registry,
+        readOnly = readOnly,
+        auditSink = auditSink,
+        resources = resources,
+        prompts = prompts,
+        notifiesListChanged = true,
+    )
+
+    /** Open `GET /mcp` streams, by session id. */
+    private val streams = ConcurrentHashMap<String, Channel<String>>()
+
+    // Prompts and resource providers are visible only while their required tools are, so a tool
+    // change can change those lists too.
+    private val toolsChanged = {
+        broadcast(protocol.listChangedNotification(McpProtocolImpl.ListKind.TOOLS))
+        if (resources.providers().isNotEmpty()) broadcast(protocol.listChangedNotification(McpProtocolImpl.ListKind.RESOURCES))
+        if (prompts.listPrompts().isNotEmpty()) broadcast(protocol.listChangedNotification(McpProtocolImpl.ListKind.PROMPTS))
+    }
+    private val resourcesChanged = { broadcast(protocol.listChangedNotification(McpProtocolImpl.ListKind.RESOURCES)) }
+    private val promptsChanged = { broadcast(protocol.listChangedNotification(McpProtocolImpl.ListKind.PROMPTS)) }
+
+    init {
+        // For the transport's lifetime; with no open stream a change is simply not sent.
+        registry.addChangeListener(toolsChanged)
+        resources.addChangeListener(resourcesChanged)
+        prompts.addChangeListener(promptsChanged)
+    }
 
     /**
      * Session id -> label of the client that created it (LRU-bounded). An evicted session is
@@ -125,7 +165,7 @@ class HttpTransport(
         object : LinkedHashMap<String, String>(16, 0.75f, true) {
             override fun removeEldestEntry(eldest: Map.Entry<String, String>?): Boolean {
                 val evict = size > MAX_SESSIONS
-                if (evict && eldest != null) protocol.endSession(eldest.key)
+                if (evict && eldest != null) endSession(eldest.key)
                 return evict
             }
         }
@@ -158,6 +198,17 @@ class HttpTransport(
             module = { installMcpModule() },
         ).start(wait = false)
         registerNsd()
+    }
+
+    /** Push [message] to every open session stream. Never blocks: a full stream drops its oldest message. */
+    private fun broadcast(message: String) {
+        streams.values.forEach { it.trySend(message) }
+    }
+
+    /** End [sessionId] in the protocol and close its server stream, if open. */
+    private fun endSession(sessionId: String) {
+        protocol.endSession(sessionId)
+        streams.remove(sessionId)?.close()
     }
 
     /** Installs the `/mcp` and `/health` routes; `internal` so tests can mount it in `testApplication`. */
@@ -211,12 +262,58 @@ class HttpTransport(
                     }
                 }
 
-                // Server messages only ever travel on a tools/call's own response stream, so there is
-                // no standalone GET stream to open.
+                // The session's standalone server stream: list_changed notifications and keep-alives.
                 get {
-                    if (!checkOrigin(call)) return@get
-                    call.response.header(HttpHeaders.Allow, "POST, DELETE")
-                    call.respond(HttpStatusCode.MethodNotAllowed)
+                    if (!checkOrigin(call) || !checkProtocolVersion(call)) return@get
+                    val clientLabel = authenticate(call) ?: return@get
+                    if (!acceptsEventStream(call)) {
+                        call.respond(HttpStatusCode.NotAcceptable, """{"error":"Accept must include text/event-stream"}""")
+                        return@get
+                    }
+                    val sessionId = call.request.header(SESSION_HEADER)
+                    if (sessionId == null) {
+                        call.respond(HttpStatusCode.BadRequest, """{"error":"Missing Mcp-Session-Id header"}""")
+                        return@get
+                    }
+                    if (sessions[sessionId] != clientLabel) {
+                        call.respond(HttpStatusCode.NotFound, """{"error":"Unknown session"}""")
+                        return@get
+                    }
+                    val channel = Channel<String>(STREAM_BUFFER, BufferOverflow.DROP_OLDEST)
+                    streams.put(sessionId, channel)?.close()
+                    // A DELETE or eviction may have ended the session between the check above and
+                    // the put; its streams.remove ran before ours existed, so close it here.
+                    if (sessions[sessionId] != clientLabel) {
+                        streams.remove(sessionId, channel)
+                        channel.close()
+                        call.respond(HttpStatusCode.NotFound, """{"error":"Unknown session"}""")
+                        return@get
+                    }
+                    try {
+                        call.response.header(HttpHeaders.CacheControl, "no-cache")
+                        call.respondBytesWriter(ContentType.Text.EventStream) {
+                            // A comment first, so the client sees the stream open straight away.
+                            writeStringUtf8(": connected\n\n")
+                            flush()
+                            while (true) {
+                                // select, not withTimeoutOrNull around a receive: cancelling a
+                                // receive that already took an element would drop that message.
+                                @OptIn(ExperimentalCoroutinesApi::class)
+                                val next = select {
+                                    channel.onReceiveCatching { it }
+                                    onTimeout(KEEPALIVE_MS) { null }
+                                }
+                                if (next == null) {
+                                    writeStringUtf8(": keepalive\n\n")
+                                    flush()
+                                    continue
+                                }
+                                writeSseEvent(next.getOrNull() ?: break)
+                            }
+                        }
+                    } finally {
+                        streams.remove(sessionId, channel)
+                    }
                 }
 
                 delete {
@@ -227,7 +324,7 @@ class HttpTransport(
                     val removed = sessionId != null && synchronized(sessions) {
                         if (sessions[sessionId] == clientLabel) sessions.remove(sessionId) != null else false
                     }
-                    if (removed) protocol.endSession(sessionId)
+                    if (removed) endSession(sessionId)
                     call.respond(if (removed) HttpStatusCode.OK else HttpStatusCode.NotFound)
                 }
             }
@@ -357,10 +454,15 @@ class HttpTransport(
     @Synchronized
     fun stop() {
         unregisterNsd()
+        // Close open server streams first so their responses finish instead of holding the
+        // engine's grace period open.
+        streams.values.forEach { it.close() }
         server?.stop(1000, 2000)
         server = null
+        // Only now, with no request left in flight, so an initialize served during the grace
+        // period can't register a session that outlives stop().
         synchronized(sessions) {
-            sessions.keys.forEach(protocol::endSession)
+            sessions.keys.forEach(::endSession)
             sessions.clear()
         }
     }
@@ -414,6 +516,10 @@ class HttpTransport(
         private const val BEARER_PREFIX = "Bearer "
         private const val SESSION_HEADER = "Mcp-Session-Id"
         private const val PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version"
+        /** Messages a slow `GET /mcp` reader can fall behind by before the oldest are dropped. */
+        private const val STREAM_BUFFER = 64
+        /** Interval between keep-alive comments on an idle `GET /mcp` stream. */
+        const val KEEPALIVE_MS: Long = 25_000
         /** Largest accepted `POST /mcp` body, in bytes. */
         const val MAX_BODY_BYTES: Int = 4 * 1024 * 1024
         /** Minimum length for a caller-supplied bearer token. */

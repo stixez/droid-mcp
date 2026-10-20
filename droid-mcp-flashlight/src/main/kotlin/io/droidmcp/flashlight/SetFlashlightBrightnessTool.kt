@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -39,6 +40,13 @@ class SetFlashlightBrightnessTool(private val context: Context) : McpTool {
         )
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("level")
+        string("status", "on or off")
+        integer("strength_level")
+        integer("max_strength_level")
+        boolean("variable_brightness_supported")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {

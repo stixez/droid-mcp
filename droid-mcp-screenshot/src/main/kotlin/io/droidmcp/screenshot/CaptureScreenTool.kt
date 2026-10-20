@@ -14,6 +14,7 @@ import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.view.Display
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -57,6 +58,16 @@ class CaptureScreenTool(private val context: Context) : McpTool {
         ToolParameter("format", "Image format: 'png' (default) or 'jpeg'", ParameterType.STRING, enumValues = listOf("png", "jpeg")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("path")
+        string("uri")
+        string("saved_to", "gallery or cache")
+        integer("width")
+        integer("height")
+        string("format")
+        integer("size_bytes")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (MediaProjectionHolder.projection == null) {

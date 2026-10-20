@@ -3,6 +3,7 @@ package io.droidmcp.intent
 import android.content.Context
 import android.content.Intent
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -25,6 +26,11 @@ class ShareContentTool(private val context: Context) : McpTool {
         ToolParameter("type", "MIME type (default: 'text/plain')", ParameterType.STRING),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("text_length")
+        string("type")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

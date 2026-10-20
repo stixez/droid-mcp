@@ -3,6 +3,7 @@ package io.droidmcp.playback
 import android.content.Context
 import android.media.session.MediaSessionManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -29,6 +30,11 @@ class MediaControlTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Target a specific app's media session by package name", ParameterType.STRING),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("command")
+        string("target_package")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val command = params["command"]?.toString()?.trim()?.lowercase()

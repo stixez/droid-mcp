@@ -33,6 +33,11 @@ class GetStepCountTool(private val context: Context) : McpTool {
     """.trimIndent()
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("steps_since_reboot")
+        string("timestamp")
+        string("note")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!HealthTools.hasPermissions(context)) {

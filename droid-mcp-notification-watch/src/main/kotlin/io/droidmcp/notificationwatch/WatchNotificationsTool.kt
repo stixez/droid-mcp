@@ -2,6 +2,7 @@ package io.droidmcp.notificationwatch
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -35,6 +36,12 @@ class WatchNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("fire_on_update", "When true, fire again on every update of the same notification key. Default false.", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations()
+    override val outputSchema = OutputSchema.obj {
+        string("watch_id")
+        integer("expires_at", "Epoch millis")
+        integer("ttl_seconds")
+        boolean("fire_on_update")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (NotificationListenerHolder.componentName == null) {

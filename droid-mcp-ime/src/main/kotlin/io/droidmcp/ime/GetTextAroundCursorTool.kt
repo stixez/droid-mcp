@@ -3,6 +3,7 @@ package io.droidmcp.ime
 import android.content.Context
 import android.text.InputType
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -28,6 +29,10 @@ class GetTextAroundCursorTool(private val context: Context) : McpTool {
         ToolParameter("after", "Max characters after the cursor (1-2000, default 200).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("before")
+        string("after")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val ic = InputMethodServiceHolder.service?.connection()

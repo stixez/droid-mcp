@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -31,6 +32,11 @@ class OpenDeepLinkTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Optional: force open in a specific app", ParameterType.STRING),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("uri")
+        string("package", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val uri = params["uri"]?.toString()

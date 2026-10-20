@@ -31,6 +31,23 @@ class GetMediaMetadataTool(private val context: Context) : McpTool {
         ToolParameter("media_type", "Type of media: 'image' or 'video'. Default: 'image'", ParameterType.STRING, enumValues = listOf("image", "video")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("id")
+        string("name", nullable = true)
+        string("path", nullable = true)
+        string("date_taken", nullable = true)
+        string("date_modified", nullable = true)
+        integer("size_bytes")
+        string("mime_type", nullable = true)
+        integer("width")
+        integer("height")
+        string("media_type", "image or video")
+        number("duration_seconds", "Videos only", nullable = true, optional = true)
+        string("resolution", "Videos only", nullable = true, optional = true)
+        number("latitude", "Images below Android 10 only", nullable = true, optional = true)
+        number("longitude", "Images below Android 10 only", nullable = true, optional = true)
+        string("description", "Images only", nullable = true, optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val mediaId = (params["media_id"] as? Number)?.toLong()

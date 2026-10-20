@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -30,6 +31,10 @@ class InstallApkTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("replace", "Replace an existing install (default true). Maps to `pm install -r`.", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("path")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()?.takeIf { it.isNotBlank() }
@@ -84,6 +89,10 @@ class UninstallAppTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("keep_data", "Keep application data on uninstall (`pm uninstall -k`, default false).", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -122,6 +131,10 @@ class ClearAppDataTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -154,6 +167,10 @@ class ForceStopAppTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -189,6 +206,11 @@ class DisableAppTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        string("state", "enabled or disabled")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -221,6 +243,11 @@ class EnableAppTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        string("state", "enabled or disabled")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())

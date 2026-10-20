@@ -4,13 +4,21 @@ import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DROID_MCP_VERSION
 import io.droidmcp.core.ElicitationResult
 import io.droidmcp.core.ElicitationSink
+import io.droidmcp.core.McpPrompt
+import io.droidmcp.core.McpResource
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.ProgressSink
 import io.droidmcp.core.ProgressUpdate
+import io.droidmcp.core.PromptRegistry
+import io.droidmcp.core.ResourceContents
+import io.droidmcp.core.ResourceProvider
+import io.droidmcp.core.ResourceRegistry
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolCallAudit
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.missingArguments
+import io.droidmcp.core.runProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -18,6 +26,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
@@ -26,7 +35,8 @@ import kotlinx.serialization.json.*
 
 /**
  * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
- * Services `initialize`, `tools/list`, `tools/call` and `ping`. Messages without an `id` are
+ * Services `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/templates/list`,
+ * `resources/read`, `prompts/list`, `prompts/get` and `ping`. Messages without an `id` are
  * notifications: they are accepted silently and never answered (the transport replies 202).
  * `notifications/cancelled` cancels the caller's own in-flight `tools/call` with that
  * `requestId`; the cancelled request then gets no response.
@@ -42,13 +52,21 @@ import kotlinx.serialization.json.*
  *
  * Honours [readOnly] mode (filters `tools/list` to read-only tools and rejects mutating
  * `tools/call`s with an `isError` content payload) and emits a [ToolCallAudit] to [auditSink]
- * after every call — a failing sink is swallowed so it can never break a tool call.
+ * after every call and every `resources/read` (tool name `resources/read`) — a failing sink is
+ * swallowed so it can never break a call. A resource provider is visible only while its
+ * [ResourceProvider.requiredTools][io.droidmcp.core.ResourceProvider.requiredTools] are, so tool
+ * gating and read-only mode apply to the same data served as resources.
  *
  * @property registry Source of registered tools and the executor for `tools/call`.
  * @property serverName Server name reported in the `initialize` handshake.
  * @property serverVersion Server version reported in `initialize`; defaults to [DROID_MCP_VERSION].
  * @property readOnly When true, only [ToolAnnotations.readOnlyHint] tools are visible/callable.
  * @property auditSink Optional hook invoked once per `tools/call` with timing and outcome; null disables auditing.
+ * @property resources Resource providers served by the `resources/...` methods.
+ * @property prompts Prompts served by the `prompts/...` methods; a prompt is listed only while its
+ *   [McpPrompt.requiredTools] are all visible.
+ * @property notifiesListChanged Whether the transport delivers `notifications/…/list_changed`
+ *   (advertised as `listChanged` in the `initialize` capabilities).
  */
 class McpProtocolImpl(
     private val registry: ToolRegistry,
@@ -56,6 +74,9 @@ class McpProtocolImpl(
     private val serverVersion: String = DROID_MCP_VERSION,
     private val readOnly: Boolean = false,
     private val auditSink: AuditSink? = null,
+    private val resources: ResourceRegistry = ResourceRegistry(),
+    private val prompts: PromptRegistry = PromptRegistry(),
+    private val notifiesListChanged: Boolean = false,
 ) : McpProtocol {
 
     private fun visibleTools(): List<McpTool> =
@@ -165,6 +186,11 @@ class McpProtocolImpl(
                 "initialize" -> handleInitialize(id, params, sessionId)
                 "tools/list" -> handleToolsList(id)
                 "tools/call" -> handleToolsCall(id, params, clientLabel, sessionId, outbound)
+                "resources/list" -> handleResourcesList(id, params, sessionId ?: clientLabel)
+                "resources/templates/list" -> handleResourceTemplatesList(id)
+                "resources/read" -> handleResourcesRead(id, params, clientLabel)
+                "prompts/list" -> handlePromptsList(id)
+                "prompts/get" -> handlePromptsGet(id, params)
                 "ping" -> jsonRpcResponse(id, JsonObject(emptyMap()))
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
             }
@@ -172,6 +198,8 @@ class McpProtocolImpl(
             throw e
         } catch (e: InvalidParamsException) {
             jsonRpcError(id, -32602, "Invalid params: ${e.message}")
+        } catch (e: ResourceNotFoundException) {
+            jsonRpcError(id, RESOURCE_NOT_FOUND, "Resource not found", buildJsonObject { put("uri", e.uri) })
         } catch (_: Exception) {
             jsonRpcError(id, -32603, "Internal error")
         }
@@ -194,9 +222,12 @@ class McpProtocolImpl(
         val result = buildJsonObject {
             put("protocolVersion", negotiated)
             putJsonObject("capabilities") {
-                putJsonObject("tools") {
-                    put("listChanged", false)
+                putJsonObject("tools") { put("listChanged", notifiesListChanged) }
+                putJsonObject("resources") {
+                    put("subscribe", false)
+                    put("listChanged", notifiesListChanged)
                 }
+                putJsonObject("prompts") { put("listChanged", notifiesListChanged) }
             }
             putJsonObject("serverInfo") {
                 put("name", serverName)
@@ -222,6 +253,197 @@ class McpProtocolImpl(
         }
         return jsonRpcResponse(id, result)
     }
+
+    private fun visibleToolNames(): Set<String> = visibleTools().mapTo(HashSet()) { it.name }
+
+    /**
+     * Listings that span several pages, keyed by `<owner>|<snapshot id>`, so later pages come from
+     * the same listing instead of re-querying every provider (and can't shift between pages). The
+     * owner (session, else client) scopes a cursor to whoever got it. Each page drops entries whose
+     * provider has since been hidden, so gating applies mid-pagination. LRU-bounded; an evicted
+     * snapshot falls back to a fresh listing.
+     */
+    private val listSnapshots: MutableMap<String, List<Pair<ResourceProvider, McpResource>>> = Collections.synchronizedMap(
+        object : LinkedHashMap<String, List<Pair<ResourceProvider, McpResource>>>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: Map.Entry<String, List<Pair<ResourceProvider, McpResource>>>?) =
+                size > MAX_LIST_SNAPSHOTS
+        }
+    )
+
+    private suspend fun handleResourcesList(id: JsonElement?, params: JsonObject, owner: String?): String {
+        val (snapshotId, offset) = parseCursor(params)
+        val visibleTools = visibleToolNames()
+        val snapshot = snapshotId?.let { listSnapshots["$owner|$it"] }
+        val listing = snapshot ?: resources.listVisible(visibleTools, registry.toolTimeoutMs)
+        if (offset > listing.size) throw InvalidParamsException("cursor is out of range")
+        val more = offset + PAGE_SIZE < listing.size
+        val nextId = when {
+            !more -> null
+            snapshot != null -> snapshotId
+            else -> UUID.randomUUID().toString().also { listSnapshots["$owner|$it"] = listing }
+        }
+        val stillVisible = resources.visibleProviders(visibleTools).toSet()
+        val page = listing.subList(offset, minOf(offset + PAGE_SIZE, listing.size))
+            .filter { (provider, _) -> provider in stillVisible }
+            .map { it.second }
+        return jsonRpcResponse(id, buildJsonObject {
+            putJsonArray("resources") {
+                page.forEach { r ->
+                    addJsonObject {
+                        put("uri", r.uri)
+                        put("name", r.name)
+                        r.title?.let { put("title", it) }
+                        r.description?.let { put("description", it) }
+                        r.mimeType?.let { put("mimeType", it) }
+                        r.size?.let { put("size", it) }
+                    }
+                }
+            }
+            if (nextId != null) put("nextCursor", "$nextId:${offset + PAGE_SIZE}")
+        })
+    }
+
+    private fun handleResourceTemplatesList(id: JsonElement?): String =
+        jsonRpcResponse(id, buildJsonObject {
+            putJsonArray("resourceTemplates") {
+                resources.visibleProviders(visibleToolNames()).flatMap { it.templates }.forEach { t ->
+                    addJsonObject {
+                        put("uriTemplate", t.uriTemplate)
+                        put("name", t.name)
+                        t.title?.let { put("title", it) }
+                        t.description?.let { put("description", it) }
+                        t.mimeType?.let { put("mimeType", it) }
+                    }
+                }
+            }
+        })
+
+    private suspend fun handleResourcesRead(id: JsonElement?, params: JsonObject, clientLabel: String?): String {
+        val uri = (params["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: throw InvalidParamsException("missing or non-string uri")
+        val startedAt = System.nanoTime()
+        val argumentsJson = buildJsonObject { put("uri", uri) }.toString()
+        fun audit(result: ToolResult) =
+            recordAudit(RESOURCES_READ, clientLabel, argumentsJson, result, (System.nanoTime() - startedAt) / 1_000_000)
+
+        val provider = resources.providerFor(uri, visibleToolNames())
+        // The same data through a tool would go through the host's confirmer, so a read does too.
+        provider?.let { registry.confirmAccess(it.requiredTools, mapOf("uri" to uri), clientLabel) }?.let { declined ->
+            audit(declined)
+            return jsonRpcError(id, REQUEST_DECLINED, declined.errorMessage ?: "Resource read declined")
+        }
+        val outcome = provider?.let { onIo { it.read(uri) } }
+        if (provider != null && outcome == null) {
+            audit(ToolResult.error("resource_timeout", uri))
+            return jsonRpcError(id, -32603, "Resource read timed out")
+        }
+        // A provider that throws broke its contract; treat it like an unreadable resource.
+        val contents = outcome?.getOrNull()?.takeIf { it.isNotEmpty() }
+        if (contents == null) {
+            audit(ToolResult.error("resource_not_found", uri))
+            throw ResourceNotFoundException(uri)
+        }
+        audit(ToolResult.success(mapOf("uri" to uri)))
+        return jsonRpcResponse(id, buildJsonObject {
+            putJsonArray("contents") {
+                contents.forEach { c ->
+                    addJsonObject {
+                        put("uri", c.uri)
+                        c.mimeType?.let { put("mimeType", it) }
+                        when (c) {
+                            is ResourceContents.Text -> put("text", c.text)
+                            is ResourceContents.Blob -> put("blob", c.base64)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun visiblePrompts(): List<McpPrompt> = prompts.visiblePrompts(visibleToolNames())
+
+    private fun handlePromptsList(id: JsonElement?): String =
+        jsonRpcResponse(id, buildJsonObject {
+            putJsonArray("prompts") {
+                visiblePrompts().forEach { prompt ->
+                    addJsonObject {
+                        put("name", prompt.name)
+                        prompt.title?.let { put("title", it) }
+                        put("description", prompt.description)
+                        putJsonArray("arguments") {
+                            prompt.arguments.forEach { arg ->
+                                addJsonObject {
+                                    put("name", arg.name)
+                                    put("description", arg.description)
+                                    put("required", arg.required)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+    private suspend fun handlePromptsGet(id: JsonElement?, params: JsonObject): String {
+        val name = (params["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: throw InvalidParamsException("missing or non-string prompt name")
+        val prompt = visiblePrompts().firstOrNull { it.name == name }
+            ?: throw InvalidParamsException("unknown prompt '$name'")
+        val arguments = when (val raw = params["arguments"]) {
+            null, is JsonNull -> emptyMap()
+            is JsonObject -> raw.mapValues { (key, value) ->
+                (value as? JsonPrimitive)?.takeIf { it.isString }?.content
+                    ?: throw InvalidParamsException("argument '$key' must be a string")
+            }
+            else -> throw InvalidParamsException("arguments must be an object")
+        }
+        val missing = prompt.missingArguments(arguments)
+        if (missing.isNotEmpty()) throw InvalidParamsException("missing required argument(s): ${missing.joinToString()}")
+        val result = try {
+            prompt.render(arguments)
+        } catch (e: IllegalArgumentException) {
+            throw InvalidParamsException(e.message ?: "invalid arguments")
+        }
+        return jsonRpcResponse(id, buildJsonObject {
+            result.description?.let { put("description", it) }
+            putJsonArray("messages") {
+                result.messages.forEach { message ->
+                    addJsonObject {
+                        put("role", message.role.wireName)
+                        putJsonObject("content") {
+                            put("type", "text")
+                            put("text", message.text)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    /** Pagination cursor `<snapshot id>:<offset>`, opaque to clients; no cursor is the first page. */
+    private fun parseCursor(params: JsonObject): Pair<String?, Int> {
+        val cursor = params["cursor"]
+        if (cursor == null || cursor is JsonNull) return null to 0
+        val raw = (cursor as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: throw InvalidParamsException("invalid cursor")
+        val id = raw.substringBeforeLast(':', "").takeIf { it.isNotEmpty() }
+        val offset = raw.substringAfterLast(':').toIntOrNull()?.takeIf { it >= 0 }
+            ?: throw InvalidParamsException("invalid cursor")
+        return id to offset
+    }
+
+    /** Provider code, bounded like a tool call; see [runProvider]. */
+    private suspend fun <T> onIo(block: suspend () -> T): Result<T>? = runProvider(registry.toolTimeoutMs, block)
+
+    /** A `notifications/<kind>/list_changed` message for the transport to push. */
+    internal fun listChangedNotification(kind: ListKind): String =
+        Json.encodeToString(JsonObject.serializer(), buildJsonObject {
+            put("jsonrpc", "2.0")
+            put("method", "notifications/${kind.wireName}/list_changed")
+        })
+
+    /** Which catalogue changed, for [listChangedNotification]. */
+    internal enum class ListKind(val wireName: String) { TOOLS("tools"), RESOURCES("resources"), PROMPTS("prompts") }
 
     private suspend fun handleToolsCall(
         id: JsonElement?,
@@ -417,13 +639,14 @@ class McpProtocolImpl(
             put("result", result)
         })
 
-    private fun jsonRpcError(id: JsonElement?, code: Int, message: String): String =
+    private fun jsonRpcError(id: JsonElement?, code: Int, message: String, data: JsonElement? = null): String =
         Json.encodeToString(JsonObject.serializer(), buildJsonObject {
             put("jsonrpc", "2.0")
             put("id", id ?: JsonNull)
             putJsonObject("error") {
                 put("code", code)
                 put("message", message)
+                data?.let { put("data", it) }
             }
         })
 
@@ -454,6 +677,9 @@ class McpProtocolImpl(
     /** Thrown by handlers for structurally bad params; mapped to a `-32602` with the request id. */
     private class InvalidParamsException(message: String) : Exception(message)
 
+    /** Thrown when no provider can read a URI; mapped to MCP's `-32002` with the uri in `data`. */
+    private class ResourceNotFoundException(val uri: String) : Exception("Resource not found: $uri")
+
     companion object {
         /**
          * MCP protocol revisions this server speaks, newest first. `initialize` echoes the
@@ -462,5 +688,20 @@ class McpProtocolImpl(
          */
         val SUPPORTED_PROTOCOL_VERSIONS: List<String> =
             listOf("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
+
+        /** Audit tool name recorded for `resources/read`. */
+        const val RESOURCES_READ = "resources/read"
+
+        /** Server-defined JSON-RPC code for a read the host's confirmer declined. */
+        private const val REQUEST_DECLINED = -32001
+
+        /** Multi-page `resources/list` snapshots kept for follow-up pages. */
+        private const val MAX_LIST_SNAPSHOTS = 16
+
+        /** MCP's error code for `resources/read` on an unknown URI. */
+        private const val RESOURCE_NOT_FOUND = -32002
+
+        /** Items per `resources/list` page. */
+        private const val PAGE_SIZE = 100
     }
 }

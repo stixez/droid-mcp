@@ -18,11 +18,21 @@ public final class io/droidmcp/media/ListAlbumsTool : io/droidmcp/core/McpTool {
 	public fun getParameters ()Ljava/util/List;
 }
 
+public final class io/droidmcp/media/MediaResourceProvider : io/droidmcp/core/ResourceProvider {
+	public fun <init> (Landroid/content/Context;)V
+	public fun getRequiredTools ()Ljava/util/Set;
+	public fun getTemplates ()Ljava/util/List;
+	public fun handles (Ljava/lang/String;)Z
+	public fun list (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun read (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class io/droidmcp/media/MediaTools {
 	public static final field INSTANCE Lio/droidmcp/media/MediaTools;
 	public final fun all (Landroid/content/Context;)Ljava/util/List;
 	public final fun hasPermissions (Landroid/content/Context;)Z
 	public final fun requiredPermissions ()Ljava/util/List;
+	public final fun resources (Landroid/content/Context;)Lio/droidmcp/core/ResourceProvider;
 }
 
 public final class io/droidmcp/media/SearchMediaTool : io/droidmcp/core/McpTool {

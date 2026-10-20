@@ -31,6 +31,20 @@ class SearchFilesTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max number of results to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("query")
+        string("search_path")
+        array("results") {
+
+        string("name")
+        string("path")
+        integer("size_bytes", "Null for directories", nullable = true)
+        string("last_modified")
+        boolean("is_directory")
+        }
+        integer("count")
+        boolean("search_incomplete", "True when the time or entry budget ran out")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

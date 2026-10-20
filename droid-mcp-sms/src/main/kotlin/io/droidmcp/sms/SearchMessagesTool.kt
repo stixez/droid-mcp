@@ -23,6 +23,16 @@ class SearchMessagesTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("messages") {
+            integer("id")
+            string("address", nullable = true)
+            string("body", nullable = true)
+            string("date")
+        }
+        integer("count")
+        string("query")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

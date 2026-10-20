@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.hardware.fingerprint.FingerprintManager
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -25,6 +26,11 @@ class GetBiometricEnrollmentsTool(private val context: Context) : McpTool {
     override val description = "Get information about present/enrolled biometric modalities (fingerprint, face)"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("enrolled_count")
+        boolean("has_fingerprint")
+        boolean("has_face")
+    }
 
     @Suppress("DEPRECATION")
     override suspend fun execute(params: Map<String, Any>): ToolResult {

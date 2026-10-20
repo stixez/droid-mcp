@@ -32,6 +32,21 @@ class SearchMediaTool(private val context: Context) : McpTool {
         ToolParameter("offset", "Number of results to skip for pagination. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("results") {
+            integer("id")
+            string("name", nullable = true)
+            string("path", nullable = true)
+            string("date_taken", nullable = true)
+            integer("size_bytes")
+            string("mime_type", nullable = true)
+            integer("width")
+            integer("height")
+            string("media_type", "image or video")
+        }
+        integer("count")
+        string("media_type")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

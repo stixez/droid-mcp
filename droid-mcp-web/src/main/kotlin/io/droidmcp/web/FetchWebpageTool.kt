@@ -1,6 +1,7 @@
 package io.droidmcp.web
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -44,6 +45,13 @@ class FetchWebpageTool @JvmOverloads constructor(
         ToolParameter("max_length", "Maximum characters to return (default: 2000)", ParameterType.INTEGER, minimum = 1.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("title")
+        string("url")
+        string("content")
+        integer("content_length", "Length of the full text before truncation to max_length")
+        boolean("response_truncated", "True when the download hit the size cap")
+    }
 
     private val client = NetworkGuard.newClient(allowPrivateNetwork)
 

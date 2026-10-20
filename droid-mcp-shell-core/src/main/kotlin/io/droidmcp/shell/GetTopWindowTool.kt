@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -24,6 +25,12 @@ class GetTopWindowTool(private val shell: ShellBackend) : McpTool {
     override val description = "Get the current foreground window/activity from `dumpsys window`. Returns package name + activity class. Faster + lighter than accessibility's `get_active_window_info` for callers that just need to know which app is on top."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("package_name", nullable = true)
+        string("activity", nullable = true)
+        string("window_class", "Set when the focused window isn't an activity", nullable = true)
+        integer("display_id", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult =
         shell.gatedExec("dumpsys", listOf("window")) { result ->

@@ -6,6 +6,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -32,6 +33,19 @@ class RecognizeTextTool(private val context: Context) : McpTool {
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("text")
+        integer("line_count")
+        array("lines") {
+            string("text")
+            obj("bounding_box", nullable = true) {
+                integer("left")
+                integer("top")
+                integer("right")
+                integer("bottom")
+            }
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()

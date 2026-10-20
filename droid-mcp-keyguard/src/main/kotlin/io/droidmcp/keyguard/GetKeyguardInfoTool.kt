@@ -3,6 +3,7 @@ package io.droidmcp.keyguard
 import android.app.KeyguardManager
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -21,6 +22,12 @@ class GetKeyguardInfoTool(private val context: Context) : McpTool {
     override val description = "Get keyguard security details: whether a secure lock (PIN/pattern/password) is configured, and device lock state"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("is_device_secure")
+        boolean("is_device_locked")
+        boolean("is_keyguard_locked")
+        boolean("is_keyguard_secure")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager

@@ -6,6 +6,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -32,6 +33,14 @@ class LabelImageTool(private val context: Context) : McpTool {
         ToolParameter("min_confidence", "Minimum confidence threshold 0.0-1.0 (default 0.5)", ParameterType.NUMBER, required = false, minimum = 0.0, maximum = 1.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("label_count")
+        array("labels") {
+            string("text")
+            number("confidence")
+            integer("index")
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val path = params["image_path"]?.toString()

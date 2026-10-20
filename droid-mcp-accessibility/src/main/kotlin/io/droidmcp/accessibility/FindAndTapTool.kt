@@ -5,6 +5,7 @@ package io.droidmcp.accessibility
 import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -39,6 +40,12 @@ class FindAndTapTool(private val context: Context) : McpTool {
         ToolParameter("case_insensitive", "Case-insensitive matching for substring kinds. Default true.", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("view_id", nullable = true)
+        string("class", nullable = true)
+        string("match_kind")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (!AccessibilityServiceHolder.isConnected()) {

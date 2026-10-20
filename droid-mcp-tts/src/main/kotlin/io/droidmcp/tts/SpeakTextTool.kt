@@ -4,6 +4,7 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -43,6 +44,12 @@ class SpeakTextTool(private val context: Context) : McpTool {
         ToolParameter("speed", "Speech rate (0.5-2.0, default: 1.0)", ParameterType.NUMBER, minimum = 0.5, maximum = 2.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("text_length")
+        string("language")
+        integer("chunk_count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

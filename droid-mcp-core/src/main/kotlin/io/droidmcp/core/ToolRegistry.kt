@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap
  * unregistering them.
  *
  * This is the single source of truth the transports and [McpProtocol][io.droidmcp.core.protocol.McpProtocol]
- * read from for `tools/list` and `tools/call`.
+ * read from for `tools/list` and `tools/call`. Every change to the client-visible set (register,
+ * unregister, gate edits) is reported to [addChangeListener] subscribers; the HTTP transport turns
+ * that into `notifications/tools/list_changed`.
  *
  * @property toolTimeoutMs Upper bound on a single [executeTool] call; a tool still running
  *   after this is cancelled and reported as a `tool_timeout` error. Must be positive. The same
@@ -51,15 +53,40 @@ class ToolRegistry(
     @Volatile
     private var disabled: Set<String> = emptySet()
 
+    private val listeners = ChangeListeners()
+
     /** Register [tool], replacing any existing tool with the same [McpTool.name]. */
     fun register(tool: McpTool) {
         tools[tool.name] = tool
+        notifyChanged()
     }
 
-    /** Register every tool in [toolList] (e.g. the output of a module provider's `all(context)`). */
+    /**
+     * Register every tool in [toolList] (e.g. the output of a module provider's `all(context)`),
+     * notifying listeners once.
+     */
     fun registerAll(toolList: List<McpTool>) {
-        toolList.forEach { register(it) }
+        if (toolList.isEmpty()) return
+        toolList.forEach { tools[it.name] = it }
+        notifyChanged()
     }
+
+    /**
+     * Remove the named tool (e.g. after the user revokes the permission it needs).
+     * @return true if a tool with that name was registered.
+     */
+    fun unregister(name: String): Boolean {
+        val removed = tools.remove(name) != null
+        if (removed) notifyChanged()
+        return removed
+    }
+
+    /** Call [listener] whenever the client-visible tool set may have changed. */
+    fun addChangeListener(listener: () -> Unit) = listeners.add(listener)
+
+    fun removeChangeListener(listener: () -> Unit) = listeners.remove(listener)
+
+    private fun notifyChanged() = listeners.notifyChanged()
 
     /** The registered tool with this [name], or null if none is registered. */
     fun getTool(name: String): McpTool? = tools[name]
@@ -82,7 +109,10 @@ class ToolRegistry(
      */
     @Synchronized
     fun setToolEnabled(name: String, enabled: Boolean) {
-        disabled = if (enabled) disabled - name else disabled + name
+        val updated = if (enabled) disabled - name else disabled + name
+        if (updated == disabled) return
+        disabled = updated
+        if (tools.containsKey(name)) notifyChanged()
     }
 
     /**
@@ -92,7 +122,10 @@ class ToolRegistry(
      */
     @Synchronized
     fun setDisabledTools(names: Set<String>) {
-        disabled = names.toSet()
+        val updated = names.toSet()
+        if (updated == disabled) return
+        disabled = updated
+        notifyChanged()
     }
 
     /**
@@ -130,6 +163,21 @@ class ToolRegistry(
         } catch (e: Exception) {
             ToolResult.error("Tool '$name' failed: ${e.message}")
         }
+    }
+
+    /**
+     * Ask the [confirmer] before serving data that [toolNames] also expose — e.g. a resource read
+     * backed by `read_contact` — when any of them [requiresConfirmation]. Returns null when no
+     * confirmation is needed or the host approved, else the `tool_call_declined` result.
+     */
+    internal suspend fun confirmAccess(toolNames: Set<String>, arguments: Map<String, Any>, clientLabel: String?): ToolResult? {
+        val confirmer = confirmer ?: return null
+        for (name in toolNames) {
+            val tool = tools[name] ?: continue
+            if (!requiresConfirmation(tool)) continue
+            confirm(confirmer, ToolCallRequest(name, arguments, tool.annotations, clientLabel))?.let { return it }
+        }
+        return null
     }
 
     /** Returns null when approved, or the `tool_call_declined` result to send back. */

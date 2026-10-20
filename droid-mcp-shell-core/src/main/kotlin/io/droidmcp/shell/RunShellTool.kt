@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -52,6 +53,13 @@ class RunShellTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("max_stdout_bytes", "Truncate stdout above this many bytes (1024-65536, default 8192). Same cap is applied to stderr (bytes, not characters).", ParameterType.INTEGER, required = false, minimum = 1024.0, maximum = 65536.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("exit_code")
+        string("stdout")
+        string("stderr")
+        boolean("stdout_truncated")
+        boolean("stderr_truncated")
+    }
 
     @Suppress("UNCHECKED_CAST")
     override suspend fun execute(params: Map<String, Any>): ToolResult {

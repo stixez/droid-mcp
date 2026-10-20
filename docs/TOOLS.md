@@ -1,10 +1,12 @@
 # Tool Reference
 
-Every tool droid-mcp ships: 151 tools in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools.
+Every tool droid-mcp ships: 157 tools in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools.
 
 The generated contract [`droid-mcp-all/api/tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt) lists every tool's parameter types, ranges, enums and annotations. If this page and the contract disagree, the contract is right. Tools annotated `readOnly` there are the only ones listed and callable when the server runs with `readOnly = true`.
 
 **Reading the Parameters column.** Parameters are optional unless marked (required). Ranges are inclusive: `limit` (1-100, default 10). Enum values are separated by slashes: `box` (`inbox`/`sent`). A dash means the tool takes no parameters.
+
+**Structured results.** Every tool declares an `outputSchema`, and a successful call returns its result map as `structuredContent` (MCP 2025-06-18+). The contract lists each tool's result keys as `=> key: type` lines; `?` marks a key that is only sometimes present.
 
 **Image results.** `take_photo` (with `return_data`), `take_screenshot_via_a11y`, `capture_screen_quiet` and `generate_qr_code` return their image as an MCP `image` content block. Over MCP, the base64 key (`image_data`, `image_base64` or `qr_image`) is left out of the JSON text so the image is sent only once. In-process callers still find the base64 under that key in `ToolResult.data`.
 
@@ -44,7 +46,7 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 
 ## Contacts
 
-**Needs:** `READ_CONTACTS`. `create_contact` is registered only when `WRITE_CONTACTS` is also granted.
+**Needs:** `READ_CONTACTS`. `create_contact`, `update_contact` and `delete_contact` are registered only when `WRITE_CONTACTS` is also granted.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
@@ -52,6 +54,10 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 | `read_contact` | Full details for one contact | `contact_id` (required, integer) |
 | `list_contacts` | Paginated contact list | `limit` (1-100, default 50)<br>`offset` (≥ 0, default 0) |
 | `create_contact` | Add a contact to the local device account. Returns `contact_id` (usable with `read_contact`) and `raw_contact_id`. | `name` (required)<br>`phone`<br>`phone_type` (`mobile`/`home`/`work`/`other`, default `mobile`)<br>`email`<br>`email_type` (`home`/`work`/`other`, default `home`) |
+| `update_contact` | Rename a contact, or add or remove one phone number or email. Only what is passed changes. | `contact_id` (required, ≥ 1)<br>`name`<br>`add_phone`<br>`phone_type` (default `mobile`)<br>`remove_phone`<br>`add_email`<br>`email_type` (default `home`)<br>`remove_email` |
+| `delete_contact` | Delete a contact and everything merged into it | `contact_id` (required, ≥ 1) |
+
+`remove_phone` matches by digits, ignoring formatting, and `remove_email` ignores case. Removing a number or address the contact doesn't have is an error, so a typo isn't silently ignored. `delete_contact` reports not-found on a repeated call.
 
 ## SMS
 
@@ -76,15 +82,25 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 
 ## Files
 
-**Needs:** `READ_EXTERNAL_STORAGE` on API 32 and below; nothing on API 33+.
+**Needs:** `READ_EXTERNAL_STORAGE` on API 32 and below; nothing on API 33+. The write tools (`write_file`, `create_directory`, `move_file`, `delete_file`) are opt-in: `FilesTools.all(context, includeWriteTools = true)`. Even then they are registered only where file writes work: always on API 30+. On API 28 they need `WRITE_EXTERNAL_STORAGE`. Android 10 (API 29) blocks file writes to shared folders, so there they register only if the host declares `WRITE_EXTERNAL_STORAGE` up to API 29 itself (with `tools:replace="android:maxSdkVersion"`), sets `android:requestLegacyExternalStorage="true"`, and the permission is granted.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
 | `browse_files` | List a directory: name, size, modified date, whether each entry is a directory | `path` (default `/sdcard`)<br>`limit` (1-100, default 10) |
 | `read_file` | Read a text file. Binary files return an error. | `path` (required)<br>`max_lines` (1-1000, default 100) |
 | `search_files` | Case-insensitive filename search, recursive to depth 5 and time-bounded | `query` (required)<br>`path` (default `/sdcard`)<br>`limit` (1-100, default 10) |
+| `write_file` | Write UTF-8 text (up to 1M characters). Creates new files only, unless `mode` says otherwise. | `path` (required)<br>`content` (required)<br>`mode` (`create`/`overwrite`/`append`, default `create`)<br>`create_dirs` (default false) |
+| `create_directory` | Create a directory and any missing parents. Succeeds unchanged when it already exists. | `path` (required) |
+| `move_file` | Move or rename a file or directory | `source` (required)<br>`destination` (required)<br>`overwrite` (default false) |
+| `delete_file` | Delete a file, or a directory with `recursive` (at most 1000 entries) | `path` (required)<br>`recursive` (default false) |
 
-Paths are sandboxed to external storage; anything outside it is rejected. On Android 11+, other apps' non-media files are not visible.
+Paths are sandboxed to external storage; anything outside it is rejected.
+
+- On Android 11+, other apps' non-media files are not visible, and writes work only on this app's own files and on new files in shared folders such as Download/ and Documents/.
+- The storage root, its top-level folders (DCIM, Download, …) and everything under `Android/` (other apps' data) can't be moved, deleted or replaced, and the write tools don't write under `Android/`. Plain files in the root are fine.
+- `move_file` with `overwrite` sets the old destination aside and puts it back if the move fails. If a cross-volume move copies a directory but can't remove all of the original, it reports an error saying both now exist. A rename that only changes letter case works.
+- Paths through a broken symbolic link are refused.
+- Recursive deletes and cross-volume moves refuse trees that contain symbolic links. Deleting a link removes the link, not its target.
 
 ## Media
 
@@ -576,3 +592,31 @@ overlay.hide()
 **Errors.** `shell_unavailable` means the backend can't be reached: Shizuku isn't running, or root hasn't been checked yet. `shell_permission_denied` means it is reachable but the host isn't allowed: the Shizuku permission isn't granted, or root was denied. Other codes: `denied_by_policy`, `run_shell_not_enabled` (command not allowlisted), `invalid_args`, `shell_spawn_failed`, and a per-verb failure such as `install_failed` or `settings_put_failed`.
 
 **`run_shell` allowlist.** Entries match argv token by token. Entries that start with an interpreter or exec wrapper (`sh`, `su`, `toybox`, `env`, and similar) throw when set. In string form `command` is split on whitespace, so use `args` for anything with spaces or quotes. Root-only abilities (`pm hide`, `/system` writes, reading `/data/data/<pkg>`) are reachable only through `run_shell`.
+
+---
+
+## Resources and prompts
+
+Besides tools, the server answers MCP resource and prompt requests. Both are opt-in on the builder.
+
+**Resources.** Register a module's provider with `Builder.addResourceProvider(...)`, or at runtime with `DroidMcp.registerResourceProvider(...)`. Providers check their own permissions: without them they list nothing, and reads fail as not found (`-32002`). Each provider is also tied to the tool that serves the same data (`get_media_metadata`, `read_file`, `read_contact`, `read_calendar`): while that tool is unregistered, gated off or hidden by read-only mode, the provider is hidden too. A read also goes through the host's confirmer (`confirmToolCalls`) when that tool would, and a declined read returns `-32001`. Every `resources/read` is recorded to the audit sink as `resources/read`. Long listings are paginated from one snapshot, so pages don't shift.
+
+| Provider | URIs | Listed up front | Contents |
+|----------|------|-----------------|----------|
+| `MediaTools.resources(context)` | `content://media/external/images/media/{id}`, `content://media/external/video/media/{id}` | The 50 most recent photos and videos | The file as a base64 blob, up to 10 MB |
+| `FilesTools.resources()` | `file://<storage root>/{+path}` | Nothing | UTF-8 text files up to 1 MB as exact text; anything else, including larger text, as a blob up to 10 MB. Same sandbox as the file tools. The path may be raw (`#`, `?` and spaces are part of the name) or percent-encoded. |
+| `ContactsTools.resources(context)` | `droidmcp://contacts/{id}` | Nothing | JSON, the shape `read_contact` returns |
+| `CalendarTools.resources(context)` | `droidmcp://calendar/{date}` (`yyyy-MM-dd` or `today`) | `droidmcp://calendar/today` | JSON, the shape `read_calendar` returns, up to 100 events |
+
+**Prompts.** `addBuiltInPrompts()` adds the prompts below. Each is listed only while every tool it needs is registered and enabled, so read-only mode hides `message_contact`.
+
+| Prompt | Arguments | Uses |
+|--------|-----------|------|
+| `daily_briefing` | `date` (yyyy-MM-dd, default today) | `read_calendar`, `get_active_notifications`, and `read_messages` when available |
+| `triage_notifications` | - | `get_active_notifications` |
+| `message_contact` | `contact` (required), `intent` (required) | `search_contacts`, then `send_message` only after the user confirms |
+| `device_health_check` | - | `get_battery_info`, `get_storage_info`, `get_connectivity` |
+
+Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
+
+**Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).

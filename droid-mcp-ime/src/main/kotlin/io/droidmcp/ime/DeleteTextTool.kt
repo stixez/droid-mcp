@@ -2,6 +2,7 @@ package io.droidmcp.ime
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -22,6 +23,11 @@ class DeleteTextTool(private val context: Context) : McpTool {
         ToolParameter("after", "Characters to delete after the cursor (0-2000, default 0).", ParameterType.INTEGER, required = false, minimum = 0.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("before")
+        integer("after")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val ic = InputMethodServiceHolder.service?.connection()

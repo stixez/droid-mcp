@@ -3,6 +3,7 @@ package io.droidmcp.usb
 import android.content.Context
 import android.hardware.usb.UsbManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -22,6 +23,20 @@ class ListUsbDevicesTool(private val context: Context) : McpTool {
     override val description = "List all connected USB devices"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("count")
+        array("devices") {
+            string("name")
+            integer("vendor_id")
+            integer("product_id")
+            integer("device_class")
+            integer("device_subclass")
+            string("manufacturer", nullable = true)
+            string("product", nullable = true)
+            integer("interface_count")
+            boolean("has_permission")
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager

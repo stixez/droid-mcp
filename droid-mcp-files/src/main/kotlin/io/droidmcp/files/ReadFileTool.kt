@@ -24,6 +24,13 @@ class ReadFileTool(private val context: Context) : McpTool {
         ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER, minimum = 1.0, maximum = 1000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("path")
+        string("content")
+        integer("lines_returned")
+        boolean("truncated")
+        string("truncated_by", "max_lines, max_chars, or null", nullable = true)
+    }
 
     private val textExtensions = setOf(
         "txt", "md", "json", "xml", "csv", "log", "yaml", "yml", "toml", "ini",

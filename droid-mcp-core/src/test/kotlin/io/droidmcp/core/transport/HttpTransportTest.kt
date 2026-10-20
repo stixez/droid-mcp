@@ -218,9 +218,41 @@ class HttpTransportTest {
     }
 
     @Test
-    fun `GET mcp is 405`() = mcpTest {
-        val response = client.get("/mcp") { header(HttpHeaders.Authorization, "Bearer $token") }
-        assertThat(response.status).isEqualTo(HttpStatusCode.MethodNotAllowed)
+    fun `GET mcp without an event-stream Accept is 406`() = mcpTest {
+        val session = client.initialize()
+        val response = client.get("/mcp") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header("Mcp-Session-Id", session)
+        }
+        assertThat(response.status).isEqualTo(HttpStatusCode.NotAcceptable)
+    }
+
+    @Test
+    fun `GET mcp requires auth and a known session`() = mcpTest {
+        val unauthenticated = client.get("/mcp") { sseAccept() }
+        assertThat(unauthenticated.status).isEqualTo(HttpStatusCode.Unauthorized)
+
+        val noSession = client.get("/mcp") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            sseAccept()
+        }
+        assertThat(noSession.status).isEqualTo(HttpStatusCode.BadRequest)
+
+        val unknown = client.get("/mcp") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header("Mcp-Session-Id", "not-a-session")
+            sseAccept()
+        }
+        assertThat(unknown.status).isEqualTo(HttpStatusCode.NotFound)
+    }
+
+    @Test
+    fun `initialize advertises listChanged for tools, resources and prompts`() = mcpTest {
+        val response = client.rpc("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+        val capabilities = Json.parseToJsonElement(response.bodyAsText()).jsonObject["result"]!!.jsonObject["capabilities"]!!.jsonObject
+        for (kind in listOf("tools", "resources", "prompts")) {
+            assertThat(capabilities[kind]!!.jsonObject["listChanged"]!!.jsonPrimitive.content).isEqualTo("true")
+        }
     }
 
     @Test

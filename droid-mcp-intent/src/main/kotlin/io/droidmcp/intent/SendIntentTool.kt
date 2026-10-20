@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -35,6 +36,12 @@ class SendIntentTool(private val context: Context) : McpTool {
         ToolParameter("extras", "Key-value pairs to add as string extras", ParameterType.OBJECT),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+        string("data", nullable = true)
+        string("package", nullable = true)
+    }
 
     private val allowedActions = setOf(
         Intent.ACTION_VIEW,

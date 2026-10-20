@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -61,6 +62,12 @@ class PutSecureSettingTool(
         ToolParameter("value", "Value to write. The shell converts numbers / booleans implicitly.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("namespace")
+        string("key")
+        string("value")
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "secure", params, policy)
 }
 
@@ -87,6 +94,12 @@ class PutGlobalSettingTool(
         ToolParameter("value", "Value to write.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("namespace")
+        string("key")
+        string("value")
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "global", params, policy)
 }
 
@@ -113,5 +126,11 @@ class PutSystemSettingTool(
         ToolParameter("value", "Value to write.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("namespace")
+        string("key")
+        string("value")
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult = putSetting(shell, "system", params, policy)
 }

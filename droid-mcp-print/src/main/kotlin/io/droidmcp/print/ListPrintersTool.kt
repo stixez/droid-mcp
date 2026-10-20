@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.print.PrintManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -26,6 +27,19 @@ class ListPrintersTool(private val context: Context) : McpTool {
     override val description = "List installed print service plugins and whether printing is available"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("print_services") {
+            string("package")
+            string("name")
+        }
+        integer("service_count")
+        array("active_jobs") {
+            string("id")
+            string("label")
+            string("state")
+        }
+        integer("active_job_count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager

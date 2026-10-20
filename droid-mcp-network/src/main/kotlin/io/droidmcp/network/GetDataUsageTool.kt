@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.TrafficStats
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -40,6 +41,12 @@ class GetDataUsageTool(private val context: Context) : McpTool {
         )
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("bytes_rx")
+        integer("bytes_tx")
+        integer("query_period_days", "Present when the days window was applied", optional = true)
+        string("note", "Present when falling back to counters since boot", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val days = (params["days"] as? Number)?.toInt()?.coerceIn(1, 90) ?: 30

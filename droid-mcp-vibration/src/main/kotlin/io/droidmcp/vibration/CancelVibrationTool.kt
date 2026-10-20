@@ -2,6 +2,7 @@ package io.droidmcp.vibration
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -19,6 +20,9 @@ class CancelVibrationTool(private val context: Context) : McpTool {
     override val description = "Stop any ongoing vibration started by this app (e.g. a repeating vibrate_pattern)"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val vibrator = defaultVibrator(context)
