@@ -8,6 +8,7 @@ import android.nfc.Tag
 import android.nfc.TagLostException
 import android.nfc.tech.Ndef
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -37,6 +38,21 @@ class ReadNfcTagTool(private val context: Context) : McpTool {
     override val description = "Read NDEF data from the last scanned NFC tag. Reads live if the tag is still in range, otherwise returns the data captured when it was scanned (cached=true); indicates when no tag has been scanned yet."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("has_tag")
+        string("message", "Set when no tag has been scanned", optional = true)
+        boolean("is_ndef", optional = true)
+        string("tag_id", "Hex tag id", nullable = true, optional = true)
+        arrayOf("tech_list", OutputSchema.string(), "Non-NDEF tags only", optional = true)
+        integer("max_size", optional = true)
+        boolean("is_writable", optional = true)
+        array("records", optional = true) {
+            integer("tnf")
+            string("type")
+            string("payload")
+        }
+        boolean("cached", "True when read from the last snapshot because the tag left range", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val adapter = NfcAdapter.getDefaultAdapter(context)

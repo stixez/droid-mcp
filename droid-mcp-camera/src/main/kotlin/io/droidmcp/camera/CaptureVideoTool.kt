@@ -20,6 +20,7 @@ import android.os.HandlerThread
 import android.provider.MediaStore
 import android.util.Size
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -69,6 +70,13 @@ class CaptureVideoTool(private val context: Context) : McpTool {
         ToolParameter("duration_sec", "Recording duration in seconds (1-60, default 10)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 60.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("file_path", "content:// URI of the saved video")
+        integer("duration_ms")
+        integer("width")
+        integer("height")
+        integer("bit_rate")
+    }
 
     @Suppress("MissingPermission")
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {

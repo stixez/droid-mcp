@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -23,6 +24,11 @@ class WriteClipboardTool(private val context: Context) : McpTool {
         ToolParameter("label", "Label for the clip (default: droid-mcp)", ParameterType.STRING),
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("label")
+        integer("length")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()

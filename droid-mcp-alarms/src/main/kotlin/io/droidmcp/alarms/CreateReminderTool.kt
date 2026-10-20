@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -36,6 +37,13 @@ class CreateReminderTool(private val context: Context) : McpTool {
         ToolParameter("minutes_before", "Minutes before the event to trigger the alert (default: 10)", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("event_id")
+        string("title")
+        string("datetime")
+        integer("minutes_before")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val readGranted = context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED

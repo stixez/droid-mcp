@@ -3,6 +3,7 @@ package io.droidmcp.ringtone
 import android.content.Context
 import android.media.RingtoneManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -24,6 +25,12 @@ class GetActiveRingtoneTool(private val context: Context) : McpTool {
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("type")
+        string("uri", nullable = true)
+        string("title", nullable = true)
+        boolean("is_silent")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val typeStr = params["type"]?.toString()?.trim()?.lowercase() ?: "ringtone"

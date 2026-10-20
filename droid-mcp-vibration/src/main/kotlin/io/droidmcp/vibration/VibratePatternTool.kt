@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -34,6 +35,11 @@ class VibratePatternTool(private val context: Context) : McpTool {
         ToolParameter("repeat", "Index to repeat from (-1 for no repeat, 0 to restart). A repeating pattern loops until cancel_vibration is called (auto-stops after 60s)", ParameterType.INTEGER, required = false, minimum = -1.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("total_duration_ms")
+        integer("auto_cancel_after_ms", "Set for repeating patterns, which stop automatically", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         @Suppress("UNCHECKED_CAST")

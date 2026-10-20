@@ -3,6 +3,7 @@ package io.droidmcp.dnd
 import android.app.NotificationManager
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -23,6 +24,11 @@ class GetDndStatusTool(private val context: Context) : McpTool {
     override val description = "Get the current Do Not Disturb status and interruption filter"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("enabled")
+        string("filter")
+        boolean("has_policy_access")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -152,6 +153,11 @@ class ClickNodeTool(private val context: Context) : McpTool {
     override val description = "Perform ACTION_CLICK on a node matched by the selector (or its nearest clickable ancestor, e.g. the row or tab around a label)."
     override val parameters = nodeSelectorParams()
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+        string("view_id", nullable = true)
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult =
         perform(AccessibilityNodeInfo.ACTION_CLICK, params)
 }
@@ -167,6 +173,11 @@ class LongClickNodeTool(private val context: Context) : McpTool {
     override val description = "Perform ACTION_LONG_CLICK on a node matched by the selector."
     override val parameters = nodeSelectorParams()
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+        string("view_id", nullable = true)
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult =
         perform(AccessibilityNodeInfo.ACTION_LONG_CLICK, params)
 }
@@ -192,6 +203,11 @@ class SetNodeTextTool(private val context: Context) : McpTool {
         ToolParameter("text", "Replacement text.", ParameterType.STRING, required = true),
     ) + nodeSelectorParams(textKey = MATCH_TEXT_KEY)
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+        string("view_id", nullable = true)
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = params["text"]?.toString()
             ?: return ToolResult.error("text is required")
@@ -229,6 +245,11 @@ class ScrollNodeTool(private val context: Context) : McpTool {
         "direction", "'forward' (default) or 'backward'.", ParameterType.STRING, required = false, enumValues = listOf("forward", "backward"),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+        string("view_id", nullable = true)
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val action = when ((params["direction"] as? String)?.lowercase()) {
             null, "forward" -> AccessibilityNodeInfo.ACTION_SCROLL_FORWARD

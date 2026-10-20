@@ -5,6 +5,7 @@ package io.droidmcp.accessibility
 import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -42,6 +43,12 @@ class QueryScreenTool(private val context: Context) : McpTool {
         ToolParameter("max_nodes", "Cap on the number of nodes to return (1-2000, default 500).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("count")
+        boolean("truncated")
+        string("package_name", nullable = true)
+        array("nodes") { nodeFields() }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val maxNodes = (params["max_nodes"] as? Number)?.toInt()?.coerceIn(1, 2000) ?: 500

@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Process
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.ParameterType
@@ -31,6 +32,10 @@ class IsVpnActiveTool(private val context: Context) : McpTool {
     override val description = "Check if a VPN connection is currently active and return the VPN package name if available."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("is_active")
+        string("vpn_package_name", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         if (!PermissionHelper.hasPermissions(context, listOf(Manifest.permission.ACCESS_NETWORK_STATE))) {

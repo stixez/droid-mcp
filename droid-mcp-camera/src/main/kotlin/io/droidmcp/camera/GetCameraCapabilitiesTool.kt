@@ -5,6 +5,7 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.util.Size
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -25,6 +26,15 @@ class GetCameraCapabilitiesTool(private val context: Context) : McpTool {
     override val description = "Get information about available cameras and their capabilities"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("cameras") {
+            string("id")
+            string("facing")
+            boolean("flash_available")
+            string("max_resolution")
+        }
+        integer("count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         try {

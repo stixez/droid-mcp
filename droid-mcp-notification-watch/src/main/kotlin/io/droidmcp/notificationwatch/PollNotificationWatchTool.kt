@@ -2,6 +2,7 @@ package io.droidmcp.notificationwatch
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -30,6 +31,31 @@ class PollNotificationWatchTool(private val context: Context) : McpTool {
         ToolParameter("clear", "Drain the buffer after reading. Default true.", ParameterType.BOOLEAN, required = false),
     )
     override val annotations = ToolAnnotations()
+    override val outputSchema = OutputSchema.obj {
+        string("watch_id")
+        integer("count")
+        integer("dropped", "Events lost because the buffer was full")
+        integer("expires_at", "Epoch millis")
+        array("events") {
+            string("key")
+            string("package_name")
+            string("title", nullable = true)
+            string("text", nullable = true)
+            string("big_text", nullable = true)
+            string("sub_text", nullable = true)
+            string("ticker_text", nullable = true)
+            string("category", nullable = true)
+            string("channel_id", nullable = true)
+            string("group_key", nullable = true)
+            boolean("is_ongoing")
+            boolean("is_clearable")
+            integer("channel_importance")
+            integer("posted_at", "Epoch millis")
+            integer("when", "Epoch millis")
+            boolean("has_reply_action")
+            arrayOf("action_labels", OutputSchema.string())
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val id = params["watch_id"]?.toString()?.takeIf { it.isNotBlank() }

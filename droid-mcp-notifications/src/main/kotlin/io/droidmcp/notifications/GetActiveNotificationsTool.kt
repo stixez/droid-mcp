@@ -31,6 +31,20 @@ class GetActiveNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("notifications") {
+            integer("id")
+            string("tag", nullable = true)
+            string("package_name")
+            string("title", nullable = true)
+            string("text", nullable = true)
+            string("timestamp")
+            boolean("is_ongoing")
+            boolean("is_foreground_service")
+        }
+        integer("count")
+        string("note")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

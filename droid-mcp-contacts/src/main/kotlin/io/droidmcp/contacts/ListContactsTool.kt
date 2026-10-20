@@ -20,6 +20,16 @@ class ListContactsTool(private val context: Context) : McpTool {
         ToolParameter("offset", "Number of contacts to skip. Default 0.", ParameterType.INTEGER, minimum = 0.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("contacts") {
+            integer("id")
+            string("name", nullable = true)
+            boolean("has_phone")
+        }
+        integer("count")
+        integer("offset")
+        integer("limit")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 50

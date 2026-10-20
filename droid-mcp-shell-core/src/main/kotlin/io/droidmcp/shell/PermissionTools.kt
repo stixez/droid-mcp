@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -33,6 +34,11 @@ class GrantPermissionTool(
         ToolParameter("permission", "Fully-qualified permission name, e.g. 'android.permission.READ_CONTACTS'.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        string("permission")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -73,6 +79,11 @@ class RevokePermissionTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("permission", "Fully-qualified permission name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        string("permission")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -109,6 +120,15 @@ class ListAppPermissionsTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("package_name")
+        array("permissions") {
+            string("name")
+            boolean("granted")
+            string("flags", nullable = true)
+        }
+        integer("count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())

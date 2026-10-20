@@ -3,6 +3,7 @@ package io.droidmcp.alarms
 import android.app.AlarmManager
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -25,6 +26,12 @@ class GetNextAlarmTool(private val context: Context) : McpTool {
         "Android offers no API to list all alarms."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("has_alarm")
+        string("trigger_time", "Local ISO-8601 time of the next alarm", nullable = true)
+        integer("trigger_millis", nullable = true)
+        string("creator_package", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val alarmManager = context.getSystemService(AlarmManager::class.java)

@@ -30,6 +30,17 @@ class ReadMessagesTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("messages") {
+            integer("id")
+            string("address", nullable = true)
+            string("body", nullable = true)
+            string("date")
+            boolean("read")
+        }
+        integer("count")
+        string("box")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val box = params["box"]?.toString()?.trim()?.lowercase() ?: "inbox"

@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>Give your AI app the whole phone.</b><br/>
-  151 Android capabilities (calendar, messages, camera, sensors, UI automation, and more) as typed tools
+  157 Android capabilities (calendar, messages, camera, sensors, UI automation, and more) as typed tools
   for on-device LLMs and any <a href="https://modelcontextprotocol.io">MCP</a> client.
 </p>
 
@@ -26,7 +26,7 @@ Highlights:
 
 - **Pick only what you need.** 53 independent modules. Each adds only its own permissions to your manifest.
 - **Safe by default.** Bearer auth, Origin and session checks, an SSRF guard, sandboxed file access, read-only mode, per-tool gating, and optional user confirmation for risky calls.
-- **Current MCP.** Protocol 2025-11-25, structured results, image content, progress, elicitation, and cancellation.
+- **Current MCP.** Protocol 2025-11-25, typed results on every tool, resources, prompts, live list updates, image content, progress, elicitation, and cancellation.
 - **Your permission UX.** The library never asks for permissions. Your app decides when and how.
 
 ## Quick start
@@ -41,11 +41,11 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.11.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.11.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.11.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.12.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.12.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.12.0")
     // or everything except the opt-in modules:
-    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.11.0")
+    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.12.0")
 }
 ```
 
@@ -134,6 +134,20 @@ The phone advertises itself over mDNS (`_mcp._tcp`). Useful `enableHttpServer` o
 
 Pairing, sessions and TLS are covered in [docs/PAIRING.md](docs/PAIRING.md).
 
+### Resources and prompts
+
+Give clients device data to attach, and ready-made prompts:
+
+```kotlin
+DroidMcp.builder()
+    .addTools(MediaTools.all(context))
+    .addResourceProvider(MediaTools.resources(context))    // recent photos and videos
+    .addResourceProvider(CalendarTools.resources(context)) // droidmcp://calendar/today
+    .addBuiltInPrompts()                                    // daily_briefing, triage_notifications, …
+```
+
+A prompt is listed only while the tools it uses are registered. Tools added later with `mcp.registerTools(...)`, for example after the user grants a permission, reach connected clients through `notifications/tools/list_changed`. Details are in [docs/TOOLS.md](docs/TOOLS.md#resources-and-prompts).
+
 ### Confirm risky calls
 
 Ask the user before a destructive tool runs, on either transport:
@@ -199,7 +213,7 @@ The HTTP server:
 - rejects foreign `Origin` headers, non-JSON bodies, bodies over 4 MB and unknown protocol versions
 - ties every request to a session
 
-Tools are also constrained: file tools only read external storage, web tools refuse private and loopback addresses, and intents use an action and URI-scheme allowlist. The server listens on every network the phone joins, so use it on networks you trust or enable TLS. The threat model is in [docs/SECURITY.md](docs/SECURITY.md).
+Tools are also constrained: file tools and file resources are sandboxed to external storage (the file write tools are opt-in), web tools refuse private and loopback addresses, and intents use an action and URI-scheme allowlist. The server listens on every network the phone joins, so use it on networks you trust or enable TLS. The threat model is in [docs/SECURITY.md](docs/SECURITY.md).
 
 droid-mcp itself sends no analytics. Google ML Kit, used by `mlkit` and `qr`, reports usage to Google under its own terms.
 
@@ -210,7 +224,7 @@ droid-mcp itself sends no analytics. Google ML Kit, used by `mlkit` and `qr`, re
 
 ## Sample app
 
-`sample-app` registers every module and has four tabs:
+`sample-app` registers every module, the four resource providers and the built-in prompts, and has four tabs:
 - **Tools**: a test button per tool, plus shortcuts to grant special permissions.
 - **Gating**: switch tools on and off on the live server.
 - **Activity**: recent calls.

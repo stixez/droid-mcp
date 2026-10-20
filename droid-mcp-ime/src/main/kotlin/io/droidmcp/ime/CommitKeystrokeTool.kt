@@ -3,6 +3,7 @@ package io.droidmcp.ime
 import android.content.Context
 import android.view.KeyEvent
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -23,6 +24,10 @@ class CommitKeystrokeTool(private val context: Context) : McpTool {
         ToolParameter("key", "One of: enter, backspace, del, tab, escape, up, down, left, right, home, end, page_up, page_down.", ParameterType.STRING, required = true, enumValues = listOf("enter", "backspace", "del", "tab", "escape", "up", "down", "left", "right", "home", "end", "page_up", "page_down")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("key")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val ic = InputMethodServiceHolder.service?.connection()

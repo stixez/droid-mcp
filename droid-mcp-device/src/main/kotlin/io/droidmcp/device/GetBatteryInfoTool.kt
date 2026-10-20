@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -20,6 +21,11 @@ class GetBatteryInfoTool(private val context: Context) : McpTool {
     override val description = "Get battery level, charging status, and charging source"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("level_percent", "Charge level 0-100, or -1 when unknown")
+        boolean("is_charging")
+        string("charging_source", "usb, ac, wireless or none")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))

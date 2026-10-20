@@ -20,6 +20,19 @@ class ReadContactTool(private val context: Context) : McpTool {
         ToolParameter("contact_id", "The contact ID", ParameterType.INTEGER, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("id")
+        string("name")
+        array("phones") {
+            string("number")
+            string("type")
+        }
+        array("emails") {
+            string("address")
+            string("type")
+        }
+        arrayOf("addresses", OutputSchema.string())
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val contactId = (params["contact_id"] as? Number)?.toLong()

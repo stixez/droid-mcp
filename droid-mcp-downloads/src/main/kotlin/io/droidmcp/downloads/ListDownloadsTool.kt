@@ -3,6 +3,7 @@ package io.droidmcp.downloads
 import android.content.Context
 import android.os.Environment
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -34,6 +35,17 @@ class ListDownloadsTool(private val context: Context) : McpTool {
         ToolParameter("sort_by", "Sort order: date, name, size (default: date)", ParameterType.STRING, enumValues = listOf("date", "name", "size")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("files") {
+            string("name")
+            integer("size_bytes")
+            string("last_modified")
+            string("extension")
+        }
+        integer("count")
+        string("sort_by", optional = true)
+        string("directory", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

@@ -3,6 +3,7 @@ package io.droidmcp.downloads
 import android.content.Context
 import android.os.Environment
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -34,6 +35,16 @@ class SearchDownloadsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Maximum number of results to return (1-100, default: 10)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("files") {
+            string("name")
+            integer("size_bytes")
+            string("last_modified")
+            string("extension")
+        }
+        integer("count")
+        string("query")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val query = params["query"]?.toString()

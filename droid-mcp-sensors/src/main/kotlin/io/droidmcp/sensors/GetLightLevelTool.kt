@@ -3,6 +3,7 @@ package io.droidmcp.sensors
 import android.content.Context
 import android.hardware.Sensor
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -24,6 +25,15 @@ class GetLightLevelTool(private val context: Context) : McpTool {
         ToolParameter("duration_ms", "Duration to collect readings in ms (1-5000, null for single reading)", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 5000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        number("lux")
+        integer("accuracy")
+        integer("timestamp")
+        array("readings") {
+            number("lux")
+            integer("timestamp")
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val durationMs = (params["duration_ms"] as? Number)?.toInt()?.coerceIn(1, 5000)

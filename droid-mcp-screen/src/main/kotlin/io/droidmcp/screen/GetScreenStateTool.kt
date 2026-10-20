@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.view.Display
 import android.view.Surface
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -28,6 +29,12 @@ class GetScreenStateTool(private val context: Context) : McpTool {
     override val description = "Get current screen state including whether the screen is on, rotation, brightness, and lock state"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("is_screen_on")
+        integer("rotation", "0, 90, 180 or 270")
+        integer("brightness", "0-255, or -1 when unreadable")
+        boolean("is_locked")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager

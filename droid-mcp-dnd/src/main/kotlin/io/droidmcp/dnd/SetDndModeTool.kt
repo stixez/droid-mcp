@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -38,6 +39,13 @@ class SetDndModeTool(private val context: Context) : McpTool {
         ToolParameter("mode", "DND mode: 'off' (all notifications), 'priority' (priority only), 'alarms' (alarms only), 'none' (total silence)", ParameterType.STRING, required = true, enumValues = listOf("off", "priority", "alarms", "none")),
     )
     override val annotations = ToolAnnotations(idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("mode")
+        string("actual_mode")
+        boolean("applied")
+        string("note", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val mode = params["mode"]?.toString()?.trim()?.lowercase()

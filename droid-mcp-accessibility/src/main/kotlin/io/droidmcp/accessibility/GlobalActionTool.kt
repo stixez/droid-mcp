@@ -3,6 +3,7 @@ package io.droidmcp.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -32,6 +33,10 @@ class GlobalActionTool(private val context: Context) : McpTool {
         ToolParameter("action", "One of: back, home, recents, notifications, quick_settings, power_dialog, lock_screen, screenshot.", ParameterType.STRING, required = true, enumValues = listOf("back", "home", "recents", "notifications", "quick_settings", "power_dialog", "lock_screen", "screenshot")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("action")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val svc = AccessibilityServiceHolder.service ?: return ToolResult.error(notConnectedError())

@@ -29,6 +29,18 @@ class GetLocationAddressTool(private val context: Context) : McpTool {
         ToolParameter("longitude", "Longitude in decimal degrees (e.g. -122.0841)", ParameterType.NUMBER, required = true, minimum = -180.0, maximum = 180.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        number("latitude")
+        number("longitude")
+        string("formatted_address")
+        string("street", nullable = true)
+        string("city", nullable = true)
+        string("district", nullable = true)
+        string("state", nullable = true)
+        string("country", nullable = true)
+        string("country_code", nullable = true)
+        string("postal_code", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val latitude = (params["latitude"] as? Number)?.toDouble()

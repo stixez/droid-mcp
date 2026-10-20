@@ -6,6 +6,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -35,6 +36,11 @@ class ScanQrCodeTool(private val context: Context) : McpTool {
         ToolParameter("image_uri", "file:// (external storage only) or content:// URI of the image containing the QR code", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("raw_value", nullable = true)
+        string("format", nullable = true)
+        boolean("found")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val imageUriStr = params["image_uri"]?.toString()

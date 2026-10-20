@@ -7,6 +7,7 @@ import android.os.Build
 import android.util.Base64
 import android.view.Display
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -47,6 +48,13 @@ class TakeScreenshotViaA11yTool(private val context: Context) : McpTool {
         ToolParameter("max_dimension", "Downscale so the longest side is at most this many pixels (64-4096, default 1280).", ParameterType.INTEGER, required = false, minimum = 64.0, maximum = 4096.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("format")
+        integer("width")
+        integer("height")
+        integer("original_width")
+        integer("original_height")
+    }
 
     private sealed class CaptureOutcome {
         data class Success(val bitmap: Bitmap) : CaptureOutcome()

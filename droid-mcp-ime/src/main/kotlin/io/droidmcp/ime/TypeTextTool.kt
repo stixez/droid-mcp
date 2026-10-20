@@ -2,6 +2,7 @@ package io.droidmcp.ime
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -21,6 +22,10 @@ class TypeTextTool(private val context: Context) : McpTool {
         ToolParameter("text", "Text to insert at the cursor.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        integer("length")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val ic = InputMethodServiceHolder.service?.connection()

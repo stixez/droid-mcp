@@ -1,6 +1,7 @@
 package io.droidmcp.shell
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -31,6 +32,11 @@ class SetAppStandbyBucketTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("bucket", "active | working_set | frequent | rare | restricted", ParameterType.STRING, required = true, enumValues = listOf("active", "working_set", "frequent", "rare", "restricted")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        string("bucket")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())
@@ -72,6 +78,11 @@ class MakeAppInactiveTool(private val shell: ShellBackend) : McpTool {
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+        boolean("inactive")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val pkg = ShellValidation.requirePackageName(params["package_name"]?.toString())

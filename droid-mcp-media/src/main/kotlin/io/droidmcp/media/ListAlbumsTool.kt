@@ -22,6 +22,16 @@ class ListAlbumsTool(private val context: Context) : McpTool {
         ToolParameter("media_type", "Type of media: 'images', 'videos', or 'all'. Default: 'images'", ParameterType.STRING, enumValues = listOf("images", "videos", "all")),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        array("albums") {
+            string("bucket_id")
+            string("album_name", nullable = true)
+            integer("cover_media_id")
+            integer("count")
+        }
+        integer("count")
+        string("media_type")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10

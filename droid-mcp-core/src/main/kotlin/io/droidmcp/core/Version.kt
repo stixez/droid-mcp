@@ -5,4 +5,4 @@ package io.droidmcp.core
  * handshake and broadcast over mDNS. Must equal `VERSION_NAME` in the root
  * `gradle.properties` (the single source for the published version) — `VersionTest` enforces it.
  */
-const val DROID_MCP_VERSION: String = "0.11.0"
+const val DROID_MCP_VERSION: String = "0.12.0"

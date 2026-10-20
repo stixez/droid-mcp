@@ -1,6 +1,6 @@
 # droid-mcp
 
-Android MCP SDK: 151 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
+Android MCP SDK: 157 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
 
 ## Quick Reference
 
@@ -12,7 +12,9 @@ Android MCP SDK: 151 phone capabilities as tools, across 53 modules, for on-devi
 ## Key Conventions
 
 - Every tool implements `McpTool` interface: `name`, `description`, `parameters`, `suspend fun execute()`
+- Every tool declares `outputSchema = OutputSchema.obj { ... }` matching exactly what `execute()` returns on success: `nullable = true` for values that can be null, `optional = true` for keys only sometimes present, and no entry for a key passed to `withImage()` (it isn't in `structuredContent`)
 - Every module has a provider object (e.g. `CalendarTools`) with `all(context)`, `requiredPermissions()`, `hasPermissions(context)`
+- Modules with browsable data also expose `resources(...)`: a `ResourceProvider` that checks its own permissions, returns empty / null instead of throwing, and sets `requiredTools` to the tool serving the same data so gating that tool hides the resource too (media, files, contacts, calendar)
 - Limit params: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`, declared with `minimum = 1.0, maximum = 100.0` so the schema advertises the clamp
 - Fixed-choice params declare `enumValues`; numeric clamps declare `minimum`/`maximum` — keep them identical to what `execute()` enforces
 - ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
@@ -39,7 +41,8 @@ Multi-module Gradle project. Each phone API is an independent module depending o
 - `McpTool` — interface every tool implements
 - `ToolParameter`, `ToolResult` — typed params and results
 - `ToolRegistry` — thread-safe tool collection (ConcurrentHashMap)
-- `McpProtocolImpl` — JSON-RPC 2.0 handler (initialize, tools/list, tools/call)
+- `McpProtocolImpl` — JSON-RPC 2.0 handler (initialize, tools/*, resources/*, prompts/*, ping)
+- `ResourceRegistry` / `PromptRegistry` — resource providers and prompts (`BuiltInPrompts`); registries notify listeners so `HttpTransport` pushes `list_changed` over the `GET /mcp` stream
 - `InProcessTransport` — direct calls for on-device LLMs
 - `HttpTransport` — Ktor server for desktop MCP clients
 - `DroidMcp` — builder pattern entry point
@@ -66,9 +69,9 @@ droid-mcp-{name}/
 | `droid-mcp-core` | `io.droidmcp.core` | Protocol, transports, interfaces |
 | `droid-mcp-device` | `io.droidmcp.device` | get_device_info, get_battery_info, get_connectivity, get_storage_info |
 | `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, create_event, search_events, update_event, delete_event |
-| `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts, create_contact |
+| `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts, create_contact, update_contact, delete_contact |
 | `droid-mcp-sms` | `io.droidmcp.sms` | read_messages, send_message, search_messages |
-| `droid-mcp-files` | `io.droidmcp.files` | browse_files, read_file, search_files |
+| `droid-mcp-files` | `io.droidmcp.files` | browse_files, read_file, search_files; opt-in via `all(context, includeWriteTools = true)`: write_file, create_directory, move_file, delete_file |
 | `droid-mcp-notifications` | `io.droidmcp.notifications` | get_active_notifications |
 | `droid-mcp-calllog` | `io.droidmcp.calllog` | read_call_log, search_call_log |
 | `droid-mcp-media` | `io.droidmcp.media` | search_media, get_media_metadata, list_albums |
@@ -145,6 +148,9 @@ class MyTool(private val context: Context) : McpTool {
     override val parameters = listOf(
         ToolParameter("param", "Description", ParameterType.STRING, required = true),
     )
+    override val outputSchema = OutputSchema.obj {
+        string("result")
+    }
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val param = params["param"]?.toString() ?: return ToolResult.error("param is required")
         // ... do work ...
@@ -170,7 +176,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 123 tests covering ToolRegistry (dispatch/timeout/cancellation), ToolParameter, ToolResult, McpProtocol (JSON-RPC/MCP spec compliance), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot in `all`) — 382 in total: `./gradlew testDebugUnitTest`
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 158 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 609 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md

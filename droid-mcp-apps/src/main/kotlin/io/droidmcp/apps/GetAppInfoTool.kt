@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -26,6 +27,15 @@ class GetAppInfoTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Package name of the app (e.g. com.example.app)", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("app_name")
+        string("package_name")
+        string("version_name")
+        integer("version_code")
+        string("install_date")
+        string("last_update")
+        arrayOf("permissions", OutputSchema.string())
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val packageName = params["package_name"]?.toString()

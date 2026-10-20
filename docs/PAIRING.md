@@ -15,7 +15,7 @@ The server speaks MCP Streamable HTTP at `/mcp`, with protocol versions 2025-11-
 |---|---|
 | `POST /mcp` | JSON-RPC. The body must be `Content-Type: application/json` (415 otherwise) and at most 4 MB (413 otherwise). |
 | `DELETE /mcp` | Ends the session named in `Mcp-Session-Id`. 200 when it existed, 404 otherwise. |
-| `GET /mcp` | 405. There is no standalone server stream. |
+| `GET /mcp` | Opens the session's server stream (SSE) for `list_changed` notifications. Needs `Accept: text/event-stream` (406 otherwise) and a valid `Mcp-Session-Id`. |
 | `GET /health` | Tool count and read-only state. Needs the bearer token. |
 
 Each request is checked for:
@@ -28,6 +28,8 @@ Each request is checked for:
 ### Streaming responses
 
 Replies are plain JSON, except for a `tools/call` whose tool reports progress or asks for elicitation while it runs. That call answers with an SSE stream carrying the progress notifications or elicitation requests, then the result. To receive it, send `Accept: application/json, text/event-stream`, and include a `progressToken` in `_meta` if you want progress. A call that sends nothing mid-run still gets plain JSON.
+
+`GET /mcp` opens the session's own stream. It carries `notifications/tools/list_changed`, `notifications/resources/list_changed` and `notifications/prompts/list_changed` whenever the host changes what is exposed (a tool change sends all three, since resource and prompt visibility follows the tools), plus a `: keepalive` comment every 25 s. A session has one stream: opening a second closes the first, and `DELETE /mcp` closes it with the session.
 
 Elicitation is offered only to sessions whose client declared the `elicitation` capability at `initialize`. Answer an elicitation request with a separate `POST` in the same session; answers from another session are ignored.
 
@@ -43,7 +45,7 @@ TXT records:
 
 | Key | Values | Meaning |
 |---|---|---|
-| `version` | e.g. `0.11.0` | droid-mcp version on the device |
+| `version` | e.g. `0.12.0` | droid-mcp version on the device |
 | `auth` | `bearer`, `none` | Whether a bearer token is required |
 | `readonly` | `true`, `false` | Whether only read-only tools are served |
 | `tls` | `true`, `false` | Whether the endpoint is HTTPS |

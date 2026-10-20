@@ -2,6 +2,7 @@ package io.droidmcp.ime
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -19,6 +20,9 @@ class SwitchToPreviousImeTool(private val context: Context) : McpTool {
     override val description = "Switch back to the user's previous keyboard via InputMethodService.switchToPreviousInputMethod. Call this when the LLM is done driving the editor so normal typing resumes."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val svc = InputMethodServiceHolder.service

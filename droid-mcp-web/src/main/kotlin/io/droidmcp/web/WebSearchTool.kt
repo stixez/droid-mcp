@@ -1,6 +1,7 @@
 package io.droidmcp.web
 
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -35,6 +36,15 @@ class WebSearchTool @JvmOverloads constructor(
         ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER, minimum = 1.0, maximum = 50.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("query")
+        array("results") {
+            string("title")
+            string("url")
+            string("snippet")
+        }
+        integer("result_count")
+    }
 
     private val client = NetworkGuard.newClient(allowPrivateNetwork)
 

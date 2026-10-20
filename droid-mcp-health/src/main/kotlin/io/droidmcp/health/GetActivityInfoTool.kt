@@ -19,6 +19,21 @@ class GetActivityInfoTool(private val context: Context) : McpTool {
     override val description = "Get basic activity and fitness sensor information for the device. Returns which motion sensors are available (step counter, step detector, accelerometer, etc.) and their specifications. Does not require any permissions."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("has_step_counter")
+        boolean("has_heart_rate_sensor")
+        array("sensors") {
+            string("key")
+            boolean("available")
+            string("name", "Set when available", optional = true)
+            string("vendor", optional = true)
+            integer("version", optional = true)
+            number("max_range", optional = true)
+            number("resolution", optional = true)
+            number("power_ma", optional = true)
+        }
+        string("note")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager

@@ -12,6 +12,7 @@ import android.print.PrintManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -54,6 +55,13 @@ class PrintContentTool(
         ToolParameter("is_html", "Whether content is HTML (default: false, wraps text in basic HTML)", ParameterType.BOOLEAN),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("job_name")
+        integer("content_length")
+        string("message")
+        string("job_id", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val content = params["content"]?.toString()

@@ -4,6 +4,7 @@ package io.droidmcp.accessibility
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -44,6 +45,14 @@ class WaitForTextTool(private val context: Context) : McpTool {
         ToolParameter("poll_ms", "Polling interval in milliseconds (50-2000, default 200).", ParameterType.INTEGER, required = false, minimum = 50.0, maximum = 2000.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("status", "matched or timeout")
+        integer("elapsed_ms")
+        string("condition", "text or window_change")
+        string("text", "The matched text (condition text, status matched)", optional = true)
+        string("package_name", "New window's package (window_change, matched)", nullable = true, optional = true)
+        string("root_class", nullable = true, optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val condition = (params["condition"] as? String)?.lowercase() ?: "text"

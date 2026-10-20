@@ -2,6 +2,7 @@ package io.droidmcp.notificationwatch
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -21,6 +22,10 @@ class UnwatchNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("watch_id", "Watch id returned by watch_notifications.", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("watch_id")
+        boolean("removed")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val id = params["watch_id"]?.toString()?.takeIf { it.isNotBlank() }

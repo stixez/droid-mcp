@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Build
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -21,6 +22,11 @@ class ListSavedNetworksTool(private val context: Context) : McpTool {
     override val description = "List saved/configured WiFi networks. Note: This API is deprecated on Android 10+ (API 29+) and returns an empty list on those devices. Use system WiFi settings to view saved networks on newer devices."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        arrayOf("networks", OutputSchema.string())
+        integer("count")
+        string("note", "Set on Android 10+, where saved networks can't be listed", optional = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

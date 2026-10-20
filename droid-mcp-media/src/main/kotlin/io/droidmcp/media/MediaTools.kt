@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionHelper
+import io.droidmcp.core.ResourceProvider
 
 /**
  * Provider for the MediaStore tools ([SearchMediaTool], [GetMediaMetadataTool],
@@ -18,6 +19,9 @@ object MediaTools {
         GetMediaMetadataTool(context),
         ListAlbumsTool(context),
     )
+
+    /** Recent photos and videos as MCP resources; register with `DroidMcp.Builder.addResourceProvider`. */
+    fun resources(context: Context): ResourceProvider = MediaResourceProvider(context)
 
     /** `READ_MEDIA_IMAGES` + `READ_MEDIA_VIDEO` on API 33+, else `READ_EXTERNAL_STORAGE`. */
     fun requiredPermissions(): List<String> =

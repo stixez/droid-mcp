@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -21,6 +22,12 @@ class GetConnectivityTool(private val context: Context) : McpTool {
     override val description = "Get network connectivity status: WiFi, cellular, Bluetooth"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("is_connected")
+        boolean("has_wifi")
+        boolean("has_cellular")
+        boolean("has_bluetooth")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

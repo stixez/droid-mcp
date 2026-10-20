@@ -3,6 +3,7 @@ package io.droidmcp.notificationsreply
 import android.content.Context
 import android.content.pm.PackageManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -29,6 +30,19 @@ class ListRepliableNotificationsTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Maximum notifications to return (1-100, default 20).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 100.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("count")
+        array("notifications") {
+            string("key")
+            string("package_name")
+            string("app_label", nullable = true)
+            string("title", nullable = true)
+            string("text", nullable = true)
+            integer("posted_at", "Epoch millis")
+            string("action_label", nullable = true)
+            string("hint_label", nullable = true)
+        }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         if (NotificationListenerHolder.componentName == null) {

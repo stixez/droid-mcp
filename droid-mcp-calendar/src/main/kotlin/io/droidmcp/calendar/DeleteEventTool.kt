@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.provider.CalendarContract
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -30,6 +31,12 @@ class DeleteEventTool(private val context: Context) : McpTool {
         ToolParameter("event_id", "ID of the event to delete (the `id` from read_calendar or search_events)", ParameterType.INTEGER, required = true, minimum = 1.0),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("event_id")
+        boolean("deleted")
+        string("title", nullable = true)
+        boolean("was_recurring")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val eventId = CalendarUtils.parseId(params["event_id"])

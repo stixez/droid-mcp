@@ -3,6 +3,7 @@ package io.droidmcp.device
 import android.os.Build
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -17,6 +18,16 @@ class GetDeviceInfoTool(private val context: Context) : McpTool {
     override val description = "Get device information: model, manufacturer, OS version, screen size"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("manufacturer", nullable = true)
+        string("model", nullable = true)
+        string("brand", nullable = true)
+        string("os_version", nullable = true)
+        integer("sdk_version")
+        integer("screen_width")
+        integer("screen_height")
+        number("screen_density")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val display = context.resources.displayMetrics

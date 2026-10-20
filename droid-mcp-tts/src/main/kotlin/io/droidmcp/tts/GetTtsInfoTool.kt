@@ -2,6 +2,7 @@ package io.droidmcp.tts
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -23,6 +24,11 @@ class GetTtsInfoTool(private val context: Context) : McpTool {
     override val description = "Get the default TTS engine and its supported languages"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("default_engine")
+        arrayOf("available_languages", OutputSchema.string())
+        integer("language_count")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult =
         useTtsEngine(context, onError = { ToolResult.error(it) }) { engine ->

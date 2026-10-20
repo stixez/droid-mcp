@@ -163,7 +163,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (CalendarTools.hasPermissions(context)) tools.addAll(CalendarTools.all(context))
         if (ContactsTools.hasPermissions(context)) tools.addAll(ContactsTools.all(context))
         if (SmsTools.hasPermissions(context)) tools.addAll(SmsTools.all(context))
-        if (FilesTools.hasPermissions(context)) tools.addAll(FilesTools.all(context))
+        // The sample exercises every tool, so it opts into the file write tools.
+        if (FilesTools.hasPermissions(context)) tools.addAll(FilesTools.all(context, includeWriteTools = true))
         if (CallLogTools.hasPermissions(context)) tools.addAll(CallLogTools.all(context))
         if (MediaTools.hasPermissions(context)) tools.addAll(MediaTools.all(context))
         if (LocationTools.hasPermissions(context)) tools.addAll(LocationTools.all(context))
@@ -395,6 +396,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .addTools(tools)
             .enableHttpServer(port = HTTP_PORT, readOnly = _state.value.readOnly, context = context)
             .withAuditSink(auditSink)
+            // Prompts list themselves only while the tools they use are registered.
+            .addBuiltInPrompts()
+        // Providers check their own permissions, so register them unconditionally.
+        listOf(
+            MediaTools.resources(context),
+            FilesTools.resources(),
+            ContactsTools.resources(context),
+            CalendarTools.resources(context),
+        ).forEach(builder::addResourceProvider)
         if (_state.value.tlsEnabled) builder.enableTls(loadTlsConfig())
         // Publish to the holder so the foreground service runs THIS instance —
         // the same one the UI drives for in-process calls and live gating.

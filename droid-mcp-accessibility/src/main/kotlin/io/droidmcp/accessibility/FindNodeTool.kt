@@ -2,6 +2,7 @@ package io.droidmcp.accessibility
 
 import android.content.Context
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -39,6 +40,10 @@ class FindNodeTool(private val context: Context) : McpTool {
         ToolParameter("limit", "Max matches to return (1-200, default 20).", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 200.0),
     )
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("count")
+        array("nodes") { nodeFields() }
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val text = (params["text"] as? String)?.takeIf { it.isNotBlank() }

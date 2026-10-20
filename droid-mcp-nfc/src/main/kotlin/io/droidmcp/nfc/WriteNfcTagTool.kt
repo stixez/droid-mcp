@@ -6,6 +6,7 @@ import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.tech.Ndef
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -32,6 +33,12 @@ class WriteNfcTagTool(private val context: Context) : McpTool {
         ToolParameter("content", "The text or URI to write", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("type")
+        string("content")
+        integer("bytes_written")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         val adapter = NfcAdapter.getDefaultAdapter(context)

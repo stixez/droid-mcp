@@ -7,6 +7,7 @@ import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -38,6 +39,13 @@ class CreateContactTool(private val context: Context) : McpTool {
         ToolParameter("email_type", "Email label. Default home.", ParameterType.STRING, enumValues = ContactsUtils.EMAIL_TYPES.keys.toList()),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("contact_id", "Aggregated id for read_contact; null until the provider aggregates it", nullable = true)
+        integer("raw_contact_id")
+        string("name")
+        string("phone", nullable = true)
+        string("email", nullable = true)
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val name = params["name"]?.toString()?.trim()

@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Environment
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -38,6 +39,16 @@ class SetWallpaperTool(private val context: Context) : McpTool {
         ToolParameter("target", "Where to set: 'home', 'lock', or 'both' (default: 'both')", ParameterType.STRING, enumValues = listOf("home", "lock", "both")),
     )
     override val annotations = ToolAnnotations(destructiveHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("path")
+        string("target")
+        integer("width")
+        integer("height")
+        integer("original_width")
+        integer("original_height")
+        integer("sample_size")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val path = params["path"]?.toString()

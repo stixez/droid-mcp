@@ -5,6 +5,7 @@ package io.droidmcp.accessibility
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
+import io.droidmcp.core.OutputSchema
 
 /**
  * Shared lookup + serialization helpers used by every node-targeting tool.
@@ -232,4 +233,29 @@ internal object NodeQuery {
         current?.recycle()
         return false
     }
+}
+
+/** Output-schema fields matching [NodeQuery.toMap], for tools that return node projections. */
+internal fun OutputSchema.ObjectBuilder.nodeFields() {
+    string("view_id", nullable = true)
+    string("class", nullable = true)
+    string("package", nullable = true)
+    string("text", "Null for password fields", nullable = true)
+    string("content_description", nullable = true)
+    boolean("is_password")
+    obj("bounds") {
+        integer("left")
+        integer("top")
+        integer("right")
+        integer("bottom")
+    }
+    boolean("clickable")
+    boolean("long_clickable")
+    boolean("scrollable")
+    boolean("editable")
+    boolean("focused")
+    boolean("selected")
+    boolean("enabled")
+    boolean("checked")
+    integer("depth")
 }

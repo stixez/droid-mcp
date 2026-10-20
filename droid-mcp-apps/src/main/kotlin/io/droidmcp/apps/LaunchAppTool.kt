@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
@@ -28,6 +29,10 @@ class LaunchAppTool(private val context: Context) : McpTool {
         ToolParameter("package_name", "Package name of the app to launch (e.g. com.example.app)", ParameterType.STRING, required = true),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("success")
+        string("package_name")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val packageName = params["package_name"]?.toString()

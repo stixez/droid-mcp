@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import java.net.Inet4Address
 import android.net.wifi.WifiManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -23,6 +24,15 @@ class GetWifiInfoTool(private val context: Context) : McpTool {
     override val description = "Get current WiFi connection information including SSID, signal strength, and IP address. Note: SSID requires location permission on API 26+."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        boolean("is_connected")
+        string("ssid", nullable = true)
+        string("bssid", nullable = true)
+        string("ip_address", nullable = true)
+        integer("link_speed_mbps")
+        integer("rssi")
+        integer("frequency_mhz")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager

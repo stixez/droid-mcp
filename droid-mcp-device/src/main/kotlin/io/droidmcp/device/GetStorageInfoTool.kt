@@ -3,6 +3,7 @@ package io.droidmcp.device
 import android.os.Environment
 import android.os.StatFs
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -19,6 +20,13 @@ class GetStorageInfoTool : McpTool {
     override val description = "Get device storage information: total, available, and used space in bytes"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("total_bytes")
+        integer("available_bytes")
+        integer("used_bytes")
+        string("total_gb", "Formatted to one decimal, e.g. \"118.2\"")
+        string("available_gb")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
         val stat = StatFs(Environment.getDataDirectory().path)

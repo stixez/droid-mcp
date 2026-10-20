@@ -6,6 +6,7 @@ import android.os.Build
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
@@ -27,6 +28,13 @@ class GetSimInfoTool(private val context: Context) : McpTool {
     override val description = "Get SIM card information including serial number (ICCID), carrier name, and country ISO"
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        string("sim_serial", nullable = true)
+        string("carrier_name", nullable = true)
+        string("country_iso", nullable = true)
+        integer("slot_index", "Physical SIM slot, or -1 when unknown")
+        integer("subscription_id")
+    }
 
     @SuppressLint("HardwareIds")
     override suspend fun execute(params: Map<String, Any>): ToolResult {

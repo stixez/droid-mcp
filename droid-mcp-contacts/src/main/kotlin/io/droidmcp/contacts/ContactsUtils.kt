@@ -3,7 +3,7 @@ package io.droidmcp.contacts
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.provider.ContactsContract.CommonDataKinds.Phone
 
-/** Pure validation and type-mapping helpers for [CreateContactTool]. */
+/** Pure validation and type-mapping helpers for the contacts write tools. */
 internal object ContactsUtils {
 
     /** Accepted `phone_type` values, mapped to `Phone.TYPE_*` (same labels `read_contact` reports). */
@@ -38,4 +38,18 @@ internal object ContactsUtils {
     /** Maps a case-insensitive type label via [types]; [default] when [input] is null, null when unknown. */
     fun resolveType(input: String?, types: Map<String, Int>, default: String): Int? =
         types[(input ?: default).trim().lowercase()]
+
+    /** A positive id from a number or numeric string, else null. */
+    fun parseId(value: Any?): Long? =
+        ((value as? Number)?.toLong() ?: value?.toString()?.trim()?.toLongOrNull())?.takeIf { it > 0 }
+
+    /**
+     * Whether two phone numbers have the same digits, ignoring formatting and a leading `+`:
+     * "+1 555-0100" matches "15550100" but not "5550100".
+     */
+    fun samePhone(a: String, b: String): Boolean {
+        val digitsA = a.filter { it.isDigit() }
+        val digitsB = b.filter { it.isDigit() }
+        return digitsA.isNotEmpty() && digitsA == digitsB
+    }
 }

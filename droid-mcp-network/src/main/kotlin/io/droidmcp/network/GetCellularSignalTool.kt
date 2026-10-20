@@ -11,6 +11,7 @@ import android.telephony.CellSignalStrengthTdscdma
 import android.telephony.CellSignalStrengthWcdma
 import android.telephony.TelephonyManager
 import io.droidmcp.core.McpTool
+import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
 import io.droidmcp.core.ParameterType
@@ -34,6 +35,12 @@ class GetCellularSignalTool(private val context: Context) : McpTool {
     override val description = "Get current cellular signal strength information including ASU, dBm, and signal level (excellent/good/moderate/poor/none)."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
+    override val outputSchema = OutputSchema.obj {
+        integer("signal_asu", nullable = true)
+        integer("signal_dbm", nullable = true)
+        string("level", "excellent, good, moderate, poor or none")
+        integer("level_numeric", "0-4")
+    }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult = withContext(Dispatchers.IO) {
         if (!PermissionHelper.hasPermissions(context, listOf(Manifest.permission.ACCESS_NETWORK_STATE))) {

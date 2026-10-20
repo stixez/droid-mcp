@@ -18,6 +18,8 @@ import io.droidmcp.core.transport.TokenStore
  */
 class DroidMcp private constructor(
     private val registry: ToolRegistry,
+    private val resources: ResourceRegistry,
+    private val prompts: PromptRegistry,
     private val httpTransport: HttpTransport?,
     private val inProcessTransport: InProcessTransport,
 ) {
@@ -40,6 +42,37 @@ class DroidMcp private constructor(
         params: Map<String, Any>,
         onProgress: suspend (ProgressUpdate) -> Unit,
     ): ToolResult = inProcessTransport.callTool(name, params, onProgress)
+
+    /**
+     * Register more tools after [Builder.build] — e.g. once the user grants the permission they
+     * need. Connected HTTP clients get `notifications/tools/list_changed`.
+     */
+    fun registerTools(toolList: List<McpTool>) = registry.registerAll(toolList)
+
+    /** Remove a tool at runtime (e.g. after its permission is revoked). @return true if it was registered. */
+    fun unregisterTool(name: String): Boolean = registry.unregister(name)
+
+    /** Add a resource provider at runtime; connected clients get `notifications/resources/list_changed`. */
+    fun registerResourceProvider(provider: ResourceProvider) = resources.register(provider)
+
+    /** Remove a resource provider added with [Builder.addResourceProvider] or [registerResourceProvider]. */
+    fun unregisterResourceProvider(provider: ResourceProvider) = resources.unregister(provider)
+
+    /** Every provider's advertised resources (in-process). */
+    suspend fun listResources(): List<McpResource> = inProcessTransport.listResources()
+
+    /** Every provider's URI templates (in-process). */
+    fun listResourceTemplates(): List<McpResourceTemplate> = inProcessTransport.listResourceTemplates()
+
+    /** The contents at [uri], or null when nothing handles it (in-process). */
+    suspend fun readResource(uri: String): List<ResourceContents>? = inProcessTransport.readResource(uri)
+
+    /** Prompts whose required tools are all enabled (in-process). */
+    fun listPrompts(): List<McpPrompt> = inProcessTransport.listPrompts()
+
+    /** Render a prompt in-process; see [InProcessTransport.getPrompt]. */
+    suspend fun getPrompt(name: String, arguments: Map<String, String> = emptyMap()): PromptResult? =
+        inProcessTransport.getPrompt(name, arguments)
 
     /** Start the HTTP server. Throws if the server was not enabled via [Builder.enableHttpServer]. */
     fun startServer() {
@@ -100,6 +133,8 @@ class DroidMcp private constructor(
      */
     class Builder {
         private val tools = mutableListOf<McpTool>()
+        private val resourceProviders = mutableListOf<ResourceProvider>()
+        private val promptList = mutableListOf<McpPrompt>()
         private var httpPort: Int? = null
         private var authToken: String? = null
         private var requireAuth: Boolean = true
@@ -117,6 +152,18 @@ class DroidMcp private constructor(
 
         /** Add every tool in [toolList] (e.g. a module provider's `all(context)`). */
         fun addTools(toolList: List<McpTool>) = apply { tools.addAll(toolList) }
+
+        /** Serve [provider]'s resources (e.g. `MediaTools.resources(context)`) over the `resources/...` methods. */
+        fun addResourceProvider(provider: ResourceProvider) = apply { resourceProviders.add(provider) }
+
+        /** Add a prompt served over the `prompts/...` methods. */
+        fun addPrompt(prompt: McpPrompt) = apply { promptList.add(prompt) }
+
+        /** Add several prompts. */
+        fun addPrompts(prompts: List<McpPrompt>) = apply { promptList.addAll(prompts) }
+
+        /** Add every [BuiltInPrompts] prompt; each is listed only while the tools it uses are. */
+        fun addBuiltInPrompts() = addPrompts(BuiltInPrompts.all())
 
         /**
          * Record every HTTP `tools/call` to [sink] (e.g. the Room-backed sink
@@ -198,7 +245,9 @@ class DroidMcp private constructor(
         fun build(): DroidMcp {
             val registry = ToolRegistry(toolTimeoutMs, confirmer, requiresConfirmation)
             registry.registerAll(tools)
-            val inProcess = InProcessTransport(registry)
+            val resources = ResourceRegistry().apply { resourceProviders.forEach(::register) }
+            val prompts = PromptRegistry().apply { registerAll(promptList) }
+            val inProcess = InProcessTransport(registry, resources, prompts)
             val http = httpPort?.let {
                 HttpTransport(
                     registry = registry,
@@ -210,9 +259,11 @@ class DroidMcp private constructor(
                     auditSink = auditSink,
                     tls = tls,
                     allowedOrigins = allowedOrigins,
+                    resources = resources,
+                    prompts = prompts,
                 )
             }
-            return DroidMcp(registry, http, inProcess)
+            return DroidMcp(registry, resources, prompts, http, inProcess)
         }
     }
 
