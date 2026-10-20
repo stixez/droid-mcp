@@ -46,7 +46,7 @@ import io.droidmcp.core.ToolResult
 class RunShellTool(private val shell: ShellBackend) : McpTool {
 
     override val name = "run_shell"
-    override val description = "Run an arbitrary shell command via the backend. **Host-gated** — refuses unless the host has allowlisted a matching command prefix via `ShellAllowlist.set(...)`. Prefer the argv form (`args` array) for anything containing whitespace or quotes; the legacy string form whitespace-splits naively."
+    override val description = "Run a shell command the host app has allowlisted, and return its exit code, stdout and stderr. Any other command is refused. Pass arguments in `args` to keep spaces and quotes intact."
     override val parameters = listOf(
         ToolParameter("command", "Bin name (argv form) or full command line (string form). The host allowlist is matched token-by-token against the leading argv entries: in string form the whitespace-split command line, in argv form `command` followed by `args` verbatim (an arg containing a space never matches an allowlist token).", ParameterType.STRING, required = true),
         ToolParameter("args", "Optional argv array. When set, each entry is passed as a discrete argument with no shell tokenisation (so quoted strings, paths with spaces, etc. just work).", ParameterType.ARRAY, required = false),

@@ -25,7 +25,7 @@ import io.droidmcp.core.ToolResult
  */
 class InstallApkTool(private val shell: ShellBackend) : McpTool {
     override val name = "install_apk"
-    override val description = "Silently install an APK from a local file path. Uses `pm install` via the shell backend (Shizuku or root). Does not prompt the user."
+    override val description = "Install an APK file without prompting the user. Needs Shizuku or root."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path to the .apk file on the device.", ParameterType.STRING, required = true),
         ToolParameter("replace", "Replace an existing install (default true). Maps to `pm install -r`.", ParameterType.BOOLEAN, required = false),
@@ -83,7 +83,7 @@ class InstallApkTool(private val shell: ShellBackend) : McpTool {
  */
 class UninstallAppTool(private val shell: ShellBackend) : McpTool {
     override val name = "uninstall_app"
-    override val description = "Silently uninstall an app by package name via `pm uninstall`. Requires the shell backend."
+    override val description = "Uninstall an app by package name without prompting, optionally keeping its data. Needs Shizuku or root."
     override val parameters = listOf(
         ToolParameter("package_name", "Application package name (e.g. 'com.example.app').", ParameterType.STRING, required = true),
         ToolParameter("keep_data", "Keep application data on uninstall (`pm uninstall -k`, default false).", ParameterType.BOOLEAN, required = false),

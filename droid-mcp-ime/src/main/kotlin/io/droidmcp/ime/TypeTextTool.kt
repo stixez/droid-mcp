@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class TypeTextTool(private val context: Context) : McpTool {
 
     override val name = "type_text"
-    override val description = "Commit text into the currently focused editor field via InputConnection.commitText. Requires the droid-mcp IME to be active."
+    override val description = "Type text into the focused text field at the cursor. Needs the droid-mcp keyboard to be active (is_ime_active)."
     override val parameters = listOf(
         ToolParameter("text", "Text to insert at the cursor.", ParameterType.STRING, required = true),
     )

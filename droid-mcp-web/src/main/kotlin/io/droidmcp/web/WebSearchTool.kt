@@ -30,7 +30,7 @@ class WebSearchTool @JvmOverloads constructor(
 ) : McpTool {
 
     override val name = "web_search"
-    override val description = "Search the web using DuckDuckGo and return titles, URLs, and snippets"
+    override val description = "Search the web with DuckDuckGo. Returns titles, URLs and snippets; read a page with fetch_webpage."
     override val parameters = listOf(
         ToolParameter("query", "Search query", ParameterType.STRING, required = true),
         ToolParameter("limit", "Maximum number of results to return (default: 5)", ParameterType.INTEGER, minimum = 1.0, maximum = 50.0),

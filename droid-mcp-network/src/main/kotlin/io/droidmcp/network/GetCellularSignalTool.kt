@@ -32,7 +32,7 @@ import kotlinx.coroutines.withContext
  */
 class GetCellularSignalTool(private val context: Context) : McpTool {
     override val name = "get_cellular_signal"
-    override val description = "Get current cellular signal strength information including ASU, dBm, and signal level (excellent/good/moderate/poor/none)."
+    override val description = "Get the cellular signal strength: level (excellent to none), dBm and ASU."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

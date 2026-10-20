@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class SetVolumeTool(private val context: Context) : McpTool {
 
     override val name = "set_volume"
-    override val description = "Set volume for a specific audio stream"
+    override val description = "Set the volume of the media, ring, alarm or notification stream. Levels above the stream's maximum are capped; the result reports the maximum."
     override val parameters = listOf(
         ToolParameter("stream", "Audio stream to adjust: media, ring, alarm, notification (default: media)", ParameterType.STRING, enumValues = listOf("media", "ring", "alarm", "notification")),
         ToolParameter("level", "Volume level (0 to max for the stream)", ParameterType.INTEGER, required = true, minimum = 0.0),

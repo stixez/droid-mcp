@@ -17,7 +17,7 @@ import io.droidmcp.core.support.SqlLike
 class SearchEventsTool(private val context: Context) : McpTool {
 
     override val name = "search_events"
-    override val description = "Search calendar events by keyword in title or description"
+    override val description = "Find calendar events whose title or description contains a keyword. Returns event ids for update_event and delete_event."
     override val parameters = listOf(
         ToolParameter("query", "Search keyword", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

@@ -27,7 +27,7 @@ import io.droidmcp.notification.NotificationListenerHolder
 class WatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "watch_notifications"
-    override val description = "Register a filter against the live notification stream. Returns a watch_id; retrieve matched notifications with poll_notification_watch. At least one of package_name / sender_pattern / keyword is required; multiple fields AND-combine. package_name must match exactly; sender_pattern and keyword are case-insensitive substrings. Fire-once-per-key by default — set fire_on_update=true to fire again on subsequent updates of the same notification."
+    override val description = "Start watching for new notifications from an app (package_name), from a sender (sender_pattern, matched against the title) or containing a keyword. Returns a watch_id; collect matches later with poll_notification_watch. Sees only notifications posted after the watch starts."
     override val parameters = listOf(
         ToolParameter("package_name", "Filter to a specific app's notifications (exact match against the source package name).", ParameterType.STRING, required = false),
         ToolParameter("sender_pattern", "Case-insensitive substring match against the notification title.", ParameterType.STRING, required = false),

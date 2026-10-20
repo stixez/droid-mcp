@@ -19,9 +19,9 @@ From 1.0 on, none of these change without a major version bump:
 - `DroidMcp.Builder` method names and defaults.
 - **Each tool's wire contract:** its name, its parameter names and its result-map keys. Renaming any of them is a breaking change.
 - Module coordinates (`com.github.stixez.droid-mcp:droid-mcp-<name>` on JitPack).
-- MCP protocol behavior: `initialize`, `tools/list`, `tools/call`, error codes and the JSON-RPC envelope.
+- MCP protocol behavior: `initialize`, the `tools/*`, `resources/*` and `prompts/*` methods, error codes and the JSON-RPC envelope.
 
-Internals such as `McpProtocolImpl` internals, transport plumbing and parsing helpers are not part of the contract and may change in any release.
+Internals such as how `McpProtocolImpl` is put together, transport plumbing and parsing helpers are not part of the contract and may change in any release.
 
 ## How it is enforced
 
@@ -56,7 +56,7 @@ Typealiases kept for source compatibility (for example `playback.NotificationLis
 ## Releases
 
 - Releases are published through JitPack from git tags named `vMAJOR.MINOR.PATCH`. Maven Central may follow after 1.0 if there is demand; for consumers it would be a coordinate change, not a migration.
-- Release notes are on [GitHub Releases](https://github.com/stixez/droid-mcp/releases), generated from each tag's commit history. `CHANGELOG.md` is a local, gitignored maintainer file and is not published.
+- Release notes are on [GitHub Releases](https://github.com/stixez/droid-mcp/releases): a written summary with a "Before you upgrade" section, followed by the generated list of merged changes. `CHANGELOG.md` is a local, gitignored maintainer file and is not published.
 
 ## Support window
 

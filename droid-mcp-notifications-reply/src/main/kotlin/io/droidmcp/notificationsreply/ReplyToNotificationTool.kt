@@ -26,7 +26,7 @@ import io.droidmcp.notification.NotificationStore
 class ReplyToNotificationTool(private val context: Context) : McpTool {
 
     override val name = "reply_to_notification"
-    override val description = "Send a reply via a notification's RemoteInput action. Use list_repliable_notifications to find the key. Returns success when the PendingIntent fires; does not confirm receiving-app delivery."
+    override val description = "Reply to a message notification by its key from list_repliable_notifications. Success means the reply was handed to the app, not that it was delivered."
     override val parameters = listOf(
         ToolParameter("key", "Notification key from list_repliable_notifications.", ParameterType.STRING, required = true),
         ToolParameter("text", "Reply text to send.", ParameterType.STRING, required = true),

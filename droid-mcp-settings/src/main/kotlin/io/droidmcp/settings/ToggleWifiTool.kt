@@ -25,7 +25,7 @@ import io.droidmcp.core.support.ActivityLaunch
 class ToggleWifiTool(private val context: Context) : McpTool {
 
     override val name = "toggle_wifi"
-    override val description = "Toggle WiFi on or off. On Android 10+ (API 29+), this opens the WiFi settings panel as apps cannot directly toggle WiFi."
+    override val description = "Turn WiFi on or off. On Android 10+ apps can't do this directly, so it opens the WiFi panel for the user instead."
     override val parameters = listOf(
         ToolParameter("enabled", "Whether to enable (true) or disable (false) WiFi", ParameterType.BOOLEAN, required = true),
     )

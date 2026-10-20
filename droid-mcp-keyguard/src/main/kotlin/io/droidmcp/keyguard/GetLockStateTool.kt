@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class GetLockStateTool(private val context: Context) : McpTool {
 
     override val name = "get_lock_state"
-    override val description = "Check if the device is currently locked and whether the screen is on"
+    override val description = "Check whether the phone is locked and whether the screen is on."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class MediaControlTool(private val context: Context) : McpTool {
 
     override val name = "media_control"
-    override val description = "Send playback control commands to the active media session. Requires notification listener access."
+    override val description = "Play, pause, stop, skip to next or go to previous in a media app. Without package_name it controls the first active session."
     override val parameters = listOf(
         ToolParameter("command", "Command: 'play', 'pause', 'stop', 'next', 'previous'", ParameterType.STRING, required = true, enumValues = listOf("play", "pause", "stop", "next", "previous")),
         ToolParameter("package_name", "Target a specific app's media session by package name", ParameterType.STRING),

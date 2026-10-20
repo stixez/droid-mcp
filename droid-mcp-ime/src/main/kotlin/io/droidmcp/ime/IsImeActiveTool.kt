@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class IsImeActiveTool(private val context: Context) : McpTool {
 
     override val name = "is_ime_active"
-    override val description = "Check whether the droid-mcp IME is currently the active keyboard and has an editor field focused. Use this to gate other IME tools."
+    override val description = "Check whether the droid-mcp keyboard is the active keyboard and a text field is focused. Call before the other keyboard tools."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

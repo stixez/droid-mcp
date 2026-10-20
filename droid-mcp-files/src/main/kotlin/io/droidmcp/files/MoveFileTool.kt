@@ -17,7 +17,7 @@ import java.util.UUID
 class MoveFileTool : McpTool {
 
     override val name = "move_file"
-    override val description = "Move or rename a file or directory on shared storage. Fails if the destination exists unless overwrite is true."
+    override val description = "Move or rename a file or folder on shared storage. Fails if the destination exists unless overwrite=true, which keeps the old destination if the move fails."
     override val parameters = listOf(
         ToolParameter("source", "Absolute path of the file or directory to move", ParameterType.STRING, required = true),
         ToolParameter("destination", "Absolute path to move it to (including the new name)", ParameterType.STRING, required = true),

@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class GetKeyguardInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_keyguard_info"
-    override val description = "Get keyguard security details: whether a secure lock (PIN/pattern/password) is configured, and device lock state"
+    override val description = "Check whether a secure lock (PIN, pattern or password) is set up, and whether the device is currently locked."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

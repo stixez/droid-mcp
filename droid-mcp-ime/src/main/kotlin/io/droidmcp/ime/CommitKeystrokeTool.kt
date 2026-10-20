@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class CommitKeystrokeTool(private val context: Context) : McpTool {
 
     override val name = "commit_keystroke"
-    override val description = "Send a single named key event to the focused editor — for Enter, Backspace, Tab, arrow keys, Escape, etc. Use type_text for character input."
+    override val description = "Press a key in the focused text field: enter, backspace, del, tab, escape, arrow keys, home, end, page_up or page_down. Use type_text for ordinary text."
     override val parameters = listOf(
         ToolParameter("key", "One of: enter, backspace, del, tab, escape, up, down, left, right, home, end, page_up, page_down.", ParameterType.STRING, required = true, enumValues = listOf("enter", "backspace", "del", "tab", "escape", "up", "down", "left", "right", "home", "end", "page_up", "page_down")),
     )

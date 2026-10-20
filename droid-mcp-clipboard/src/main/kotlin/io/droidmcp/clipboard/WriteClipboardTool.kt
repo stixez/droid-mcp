@@ -18,7 +18,7 @@ import io.droidmcp.core.ToolResult
 class WriteClipboardTool(private val context: Context) : McpTool {
 
     override val name = "write_clipboard"
-    override val description = "Write text to the clipboard"
+    override val description = "Put text on the clipboard."
     override val parameters = listOf(
         ToolParameter("text", "Text content to write to clipboard", ParameterType.STRING, required = true),
         ToolParameter("label", "Label for the clip (default: droid-mcp)", ParameterType.STRING),

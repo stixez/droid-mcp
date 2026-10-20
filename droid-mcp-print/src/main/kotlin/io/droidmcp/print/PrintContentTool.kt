@@ -48,7 +48,7 @@ class PrintContentTool(
 ) : McpTool {
 
     override val name = "print_content"
-    override val description = "Send content to the system print dialog. Supports plain text (wrapped in HTML) and HTML content. Requires the host app to have a foreground Activity."
+    override val description = "Open the system print dialog for text or HTML. The user finishes printing there; success means the dialog opened."
     override val parameters = listOf(
         ToolParameter("content", "Text or HTML content to print", ParameterType.STRING, required = true),
         ToolParameter("job_name", "Print job name (default: 'droid-mcp print')", ParameterType.STRING),

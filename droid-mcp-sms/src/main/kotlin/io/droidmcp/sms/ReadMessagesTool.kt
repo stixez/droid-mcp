@@ -22,7 +22,7 @@ import java.util.*
 class ReadMessagesTool(private val context: Context) : McpTool {
 
     override val name = "read_messages"
-    override val description = "Read SMS messages. Filter by inbox/sent, contact number, or date range."
+    override val description = "Read recent SMS messages from the inbox or sent box, newest first, optionally from one phone number or since a date."
     override val parameters = listOf(
         ToolParameter("box", "Message box: 'inbox' or 'sent'. Default 'inbox'.", ParameterType.STRING, enumValues = listOf("inbox", "sent")),
         ToolParameter("address", "Filter by phone number", ParameterType.STRING),

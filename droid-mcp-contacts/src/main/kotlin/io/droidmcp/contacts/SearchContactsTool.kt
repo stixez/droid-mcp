@@ -15,7 +15,7 @@ import io.droidmcp.core.support.SqlLike
 class SearchContactsTool(private val context: Context) : McpTool {
 
     override val name = "search_contacts"
-    override val description = "Search contacts by display name (substring match)"
+    override val description = "Find contacts whose name contains the query. Returns each match's id, name, phone numbers and emails. Start here to look someone up by name."
     override val parameters = listOf(
         ToolParameter("query", "Search query matched against the contact's display name", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

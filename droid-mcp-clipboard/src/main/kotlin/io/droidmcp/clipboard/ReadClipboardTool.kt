@@ -24,7 +24,7 @@ import io.droidmcp.core.ToolResult
 class ReadClipboardTool(private val context: Context) : McpTool {
 
     override val name = "read_clipboard"
-    override val description = "Read the current clipboard content. On Android 10+ this only works while the host app is in the foreground (or is the default keyboard)."
+    override val description = "Read the text on the clipboard. On Android 10+ this works only while the host app is in the foreground or is the default keyboard."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

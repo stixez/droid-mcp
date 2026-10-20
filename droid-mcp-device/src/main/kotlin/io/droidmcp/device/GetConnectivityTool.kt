@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class GetConnectivityTool(private val context: Context) : McpTool {
 
     override val name = "get_connectivity"
-    override val description = "Get network connectivity status: WiFi, cellular, Bluetooth"
+    override val description = "Check whether the device is online, and whether it's on WiFi, cellular or Bluetooth tethering."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

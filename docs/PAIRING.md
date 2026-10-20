@@ -1,6 +1,6 @@
 # Pairing a desktop MCP client
 
-This page describes how a desktop MCP client finds, authenticates to and talks with the phone's HTTP server.
+How a desktop MCP client finds the phone's HTTP server, authenticates, and talks to it.
 
 A client can find the server in two ways:
 
@@ -27,9 +27,9 @@ Each request is checked for:
 
 ### Streaming responses
 
-Replies are plain JSON, except for a `tools/call` whose tool reports progress or asks for elicitation while it runs. That call answers with an SSE stream carrying the progress notifications or elicitation requests, then the result. To receive it, send `Accept: application/json, text/event-stream`, and include a `progressToken` in `_meta` if you want progress. A call that sends nothing mid-run still gets plain JSON.
+**During a tool call.** Replies are plain JSON, except for a `tools/call` whose tool reports progress or asks for elicitation while it runs. That call answers with an SSE stream carrying the progress notifications or elicitation requests, then the result. To receive it, send `Accept: application/json, text/event-stream`, and include a `progressToken` in `_meta` if you want progress. A call that sends nothing mid-run still gets plain JSON.
 
-`GET /mcp` opens the session's own stream. It carries `notifications/tools/list_changed`, `notifications/resources/list_changed` and `notifications/prompts/list_changed` whenever the host changes what is exposed (a tool change sends all three, since resource and prompt visibility follows the tools), plus a `: keepalive` comment every 25 s. A session has one stream: opening a second closes the first, and `DELETE /mcp` closes it with the session.
+**Between calls.** `GET /mcp` opens the session's own stream. It carries `notifications/tools/list_changed`, `notifications/resources/list_changed` and `notifications/prompts/list_changed` whenever the host changes what's exposed, plus a `: keepalive` comment every 25 s. A tool change sends all three, because resources and prompts are visible only while their tools are. A session has one stream: opening a second closes the first, and `DELETE /mcp` closes it with the session.
 
 Elicitation is offered only to sessions whose client declared the `elicitation` capability at `initialize`. Answer an elicitation request with a separate `POST` in the same session; answers from another session are ignored.
 

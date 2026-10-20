@@ -150,7 +150,7 @@ private fun actionName(action: Int): String = when (action) {
  */
 class ClickNodeTool(private val context: Context) : McpTool {
     override val name = "click_node"
-    override val description = "Perform ACTION_CLICK on a node matched by the selector (or its nearest clickable ancestor, e.g. the row or tab around a label)."
+    override val description = "Click a UI element matched by text, view id, class or package. If the element itself isn't clickable, its nearest clickable parent is clicked (e.g. the row or tab around a label)."
     override val parameters = nodeSelectorParams()
     override val annotations = ToolAnnotations(destructiveHint = true)
     override val outputSchema = OutputSchema.obj {
@@ -170,7 +170,7 @@ class ClickNodeTool(private val context: Context) : McpTool {
  */
 class LongClickNodeTool(private val context: Context) : McpTool {
     override val name = "long_click_node"
-    override val description = "Perform ACTION_LONG_CLICK on a node matched by the selector."
+    override val description = "Long-press a UI element matched by text, view id, class or package, or its nearest long-clickable parent."
     override val parameters = nodeSelectorParams()
     override val annotations = ToolAnnotations(destructiveHint = true)
     override val outputSchema = OutputSchema.obj {
@@ -198,7 +198,7 @@ class LongClickNodeTool(private val context: Context) : McpTool {
  */
 class SetNodeTextTool(private val context: Context) : McpTool {
     override val name = "set_node_text"
-    override val description = "Replace the text of an editable node via ACTION_SET_TEXT. `text` is the replacement string; select the target node with `match_text` (substring against existing text / contentDescription), `view_id`, `class_name`, `package_name`, and `index`. Works for most native EditText fields; some apps disable accessibility text-set, in which case use the IME tools instead."
+    override val description = "Replace the text in an editable field. `text` is the new value; pick the field with `match_text` (its current text or description), `view_id`, `class_name`, `package_name` and `index`. Some apps block this; then focus the field and use the IME tools (type_text)."
     override val parameters = listOf(
         ToolParameter("text", "Replacement text.", ParameterType.STRING, required = true),
     ) + nodeSelectorParams(textKey = MATCH_TEXT_KEY)
@@ -240,7 +240,7 @@ class SetNodeTextTool(private val context: Context) : McpTool {
  */
 class ScrollNodeTool(private val context: Context) : McpTool {
     override val name = "scroll_node"
-    override val description = "Scroll forward or backward — the matched node, or the nearest scrollable container around it (e.g. match an item label to scroll its list)."
+    override val description = "Scroll the matched element, or the scrollable container around it, forward or backward one page. Match a visible item's label to scroll its list. To scroll until something appears, use scroll_to_find."
     override val parameters = nodeSelectorParams() + ToolParameter(
         "direction", "'forward' (default) or 'backward'.", ParameterType.STRING, required = false, enumValues = listOf("forward", "backward"),
     )

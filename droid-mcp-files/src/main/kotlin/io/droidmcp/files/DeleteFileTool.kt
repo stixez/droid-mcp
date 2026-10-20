@@ -12,7 +12,7 @@ import java.io.File
 class DeleteFileTool : McpTool {
 
     override val name = "delete_file"
-    override val description = "Delete a file, or a directory with recursive=true, on shared storage. Top-level folders such as DCIM or Download can't be deleted. Cannot be undone."
+    override val description = "Delete a file, or a folder with recursive=true, on shared storage. The storage root, top-level folders (DCIM, Download, …) and Android/ are protected. Cannot be undone."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path of the file or directory to delete", ParameterType.STRING, required = true),
         ToolParameter("recursive", "Delete a non-empty directory and everything in it. Default false.", ParameterType.BOOLEAN),

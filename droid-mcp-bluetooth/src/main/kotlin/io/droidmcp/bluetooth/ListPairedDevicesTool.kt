@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class ListPairedDevicesTool(private val context: Context) : McpTool {
 
     override val name = "list_paired_devices"
-    override val description = "List all paired/bonded Bluetooth devices"
+    override val description = "List paired Bluetooth devices with name, address, type and bond state. Bluetooth must be on."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

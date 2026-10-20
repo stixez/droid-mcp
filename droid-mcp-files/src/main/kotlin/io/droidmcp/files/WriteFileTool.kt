@@ -15,7 +15,7 @@ import java.io.File
 class WriteFileTool : McpTool {
 
     override val name = "write_file"
-    override val description = "Write text to a file on shared storage. By default only creates new files; set mode to 'overwrite' or 'append' to change an existing one. On Android 11+ you can write your own files and new files in folders like Download/ or Documents/."
+    override val description = "Write text to a file on shared storage. Creates a new file by default; set mode to 'overwrite' or 'append' to change an existing one. On Android 11+ only this app's files and new files in folders such as Download/ or Documents/ are writable."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path of the file to write", ParameterType.STRING, required = true),
         ToolParameter("content", "Text to write (UTF-8)", ParameterType.STRING, required = true),

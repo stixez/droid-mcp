@@ -23,7 +23,7 @@ import kotlin.coroutines.resume
 class GetLocationAddressTool(private val context: Context) : McpTool {
 
     override val name = "get_location_address"
-    override val description = "Reverse geocode coordinates (latitude/longitude) to a human-readable address. Uses the Android Geocoder which requires network access. Returns street address, city, state, country, and postal code."
+    override val description = "Turn latitude and longitude into a street address (street, city, state, country, postal code). Needs network access."
     override val parameters = listOf(
         ToolParameter("latitude", "Latitude in decimal degrees (e.g. 37.4219)", ParameterType.NUMBER, required = true, minimum = -90.0, maximum = 90.0),
         ToolParameter("longitude", "Longitude in decimal degrees (e.g. -122.0841)", ParameterType.NUMBER, required = true, minimum = -180.0, maximum = 180.0),

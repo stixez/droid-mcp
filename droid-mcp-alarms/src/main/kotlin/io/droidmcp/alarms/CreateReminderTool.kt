@@ -30,7 +30,7 @@ import java.util.*
 class CreateReminderTool(private val context: Context) : McpTool {
 
     override val name = "create_reminder"
-    override val description = "Create a reminder as a calendar event with an alert. Requires READ_CALENDAR and WRITE_CALENDAR permissions."
+    override val description = "Create a reminder as a calendar event with an alert a number of minutes before it."
     override val parameters = listOf(
         ToolParameter("title", "Title of the reminder", ParameterType.STRING, required = true),
         ToolParameter("datetime", "Date and time in YYYY-MM-DD HH:mm format", ParameterType.STRING, required = true),

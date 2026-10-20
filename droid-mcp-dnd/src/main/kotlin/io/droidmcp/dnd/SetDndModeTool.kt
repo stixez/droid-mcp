@@ -34,7 +34,7 @@ import io.droidmcp.core.ToolResult
 class SetDndModeTool(private val context: Context) : McpTool {
 
     override val name = "set_dnd_mode"
-    override val description = "Set Do Not Disturb mode. Requires notification policy access (Settings > Apps > Special access > Do Not Disturb access). On Android 15+ this toggles the app's own DND rule, which the system merges with the user's settings — check actual_mode in the result."
+    override val description = "Turn Do Not Disturb off, or set it to priority, alarms or none. Needs Do Not Disturb access. Returns actual_mode: on Android 15+ the system may merge this with the user's own settings."
     override val parameters = listOf(
         ToolParameter("mode", "DND mode: 'off' (all notifications), 'priority' (priority only), 'alarms' (alarms only), 'none' (total silence)", ParameterType.STRING, required = true, enumValues = listOf("off", "priority", "alarms", "none")),
     )

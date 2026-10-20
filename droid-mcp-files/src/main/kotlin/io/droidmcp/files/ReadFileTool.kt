@@ -18,7 +18,7 @@ import java.io.File
 class ReadFileTool(private val context: Context) : McpTool {
 
     override val name = "read_file"
-    override val description = "Read the text content of a file. Only reads text files — returns an error for binary files. Large files are truncated to max_lines (and at most ~1M characters). On Android 11+ non-media files created by other apps are not visible."
+    override val description = "Read a text file from shared storage, up to `max_lines` lines. Binary files return an error. Android 11+ hides non-media files created by other apps."
     override val parameters = listOf(
         ToolParameter("path", "Absolute path to the file to read", ParameterType.STRING, required = true),
         ToolParameter("max_lines", "Maximum number of lines to return. Default 100.", ParameterType.INTEGER, minimum = 1.0, maximum = 1000.0),

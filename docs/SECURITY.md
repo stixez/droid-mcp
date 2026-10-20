@@ -1,6 +1,6 @@
 # Security model
 
-droid-mcp lets an LLM, on the device or on a desktop, call phone capabilities through MCP. This page covers what protects those calls, where the trust boundaries are, and what is out of scope.
+droid-mcp lets an LLM, on the device or on a desktop, call phone capabilities through MCP. This page covers what protects those calls, where the trust boundaries are, and what's out of scope.
 
 ## Transports
 
@@ -22,7 +22,7 @@ Assume an attacker who can reach the device's IP, for example on the same Wi-Fi.
 | Use another client's session | Session IDs are tied to the token that created them. A missing `Mcp-Session-Id` gets 400; an unknown or foreign one gets 404. |
 | Sniff the token or tool arguments in transit | TLS (`enableTls`, with the opt-in `droid-mcp-tls` module). The certificate is self-signed, so clients pin its SHA-256 fingerprint from the pairing QR (`DroidMcp.tlsFingerprint`). Without TLS, treat the network as trusted. |
 | Reuse a leaked token | `rotateToken()` replaces the primary token. Per-client tokens (`pairClient` / `revokeClient`) let you revoke one client without affecting the others. |
-| Read or write outside shared storage through the file tools or file resources | The write tools are off unless the host passes `includeWriteTools = true`. Every path is resolved, symlinks included, and refused if it lands outside external storage or goes through a broken link. The storage root, its top-level folders and everything under `Android/` can't be moved, deleted or written, recursive deletes stop at 1000 entries, and recursive deletes and cross-volume moves refuse trees containing symbolic links. The write tools are `destructiveHint`, so `confirmToolCalls` covers them. |
+| Read or write outside shared storage through the file tools or file resources | Every path is resolved, symlinks included, and refused if it lands outside external storage or goes through a broken link. The write tools are opt-in (`includeWriteTools = true`), marked `destructiveHint` so `confirmToolCalls` covers them, and never touch the storage root, top-level folders or `Android/`. Details are in [TOOLS.md](TOOLS.md#files). |
 | Call write tools on an observe-only deployment | Read-only mode (`readOnly = true`) lists only read-only tools and rejects `tools/call` for the rest. |
 | Call a tool you never meant to expose | `setToolEnabled` / `setDisabledTools` remove a tool from both `tools/list` and `tools/call` at runtime. Resources and prompts built on a gated tool disappear with it, and a resource read goes through the same confirmer as its tool, so the same data can't be read another way. |
 | Discover the server | mDNS (`_mcp._tcp`) advertises `version`, `auth`, `readonly` and `tls`, never the token. `/health` requires auth. |

@@ -21,7 +21,7 @@ import io.droidmcp.core.ToolResult
 class GetDndStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_dnd_status"
-    override val description = "Get the current Do Not Disturb status and interruption filter"
+    override val description = "Check whether Do Not Disturb is on and which interruptions it lets through (all, priority, alarms or none)."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

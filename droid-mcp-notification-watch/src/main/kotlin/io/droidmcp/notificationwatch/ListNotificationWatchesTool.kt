@@ -16,7 +16,7 @@ import io.droidmcp.core.ToolResult
 class ListNotificationWatchesTool(private val context: Context) : McpTool {
 
     override val name = "list_notification_watches"
-    override val description = "List currently-active notification watches with TTL countdown. Expired watches are swept before the list is returned."
+    override val description = "List active notification watches with their filters and time left."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

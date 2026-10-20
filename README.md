@@ -1,9 +1,9 @@
 <h1 align="center">droid-mcp</h1>
 
 <p align="center">
-  <b>Give your AI app the whole phone.</b><br/>
-  157 Android capabilities (calendar, messages, camera, sensors, UI automation, and more) as typed tools
-  for on-device LLMs and any <a href="https://modelcontextprotocol.io">MCP</a> client.
+  <b>An Android SDK and MCP server that lets an LLM use the phone.</b><br/>
+  157 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
+  for on-device models and any <a href="https://modelcontextprotocol.io">MCP</a> client, such as Claude or Cursor.
 </p>
 
 <p align="center">
@@ -17,16 +17,23 @@
 
 ---
 
-droid-mcp is an Android SDK that turns phone capabilities into tools an LLM can call. Use them in two ways:
+droid-mcp turns Android phone capabilities into tools a language model can call, using the [Model Context Protocol](https://modelcontextprotocol.io). Use it in two ways:
 
-- **On-device**: call tools straight from your app's model output. No server involved.
-- **Over MCP**: run a small HTTP server on the phone and connect Claude Code, Cursor, or any other MCP client over Wi-Fi.
+- **On-device:** your app runs a local model and calls the tools directly. No server involved.
+- **Over MCP:** your app runs a small HTTP server on the phone, and Claude Code, Cursor or any other MCP client that speaks Streamable HTTP connects over Wi-Fi.
+
+With the matching modules, a model can for example:
+
+- summarize today's calendar and unread messages, then reply to one of them
+- find a photo from last weekend and read the text in it
+- open an app and tap through its screens with the accessibility tools
+- check battery, storage and connectivity, and turn on Do Not Disturb
 
 Highlights:
 
 - **Pick only what you need.** 53 independent modules. Each adds only its own permissions to your manifest.
 - **Safe by default.** Bearer auth, Origin and session checks, an SSRF guard, sandboxed file access, read-only mode, per-tool gating, and optional user confirmation for risky calls.
-- **Current MCP.** Protocol 2025-11-25, typed results on every tool, resources, prompts, live list updates, image content, progress, elicitation, and cancellation.
+- **Current MCP.** Protocol 2025-11-25: typed results (`outputSchema`) on every tool, resources, prompts, live `list_changed` updates, image content, progress, elicitation and cancellation.
 - **Your permission UX.** The library never asks for permissions. Your app decides when and how.
 
 ## Quick start

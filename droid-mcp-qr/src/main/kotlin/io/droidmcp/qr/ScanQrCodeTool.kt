@@ -31,7 +31,7 @@ import kotlin.coroutines.resumeWithException
 class ScanQrCodeTool(private val context: Context) : McpTool {
 
     override val name = "scan_qr_code"
-    override val description = "Scan a QR code from an image file URI"
+    override val description = "Read a QR code from an image (a file path or content:// URI). Doesn't use the camera; take a photo first if needed."
     override val parameters = listOf(
         ToolParameter("image_uri", "file:// (external storage only) or content:// URI of the image containing the QR code", ParameterType.STRING, required = true),
     )

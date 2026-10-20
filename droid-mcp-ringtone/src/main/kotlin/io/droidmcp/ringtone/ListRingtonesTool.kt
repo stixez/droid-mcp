@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class ListRingtonesTool(private val context: Context) : McpTool {
 
     override val name = "list_ringtones"
-    override val description = "List available ringtones on the device by type"
+    override val description = "List the sounds available as ringtone, notification or alarm sound, with the URIs set_ringtone accepts."
     override val parameters = listOf(
         ToolParameter("type", "Ringtone type: 'ringtone', 'notification', or 'alarm' (default: 'ringtone')", ParameterType.STRING, enumValues = listOf("ringtone", "notification", "alarm")),
         ToolParameter("limit", "Maximum number of results (1-100, default: 50)", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

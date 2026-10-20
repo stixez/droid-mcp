@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class VibrateTool(private val context: Context) : McpTool {
 
     override val name = "vibrate"
-    override val description = "Vibrate the device for a specified duration"
+    override val description = "Vibrate the phone once for a duration, optionally at a given strength."
     override val parameters = listOf(
         ToolParameter("duration_ms", "Duration of vibration in milliseconds (1-10000)", ParameterType.INTEGER, required = true, minimum = 1.0, maximum = 10000.0),
         ToolParameter("amplitude", "Vibration amplitude (1-255), or null for default", ParameterType.INTEGER, required = false, minimum = 1.0, maximum = 255.0),

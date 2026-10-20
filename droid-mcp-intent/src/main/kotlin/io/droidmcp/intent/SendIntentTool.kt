@@ -27,7 +27,7 @@ import io.droidmcp.core.ToolResult
 class SendIntentTool(private val context: Context) : McpTool {
 
     override val name = "send_intent"
-    override val description = "Fire a safe Android intent. Supports configurable action, data URI, MIME type, extras, and optional target package. Only allowlisted actions are permitted (VIEW, DIAL, SEND, SENDTO, CHOOSER, SEARCH, WEB_SEARCH, EDIT). Data URIs must use http, https, geo, tel, mailto, sms, smsto, mms, mmsto, or market. Requires the host app to be in the foreground (or hold 'Display over other apps') on Android 10+."
+    override val description = "Start another app with an Android intent: view a URL or map location, dial a number, compose a message or email, share, search or edit. Only allowlisted actions and URI schemes are accepted. Needs the host app in the foreground on Android 10+."
     override val parameters = listOf(
         ToolParameter("action", "Intent action (e.g. 'android.intent.action.VIEW', 'android.intent.action.DIAL')", ParameterType.STRING, required = true, enumValues = listOf(Intent.ACTION_VIEW, Intent.ACTION_DIAL, Intent.ACTION_SEND, Intent.ACTION_SENDTO, Intent.ACTION_CHOOSER, Intent.ACTION_SEARCH, Intent.ACTION_WEB_SEARCH, Intent.ACTION_EDIT)),
         ToolParameter("data", "Data URI (e.g. 'tel:+1234567890', 'https://example.com')", ParameterType.STRING),

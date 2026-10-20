@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class GetAudioDevicesTool(private val context: Context) : McpTool {
 
     override val name = "get_audio_devices"
-    override val description = "Get list of connected audio devices (speakers, headphones, etc.)"
+    override val description = "List connected audio devices (speaker, earpiece, wired or Bluetooth headphones, USB, HDMI) and whether each is an output."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

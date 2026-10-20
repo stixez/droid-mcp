@@ -73,7 +73,7 @@ class SetAppStandbyBucketTool(private val shell: ShellBackend) : McpTool {
 class MakeAppInactiveTool(private val shell: ShellBackend) : McpTool {
 
     override val name = "make_app_inactive"
-    override val description = "Force-mark an app as idle for Doze via `am set-inactive <pkg> true`. Useful for testing Doze-mode behaviour. Idempotent."
+    override val description = "Mark an app as idle so Doze restricts it, as if it hadn't been used for a while. Needs Shizuku or root."
     override val parameters = listOf(
         ToolParameter("package_name", "Application package name.", ParameterType.STRING, required = true),
     )

@@ -21,7 +21,7 @@ import io.droidmcp.core.ToolResult
 class GetWallpaperInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_wallpaper_info"
-    override val description = "Get information about the current wallpaper including dimensions and whether a live wallpaper is active"
+    override val description = "Get the wallpaper's size and whether a live wallpaper is set."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

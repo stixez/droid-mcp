@@ -25,7 +25,7 @@ import io.droidmcp.core.ToolResult
 class GetSimInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_sim_info"
-    override val description = "Get SIM card information including serial number (ICCID), carrier name, and country ISO"
+    override val description = "Get SIM details: carrier name, country, SIM slot and subscription id, and the serial number where Android allows it."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

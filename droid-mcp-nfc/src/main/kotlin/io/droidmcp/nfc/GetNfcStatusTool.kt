@@ -19,7 +19,7 @@ import io.droidmcp.core.ToolResult
 class GetNfcStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_nfc_status"
-    override val description = "Check if NFC is available and enabled on the device"
+    override val description = "Check whether the phone has NFC and whether it's turned on."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

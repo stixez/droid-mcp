@@ -23,7 +23,7 @@ import io.droidmcp.notification.NotificationStore
 class DismissNotificationTool(private val context: Context) : McpTool {
 
     override val name = "dismiss_notification"
-    override val description = "Cancel a notification by key. Requires notification listener access. Source apps may immediately repost identical notifications."
+    override val description = "Clear a notification by its key. The app may post it again."
     override val parameters = listOf(
         ToolParameter("key", "Notification key from list_repliable_notifications.", ParameterType.STRING, required = true),
     )

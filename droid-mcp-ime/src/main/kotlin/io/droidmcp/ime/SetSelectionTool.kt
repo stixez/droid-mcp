@@ -18,7 +18,7 @@ import io.droidmcp.core.ToolResult
 class SetSelectionTool(private val context: Context) : McpTool {
 
     override val name = "set_selection"
-    override val description = "Move the cursor or select a range via InputConnection.setSelection. Pass equal start/end to position the cursor without selecting."
+    override val description = "Move the cursor (equal start and end) or select a range of text in the focused field, by character offsets."
     override val parameters = listOf(
         ToolParameter("start", "Selection start (absolute character offset, >=0).", ParameterType.INTEGER, required = true, minimum = 0.0),
         ToolParameter("end", "Selection end (>= start).", ParameterType.INTEGER, required = true, minimum = 0.0),

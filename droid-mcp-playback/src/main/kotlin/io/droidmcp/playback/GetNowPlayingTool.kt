@@ -26,7 +26,7 @@ import io.droidmcp.core.ToolResult
 class GetNowPlayingTool(private val context: Context) : McpTool {
 
     override val name = "get_now_playing"
-    override val description = "Get information about the currently playing media from active media sessions. Requires notification listener access."
+    override val description = "See what's playing in media apps: title, artist, album, playback state and position for each active session."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

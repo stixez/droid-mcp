@@ -20,7 +20,7 @@ import io.droidmcp.core.ToolResult
 class GetBluetoothStatusTool(private val context: Context) : McpTool {
 
     override val name = "get_bluetooth_status"
-    override val description = "Get Bluetooth adapter status including whether it is enabled and adapter details"
+    override val description = "Check whether Bluetooth is supported and enabled, with the adapter's name and address when readable."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

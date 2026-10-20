@@ -17,7 +17,7 @@ import io.droidmcp.core.ToolResult
 class UnwatchNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "unwatch_notifications"
-    override val description = "Remove a notification watch by id. Idempotent — removing a non-existent id returns success with removed=false rather than an error."
+    override val description = "Stop a notification watch by id. An unknown id succeeds with removed=false."
     override val parameters = listOf(
         ToolParameter("watch_id", "Watch id returned by watch_notifications.", ParameterType.STRING, required = true),
     )

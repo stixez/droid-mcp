@@ -21,7 +21,7 @@ import io.droidmcp.core.ToolResult
 class GetTtsInfoTool(private val context: Context) : McpTool {
 
     override val name = "get_tts_info"
-    override val description = "Get the default TTS engine and its supported languages"
+    override val description = "Get the text-to-speech engine and the languages it can speak."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

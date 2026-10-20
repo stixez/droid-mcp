@@ -17,7 +17,7 @@ import java.util.*
 class SearchMessagesTool(private val context: Context) : McpTool {
 
     override val name = "search_messages"
-    override val description = "Search SMS messages by keyword in message body"
+    override val description = "Find SMS messages whose text contains a keyword."
     override val parameters = listOf(
         ToolParameter("query", "Search keyword", ParameterType.STRING, required = true),
         ToolParameter("limit", "Max results. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

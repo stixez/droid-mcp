@@ -27,7 +27,7 @@ import java.io.File
 class LabelImageTool(private val context: Context) : McpTool {
 
     override val name = "label_image"
-    override val description = "Classify the contents of an image using ML Kit image labeling"
+    override val description = "Describe what's in an image file with on-device labels (e.g. 'dog', 'beach') and a confidence for each."
     override val parameters = listOf(
         ToolParameter("image_path", "Absolute path to an image under external storage", ParameterType.STRING, required = true),
         ToolParameter("min_confidence", "Minimum confidence threshold 0.0-1.0 (default 0.5)", ParameterType.NUMBER, required = false, minimum = 0.0, maximum = 1.0),

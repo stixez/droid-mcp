@@ -25,12 +25,7 @@ import kotlin.coroutines.resume
 class GetStepCountTool(private val context: Context) : McpTool {
 
     override val name = "get_step_count"
-    override val description = """
-        Get step count data using the device's built-in step counter sensor.
-        Returns the total step count accumulated since the device was last rebooted (TYPE_STEP_COUNTER sensor).
-        This is not a per-day count — it resets on reboot.
-        Requires ACTIVITY_RECOGNITION permission on Android 10+ (API 29+).
-    """.trimIndent()
+    override val description = "Get the number of steps since the phone last rebooted, from the step counter sensor. This is not a daily count."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

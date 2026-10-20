@@ -31,7 +31,7 @@ import io.droidmcp.core.ToolResult
 class FindNodeTool(private val context: Context) : McpTool {
 
     override val name = "find_node"
-    override val description = "Search the active window's UI tree for nodes matching any combination of text, view-id, class name, or package. Returns up to `limit` matches with the same shape as `query_screen` entries."
+    override val description = "Find UI elements on screen matching text, view id, class name or package. Returns the same element shape as query_screen. Use it to locate a specific element instead of listing the whole screen."
     override val parameters = listOf(
         ToolParameter("text", "Substring match against the node's text or content description (case-insensitive).", ParameterType.STRING, required = false),
         ToolParameter("view_id", "Exact match against the node's view-id resource name (e.g. com.app:id/button).", ParameterType.STRING, required = false),

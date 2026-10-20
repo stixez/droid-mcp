@@ -18,7 +18,7 @@ import java.util.*
 class BrowseFilesTool(private val context: Context) : McpTool {
 
     override val name = "browse_files"
-    override val description = "List files and directories at the given path. Returns file name, size, last modified date, and whether each entry is a directory. On Android 11+ non-media files created by other apps are not visible."
+    override val description = "List the files and folders in a directory on shared storage, with size and modified date. Defaults to the storage root. To find a file by name anywhere, use search_files."
     override val parameters = listOf(
         ToolParameter("path", "Directory path to browse. Default: /sdcard", ParameterType.STRING),
         ToolParameter("limit", "Max number of entries to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),

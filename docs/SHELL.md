@@ -174,7 +174,7 @@ The tools are always registered: `requiredPermissions()` is empty and `hasPermis
 | `get_top_window` | `dumpsys window` | none |
 | `set_app_standby_bucket` | `am set-standby-bucket` | `package_name`, `bucket` (`active`, `working_set`, `frequent`, `rare`, `restricted`) |
 | `make_app_inactive` | `am set-inactive <pkg> true` | `package_name` |
-| `capture_screen_quiet` | `screencap -p [-d <display>]` | `display` (default `0`). Returns a base64 PNG with no MediaProjection prompt. |
+| `capture_screen_quiet` | `screencap -p [-d <display>]` | `display` (default `0`). Returns the PNG as an image content block, with no MediaProjection prompt. |
 | `run_shell` | Any command the host allowlists | `command`, `args` (argv array), `max_stdout_bytes` (1024–65536, default 8192, also applied to stderr) |
 
 Only `get_top_window`, `list_app_permissions` and `capture_screen_quiet` are read-only. On an HTTP server with `readOnly = true`, they are the only shell tools listed or callable. Every other shell tool is marked `destructiveHint`, so `Builder.confirmToolCalls` asks before each of them by default.

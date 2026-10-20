@@ -22,8 +22,7 @@ import io.droidmcp.core.ToolResult
 class GetNextAlarmTool(private val context: Context) : McpTool {
 
     override val name = "get_next_alarm"
-    override val description = "Get the next scheduled alarm clock (the soonest alarm clock registered with the system, usually by the clock app). " +
-        "Android offers no API to list all alarms."
+    override val description = "Get the next scheduled alarm: whether one exists, its time and which app set it. Android can't list all alarms, only the next one."
     override val parameters = emptyList<ToolParameter>()
     override val annotations = ToolAnnotations(readOnlyHint = true, idempotentHint = true)
     override val outputSchema = OutputSchema.obj {

@@ -32,7 +32,7 @@ import java.util.concurrent.Executors
 class GetCurrentLocationTool(private val context: Context) : McpTool {
 
     override val name = "get_current_location"
-    override val description = "Get the device's current location: the freshest cached fix, or a fresh one (up to 10 s) when nothing is cached. Requires ACCESS_FINE_LOCATION or ACCESS_COARSE_LOCATION permission. Returns latitude, longitude, accuracy, altitude, speed, timestamp, provider and source (cache/fresh)."
+    override val description = "Get the phone's location: the newest cached fix, or a fresh one (waits up to 10 s) when nothing is cached. Returns latitude, longitude, accuracy, a timestamp to judge freshness, and whether it came from cache."
     override val parameters = listOf(
         ToolParameter("accuracy", "Location accuracy preference: 'fine' (GPS) or 'coarse' (network). Default: 'coarse'", ParameterType.STRING, enumValues = listOf("fine", "coarse")),
     )
