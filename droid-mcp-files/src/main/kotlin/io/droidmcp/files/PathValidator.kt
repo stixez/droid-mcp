@@ -90,6 +90,17 @@ internal object PathValidator {
      * Whether anything inside [dir] is a symbolic link. Recursive deletes and copies refuse such
      * trees: walking them would follow the link out of the sandbox.
      */
-    fun containsSymlink(dir: File): Boolean =
-        dir.walkTopDown().onEnter { it == dir || !isSymlink(it) }.any { it != dir && isSymlink(it) }
+    fun containsSymlink(dir: File): Boolean {
+        // An explicit walk: walkTopDown's onEnter skips a linked directory without yielding it, so
+        // a filter there never sees the link at all.
+        val pending = ArrayDeque<File>()
+        pending.add(dir)
+        while (pending.isNotEmpty()) {
+            for (child in pending.removeFirst().listFiles().orEmpty()) {
+                if (isSymlink(child)) return true
+                if (child.isDirectory) pending.add(child)
+            }
+        }
+        return false
+    }
 }
