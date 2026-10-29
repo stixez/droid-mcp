@@ -24,6 +24,22 @@ data class PromptResult(
 )
 
 /**
+ * What a completion ([McpPrompt.complete], [ResourceProvider.complete]) can draw on: the other
+ * arguments the user has already filled in, and [callTool] for reading device data through a
+ * read-only tool, e.g. contact names from `search_contacts`.
+ */
+class CompletionContext(
+    val arguments: Map<String, String> = emptyMap(),
+    private val toolCaller: suspend (name: String, params: Map<String, Any>) -> ToolResult? = { _, _ -> null },
+) {
+    /**
+     * Runs the tool [name] if it is visible, read-only and needs no host confirmation; null
+     * otherwise, so a suggestion never pops a confirmation dialog or changes anything.
+     */
+    suspend fun callTool(name: String, params: Map<String, Any>): ToolResult? = toolCaller(name, params)
+}
+
+/**
  * A reusable prompt template a client can offer its user (MCP `prompts/list` / `prompts/get`).
  * droid-mcp ships a few in [BuiltInPrompts]; hosts can add their own via
  * [DroidMcp.Builder.addPrompt].
@@ -43,6 +59,13 @@ interface McpPrompt {
      * [IllegalArgumentException] for a value that is present but invalid.
      */
     suspend fun render(arguments: Map<String, String>): PromptResult
+
+    /**
+     * Suggested values for [argument], given what the user has typed so far ([value]); MCP
+     * `completion/complete`. Return the best matches first; the server sends at most 100.
+     * Defaults to no suggestions.
+     */
+    suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> = emptyList()
 }
 
 /** Names of [McpPrompt.arguments] marked required but missing or blank in [arguments]. */

@@ -42,7 +42,7 @@ Multi-module Gradle project. Each phone API is an independent module depending o
 - `McpTool` — interface every tool implements
 - `ToolParameter`, `ToolResult` — typed params and results
 - `ToolRegistry` — thread-safe tool collection (ConcurrentHashMap)
-- `McpProtocolImpl` — JSON-RPC 2.0 handler (initialize, tools/*, resources/*, prompts/*, ping)
+- `McpProtocolImpl` — JSON-RPC 2.0 handler (initialize, tools/*, resources/*, prompts/*, completion/complete, ping)
 - `ResourceRegistry` / `PromptRegistry` — resource providers and prompts (`BuiltInPrompts`); registries notify listeners so `HttpTransport` pushes `list_changed` over the `GET /mcp` stream
 - `InProcessTransport` — direct calls for on-device LLMs
 - `HttpTransport` — Ktor server for desktop MCP clients
@@ -177,7 +177,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 158 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, apps, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 609 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 167 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts, completion), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, apps, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 633 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md
@@ -193,6 +193,7 @@ object MyTools {
 - `tools/call` replies upgrade to SSE only when the tool sends progress/elicitation and the client accepts `text/event-stream`; in-flight calls and elicitation answers are scoped per MCP session (random request ids)
 - HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
 - Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
+- `completion/complete` completers read device data only through `CompletionContext.callTool`, which runs visible, read-only tools that need no host confirmation (else null) and audits each call as `completion/complete`
 - mDNS (`_mcp._tcp`) broadcasts version/auth/readonly/tls via TXT records; does NOT broadcast the bearer token. `/health` requires auth.
 - File and ML Kit tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator` (canonical path); QR `image_uri` via `ImageUriValidator`
 - SMS `send_message` validates phone number format before sending

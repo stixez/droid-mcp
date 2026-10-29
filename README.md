@@ -33,7 +33,7 @@ Highlights:
 
 - **Pick only what you need.** 53 independent modules. Each adds only its own permissions to your manifest.
 - **Safe by default.** Bearer auth, Origin and session checks, an SSRF guard, sandboxed file access, read-only mode, per-tool gating, and optional user confirmation for risky calls.
-- **Current MCP.** Protocol 2025-11-25: typed results (`outputSchema`) on every tool, resources, prompts, live `list_changed` updates, image content, progress, elicitation and cancellation.
+- **Current MCP.** Protocol 2025-11-25: typed results (`outputSchema`) on every tool, resources, prompts with argument completion, live `list_changed` updates, image content, progress, elicitation and cancellation.
 - **Your permission UX.** The library never asks for permissions. Your app decides when and how.
 
 ## Quick start

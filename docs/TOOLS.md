@@ -637,4 +637,14 @@ Besides tools, the server answers MCP resource and prompt requests. Both are opt
 
 Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
 
+**Completion.** Clients that support `completion/complete` autocomplete prompt arguments and resource-template variables while the user types:
+
+| Prompt or template | Argument | Suggestions |
+|--------------------|----------|-------------|
+| `daily_briefing` | `date` | Today, the next six days, then yesterday |
+| `message_contact` | `contact` | Matching contact names, through `search_contacts` |
+| `droidmcp://calendar/{date}` | `date` | `today`, then the same dates as `daily_briefing` |
+
+To add your own, override `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` reads device data through a tool, but only a visible, read-only tool that needs no host confirmation, so a suggestion never changes anything or shows a dialog. Each such call is audited under the name `completion/complete`.
+
 **Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).

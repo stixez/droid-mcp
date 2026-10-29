@@ -88,6 +88,13 @@ interface ResourceProvider {
 
     /** The contents at [uri], or null when it doesn't exist or can't be read (e.g. a missing permission). */
     suspend fun read(uri: String): List<ResourceContents>?
+
+    /**
+     * Suggested values for the [argument] variable of one of this provider's [templates]
+     * ([uriTemplate]), given what the user has typed so far ([value]); MCP `completion/complete`.
+     * Best matches first; the server sends at most 100. Defaults to no suggestions.
+     */
+    suspend fun complete(uriTemplate: String, argument: String, value: String, context: CompletionContext): List<String> = emptyList()
 }
 
 /**

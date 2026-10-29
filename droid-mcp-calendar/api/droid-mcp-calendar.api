@@ -1,5 +1,6 @@
 public final class io/droidmcp/calendar/CalendarResourceProvider : io/droidmcp/core/ResourceProvider {
 	public fun <init> (Landroid/content/Context;)V
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getRequiredTools ()Ljava/util/Set;
 	public fun getTemplates ()Ljava/util/List;
 	public fun handles (Ljava/lang/String;)Z

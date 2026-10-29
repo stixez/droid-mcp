@@ -40,6 +40,15 @@ object BuiltInPrompts {
                 ),
             )
         }
+
+        /** Today, the next six days, then yesterday, as `yyyy-MM-dd`, filtered by what was typed. */
+        override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> {
+            if (argument != "date") return emptyList()
+            val today = LocalDate.now()
+            return ((0L..6L).map { today.plusDays(it) } + today.minusDays(1))
+                .map { it.toString() }
+                .filter { it.startsWith(value.trim()) }
+        }
     }
 
     /** Sort active notifications into act-now / later / ignore. */
@@ -90,6 +99,14 @@ object BuiltInPrompts {
                     ),
                 ),
             )
+        }
+
+        /** Contact names matching what was typed, via `search_contacts`. */
+        override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> {
+            if (argument != "contact" || value.isBlank()) return emptyList()
+            val result = context.callTool("search_contacts", mapOf("query" to value.trim(), "limit" to 10))
+            val contacts = result?.data?.get("contacts") as? List<*> ?: return emptyList()
+            return contacts.mapNotNull { (it as? Map<*, *>)?.get("name") as? String }.distinct()
         }
     }
 

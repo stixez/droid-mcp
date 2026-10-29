@@ -1,6 +1,7 @@
 package io.droidmcp.calendar
 
 import android.content.Context
+import io.droidmcp.core.CompletionContext
 import io.droidmcp.core.McpResource
 import io.droidmcp.core.McpResourceTemplate
 import io.droidmcp.core.ResourceContents
@@ -46,6 +47,14 @@ class CalendarResourceProvider(private val context: Context) : ResourceProvider 
         }
 
     override fun handles(uri: String): Boolean = dateOf(uri) != null
+
+    /** `today`, then the next six days and yesterday as `yyyy-MM-dd`, filtered by what was typed. */
+    override suspend fun complete(uriTemplate: String, argument: String, value: String, context: CompletionContext): List<String> {
+        if (argument != "date") return emptyList()
+        val today = LocalDate.now()
+        return (listOf("today") + ((0L..6L).map { today.plusDays(it) } + today.minusDays(1)).map { it.toString() })
+            .filter { it.startsWith(value.trim()) }
+    }
 
     override suspend fun read(uri: String): List<ResourceContents>? {
         val date = dateOf(uri) ?: return null

@@ -1,6 +1,7 @@
 package io.droidmcp.core.protocol
 
 import io.droidmcp.core.AuditSink
+import io.droidmcp.core.CompletionContext
 import io.droidmcp.core.DROID_MCP_VERSION
 import io.droidmcp.core.ElicitationResult
 import io.droidmcp.core.ElicitationSink
@@ -36,7 +37,7 @@ import kotlinx.serialization.json.*
 /**
  * The default [McpProtocol] implementation: a JSON-RPC 2.0 handler over a [ToolRegistry].
  * Services `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/templates/list`,
- * `resources/read`, `prompts/list`, `prompts/get` and `ping`. Messages without an `id` are
+ * `resources/read`, `prompts/list`, `prompts/get`, `completion/complete` and `ping`. Messages without an `id` are
  * notifications: they are accepted silently and never answered (the transport replies 202).
  * `notifications/cancelled` cancels the caller's own in-flight `tools/call` with that
  * `requestId`; the cancelled request then gets no response.
@@ -52,7 +53,8 @@ import kotlinx.serialization.json.*
  *
  * Honours [readOnly] mode (filters `tools/list` to read-only tools and rejects mutating
  * `tools/call`s with an `isError` content payload) and emits a [ToolCallAudit] to [auditSink]
- * after every call and every `resources/read` (tool name `resources/read`) — a failing sink is
+ * after every call, every `resources/read` (tool name `resources/read`) and every tool a
+ * completion reads through (tool name `completion/complete`) — a failing sink is
  * swallowed so it can never break a call. A resource provider is visible only while its
  * [ResourceProvider.requiredTools][io.droidmcp.core.ResourceProvider.requiredTools] are, so tool
  * gating and read-only mode apply to the same data served as resources.
@@ -191,6 +193,7 @@ class McpProtocolImpl(
                 "resources/read" -> handleResourcesRead(id, params, clientLabel)
                 "prompts/list" -> handlePromptsList(id)
                 "prompts/get" -> handlePromptsGet(id, params)
+                "completion/complete" -> handleComplete(id, params, clientLabel)
                 "ping" -> jsonRpcResponse(id, JsonObject(emptyMap()))
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
             }
@@ -228,6 +231,7 @@ class McpProtocolImpl(
                     put("listChanged", notifiesListChanged)
                 }
                 putJsonObject("prompts") { put("listChanged", notifiesListChanged) }
+                putJsonObject("completions") {}
             }
             putJsonObject("serverInfo") {
                 put("name", serverName)
@@ -418,6 +422,65 @@ class McpProtocolImpl(
                 }
             }
         })
+    }
+
+    /**
+     * `completion/complete` for a prompt argument (`ref/prompt`) or a resource-template variable
+     * (`ref/resource`, whose `uri` is the template). An unknown prompt or template is `-32602`;
+     * an unknown argument, or a completer that fails or times out, just yields no values.
+     */
+    private suspend fun handleComplete(id: JsonElement?, params: JsonObject, clientLabel: String?): String {
+        val ref = params["ref"] as? JsonObject ?: throw InvalidParamsException("missing ref")
+        val argument = params["argument"] as? JsonObject ?: throw InvalidParamsException("missing argument")
+        val argName = (argument["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: throw InvalidParamsException("missing or non-string argument name")
+        val value = (argument["value"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
+        val filled = ((params["context"] as? JsonObject)?.get("arguments") as? JsonObject)
+            ?.mapNotNull { (k, v) -> (v as? JsonPrimitive)?.takeIf { it.isString }?.let { k to it.content } }
+            ?.toMap()
+            .orEmpty()
+        val context = CompletionContext(filled) { name, toolParams -> completionToolCall(name, toolParams, clientLabel) }
+
+        val outcome = when ((ref["type"] as? JsonPrimitive)?.contentOrNull) {
+            "ref/prompt" -> {
+                val name = (ref["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                    ?: throw InvalidParamsException("missing or non-string prompt name")
+                val prompt = visiblePrompts().firstOrNull { it.name == name }
+                    ?: throw InvalidParamsException("unknown prompt '$name'")
+                onIo { prompt.complete(argName, value, context) }
+            }
+            "ref/resource" -> {
+                val template = (ref["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                    ?: throw InvalidParamsException("missing or non-string uri")
+                val provider = resources.visibleProviders(visibleToolNames())
+                    .firstOrNull { p -> p.templates.any { it.uriTemplate == template } }
+                    ?: throw InvalidParamsException("unknown resource template '$template'")
+                onIo { provider.complete(template, argName, value, context) }
+            }
+            else -> throw InvalidParamsException("ref.type must be ref/prompt or ref/resource")
+        }
+        val values = outcome?.getOrNull().orEmpty().distinct()
+        return jsonRpcResponse(id, buildJsonObject {
+            putJsonObject("completion") {
+                putJsonArray("values") { values.take(MAX_COMPLETIONS).forEach { add(it) } }
+                put("total", values.size)
+                put("hasMore", values.size > MAX_COMPLETIONS)
+            }
+        })
+    }
+
+    /** [CompletionContext.callTool]: only visible, read-only tools that need no confirmation. */
+    private suspend fun completionToolCall(name: String, params: Map<String, Any>, clientLabel: String?): ToolResult? {
+        val tool = visibleTools().firstOrNull { it.name == name } ?: return null
+        if (!tool.annotations.readOnlyHint || registry.needsConfirmation(tool)) return null
+        val startedAt = System.nanoTime()
+        val result = registry.executeTool(name, params, clientLabel)
+        val argumentsJson = buildJsonObject {
+            put("tool", name)
+            put("arguments", ToolSchemas.toJsonElement(params))
+        }.toString()
+        recordAudit(COMPLETION_COMPLETE, clientLabel, argumentsJson, result, (System.nanoTime() - startedAt) / 1_000_000)
+        return result
     }
 
     /** Pagination cursor `<snapshot id>:<offset>`, opaque to clients; no cursor is the first page. */
@@ -691,6 +754,12 @@ class McpProtocolImpl(
 
         /** Audit tool name recorded for `resources/read`. */
         const val RESOURCES_READ = "resources/read"
+
+        /** Audit tool name recorded when a completion reads through a tool. */
+        const val COMPLETION_COMPLETE = "completion/complete"
+
+        /** Most values one `completion/complete` reply carries (the MCP limit). */
+        private const val MAX_COMPLETIONS = 100
 
         /** Server-defined JSON-RPC code for a read the host's confirmer declined. */
         private const val REQUEST_DECLINED = -32001
