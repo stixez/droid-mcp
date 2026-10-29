@@ -26,9 +26,10 @@ class NotificationsReplyToolsTest {
     }
 
     @Test
-    fun `provider exposes the four reply tools`() {
+    fun `provider exposes the list and reply tools`() {
         val names = NotificationsReplyTools.all(context).map { it.name }
         assertThat(names).containsExactly(
+            "list_notifications",
             "list_repliable_notifications",
             "reply_to_notification",
             "dismiss_notification",

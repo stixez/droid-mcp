@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>An Android SDK and MCP server that lets an LLM use the phone.</b><br/>
-  157 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
+  158 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
   for on-device models and any <a href="https://modelcontextprotocol.io">MCP</a> client, such as Claude or Cursor.
 </p>
 

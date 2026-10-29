@@ -1,6 +1,6 @@
 # Tool Reference
 
-All 157 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
+All 158 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
 
 The generated contract [`droid-mcp-all/api/tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt) lists every tool's parameter types, ranges, enums and annotations. If this page and the contract disagree, the contract is right. Tools annotated `readOnly` there are the only ones listed and callable when the server runs with `readOnly = true`.
 
@@ -147,7 +147,7 @@ On Android 11+, other apps' non-media files are hidden.
 |------|--------------|------------|
 | `get_active_notifications` | The host app's own active notifications | `limit` (1-100, default 10) |
 
-This returns only notifications the host app posted. To read other apps' notifications, use [Notification Reply](#notification-reply) or [Notification Watch](#notification-watch).
+This returns only notifications the host app posted. To read other apps' notifications, use `list_notifications` in [Notification Reply](#notification-reply), or [Notification Watch](#notification-watch) for a live feed.
 
 ## Device
 
@@ -473,10 +473,11 @@ By default both tools block loopback, private, link-local and similar addresses.
 ## Notification Reply
 
 > [!NOTE]
-> Needs Notification access. The host's listener service must extend `McpNotificationListenerServiceBase` (it fills the notification store all four tools read) and be registered with `NotificationListenerHolder.set(componentName)`.
+> Needs Notification access. The host's listener service must extend `McpNotificationListenerServiceBase` (it fills the notification store all five tools read) and be registered with `NotificationListenerHolder.set(componentName)`.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
+| `list_notifications` | Every active notification from any app, newest first. Ongoing ones (media players, running services) are skipped unless `include_ongoing` is true. `text` is the expanded body when the app provides one. | `limit` (1-100, default 20)<br>`package_name`<br>`include_ongoing` (default false) |
 | `list_repliable_notifications` | Active notifications that have a free-form RemoteInput reply action | `limit` (1-100, default 20) |
 | `reply_to_notification` | Reply through a notification's RemoteInput action. Success means the PendingIntent fired, not that the app delivered the message. | `key` (required)<br>`text` (required) |
 | `dismiss_notification` | Cancel a notification by key | `key` (required) |
@@ -625,13 +626,10 @@ Besides tools, the server answers MCP resource and prompt requests. Both are opt
 
 | Prompt | Arguments | Uses |
 |--------|-----------|------|
-| `daily_briefing` | `date` (yyyy-MM-dd, default today) | `read_calendar`, `get_active_notifications`, and `read_messages` when available |
-| `triage_notifications` | - | `get_active_notifications` |
+| `daily_briefing` | `date` (yyyy-MM-dd, default today) | `read_calendar`, plus `list_notifications` and `read_messages` when available |
+| `triage_notifications` | - | `list_notifications` |
 | `message_contact` | `contact` (required), `intent` (required) | `search_contacts`, then `send_message` only after the user confirms |
 | `device_health_check` | - | `get_battery_info`, `get_storage_info`, `get_connectivity` |
-
-> [!WARNING]
-> `daily_briefing` and `triage_notifications` read notifications through `get_active_notifications`, which only sees notifications the host app posted itself, not other apps'. Until this is fixed ([#11](https://github.com/stixez/droid-mcp/issues/11)), leave those two out or write your own prompt on `list_repliable_notifications` or `watch_notifications`.
 
 Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
 

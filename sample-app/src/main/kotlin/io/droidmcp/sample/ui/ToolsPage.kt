@@ -210,6 +210,7 @@ fun ToolsPage(
             ToolButton("Previous", "media_control", mapOf("command" to "previous")),
         ), specialPermission = "notification_listener"),
         ToolCategory("Notifications (Reply)", listOf(
+            ToolButton("List All", "list_notifications", mapOf("limit" to 20)),
             ToolButton("List Repliable", "list_repliable_notifications", mapOf("limit" to 20)),
             ToolButton("Reply (stub)", "reply_to_notification", mapOf("key" to "stub-key", "text" to "Sample reply from droid-mcp")),
             ToolButton("Dismiss (stub)", "dismiss_notification", mapOf("key" to "stub-key")),

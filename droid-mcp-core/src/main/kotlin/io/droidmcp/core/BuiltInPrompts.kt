@@ -20,7 +20,7 @@ object BuiltInPrompts {
         override val arguments = listOf(
             PromptArgument("date", "Day to brief on, as yyyy-MM-dd. Defaults to today."),
         )
-        override val requiredTools = setOf("read_calendar", "get_active_notifications")
+        override val requiredTools = setOf("read_calendar")
 
         override suspend fun render(arguments: Map<String, String>): PromptResult {
             val date = arguments["date"]?.takeIf { it.isNotBlank() }?.let(::parseDate) ?: LocalDate.now()
@@ -32,7 +32,7 @@ object BuiltInPrompts {
                         """
                         Give me a short briefing for $date.
                         1. Call read_calendar with start_date "$date" and list the events in time order, flagging overlaps.
-                        2. Call get_active_notifications and group what needs my attention by app.
+                        2. If list_notifications is available, call it with limit 50 and group what needs my attention by app.
                         3. If read_messages is available, call it with since "$date" and mention anything that looks like it needs a reply.
                         Keep it under 15 lines and lead with the most time-sensitive item.
                         """.trimIndent(),
@@ -47,14 +47,14 @@ object BuiltInPrompts {
         override val name = "triage_notifications"
         override val title = "Triage notifications"
         override val description = "Sort the current notifications into act now, later and safe to ignore."
-        override val requiredTools = setOf("get_active_notifications")
+        override val requiredTools = setOf("list_notifications")
 
         override suspend fun render(arguments: Map<String, String>): PromptResult = PromptResult(
             listOf(
                 PromptMessage(
                     PromptMessage.Role.USER,
                     """
-                    Call get_active_notifications with limit 100, then sort every notification into three groups:
+                    Call list_notifications with limit 100, then sort every notification into three groups:
                     "Act now", "Later" and "Safe to ignore". Give each a one-line reason.
                     Don't dismiss or reply to anything unless I ask.
                     """.trimIndent(),

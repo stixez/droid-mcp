@@ -23,7 +23,7 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
         // Every sbn is attacker-shaped (any app can post one), so never let a
         // malformed notification throw out of a listener callback — that runs
         // on the host's main thread and would crash the host process.
-        runCatching { NotificationStore.reset(runCatching { activeNotifications }.getOrNull()) }
+        runCatching { NotificationStore.reset(runCatching { activeNotifications }.getOrNull(), ::channelImportanceFor) }
     }
 
     override fun onListenerDisconnected() {
@@ -47,8 +47,9 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
         // Isolated so a malformed notification from any app can't crash the
         // host (this callback runs on the main thread); the store and the bus
         // are updated independently so one failing doesn't block the other.
-        runCatching { NotificationStore.put(sbn) }
-        runCatching { NotificationListenerBus.publish(sbn.toEvent(channelImportanceFor(sbn))) }
+        val importance = channelImportanceFor(sbn)
+        runCatching { NotificationStore.put(sbn, importance) }
+        runCatching { NotificationListenerBus.publish(sbn.toEvent(importance)) }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {

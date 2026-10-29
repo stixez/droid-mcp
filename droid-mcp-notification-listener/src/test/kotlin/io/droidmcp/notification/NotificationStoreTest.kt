@@ -53,6 +53,15 @@ class NotificationStoreTest {
     }
 
     @Test
+    fun `eventSnapshot returns every event and clear empties it`() {
+        NotificationStore.putEventForTest(event("a"))
+        NotificationStore.putEventForTest(event("b"))
+        assertThat(NotificationStore.eventSnapshot().map { it.key }).containsExactly("a", "b")
+        NotificationStore.clearForTest()
+        assertThat(NotificationStore.eventSnapshot()).isEmpty()
+    }
+
+    @Test
     fun `concurrent put and remove never throws`() {
         val pool = Executors.newFixedThreadPool(8)
         try {
@@ -76,6 +85,13 @@ class NotificationStoreTest {
         // After concurrent inserts, the store should hold 8*500 distinct keys.
         assertThat(NotificationStore.repliableSnapshot()).hasSize(8 * 500)
     }
+
+    private fun event(key: String): NotificationEvent = NotificationEvent(
+        key = key, packageName = "io.test", title = "T", text = "msg", bigText = null, subText = null,
+        tickerText = null, category = null, channelId = null, groupKey = null, isOngoing = false,
+        isClearable = true, legacyPriority = 0, channelImportance = -1, postedAt = 0L, `when` = 0L,
+        hasReplyAction = false, actionLabels = emptyList(),
+    )
 
     private fun dto(
         key: String,

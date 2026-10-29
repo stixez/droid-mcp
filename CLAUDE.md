@@ -1,6 +1,6 @@
 # droid-mcp
 
-Android MCP SDK: 157 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
+Android MCP SDK: 158 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
 
 ## Quick Reference
 
@@ -109,7 +109,7 @@ droid-mcp-{name}/
 | `droid-mcp-print` | `io.droidmcp.print` | list_printers, print_content |
 | `droid-mcp-mlkit` | `io.droidmcp.mlkit` | recognize_text, label_image, detect_faces |
 | `droid-mcp-notification-listener` | `io.droidmcp.notification` | Shared listener support (Holder, Store, base service) |
-| `droid-mcp-notifications-reply` | `io.droidmcp.notificationsreply` | list_repliable_notifications, reply_to_notification, dismiss_notification, invoke_notification_action |
+| `droid-mcp-notifications-reply` | `io.droidmcp.notificationsreply` | list_notifications, list_repliable_notifications, reply_to_notification, dismiss_notification, invoke_notification_action |
 | `droid-mcp-notification-watch` | `io.droidmcp.notificationwatch` | watch_notifications, unwatch_notifications, list_notification_watches, poll_notification_watch (+ NotificationListenerBus SharedFlow) |
 | `droid-mcp-accessibility` | `io.droidmcp.accessibility` | query_screen, find_node, wait_for_text, click_node, long_click_node, set_node_text, scroll_node, gesture, global_action, get_active_window_info, take_screenshot_via_a11y, tap, long_press, find_and_tap, scroll_to_find |
 | `droid-mcp-ime` | `io.droidmcp.ime` | is_ime_active, type_text, commit_keystroke, delete_text, set_selection, get_text_around_cursor, switch_to_previous_ime |

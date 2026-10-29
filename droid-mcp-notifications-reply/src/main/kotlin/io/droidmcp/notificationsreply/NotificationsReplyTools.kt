@@ -9,9 +9,9 @@ import io.droidmcp.core.PermissionStatus
 import io.droidmcp.notification.NotificationListenerHolder
 
 /**
- * Provider for the notification-reply module. Wires up [ListRepliableNotificationsTool],
- * [ReplyToNotificationTool], [DismissNotificationTool], and [InvokeNotificationActionTool].
- * All four read/act against [NotificationStore][io.droidmcp.notification.NotificationStore] and
+ * Provider for the notification-reply module. Wires up [ListNotificationsTool],
+ * [ListRepliableNotificationsTool], [ReplyToNotificationTool], [DismissNotificationTool], and
+ * [InvokeNotificationActionTool]. All five read/act against [NotificationStore][io.droidmcp.notification.NotificationStore] and
  * require the host's [McpNotificationListenerServiceBase][io.droidmcp.notification.McpNotificationListenerServiceBase]
  * to be bound with notification listener access granted — a special-access permission granted
  * via Settings, not a runtime dialog, hence [requiredPermissions] is empty and
@@ -21,6 +21,7 @@ import io.droidmcp.notification.NotificationListenerHolder
 object NotificationsReplyTools {
 
     fun all(context: Context): List<McpTool> = listOf(
+        ListNotificationsTool(context),
         ListRepliableNotificationsTool(context),
         ReplyToNotificationTool(context),
         DismissNotificationTool(context),
