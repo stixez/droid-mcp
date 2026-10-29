@@ -8,7 +8,7 @@ import io.droidmcp.core.ResourceProvider
 
 /**
  * Provider for the calendar tool module. Wires up [ReadCalendarTool], [SearchEventsTool],
- * [CreateEventTool], [UpdateEventTool] and [DeleteEventTool], which read/write events via
+ * [ListCalendarsTool], [CreateEventTool], [UpdateEventTool] and [DeleteEventTool], which read/write events via
  * `CalendarContract`.
  *
  * The read tools need only `READ_CALENDAR`, so that is all [requiredPermissions] reports — a
@@ -23,6 +23,7 @@ object CalendarTools {
     fun all(context: Context): List<McpTool> = buildList {
         add(ReadCalendarTool(context))
         add(SearchEventsTool(context))
+        add(ListCalendarsTool(context))
         if (PermissionHelper.hasPermissions(context, listOf(Manifest.permission.WRITE_CALENDAR))) {
             add(CreateEventTool(context))
             add(UpdateEventTool(context))

@@ -682,6 +682,11 @@ public final class io/droidmcp/core/support/StrictDates {
 	public static synthetic fun parse$default (Lio/droidmcp/core/support/StrictDates;Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;ILjava/lang/Object;)Ljava/util/Date;
 }
 
+public final class io/droidmcp/core/support/UsageAccess {
+	public static final field INSTANCE Lio/droidmcp/core/support/UsageAccess;
+	public final fun isGranted (Landroid/content/Context;)Z
+}
+
 public final class io/droidmcp/core/transport/HttpTransport {
 	public static final field ANONYMOUS_LABEL Ljava/lang/String;
 	public static final field Companion Lio/droidmcp/core/transport/HttpTransport$Companion;

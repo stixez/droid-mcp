@@ -1,8 +1,10 @@
 package io.droidmcp.core.support
 
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.content.Context
 import android.os.Build
+import android.os.Process
 import android.provider.CalendarContract
 import android.provider.Settings
 import java.text.ParsePosition
@@ -106,5 +108,18 @@ object CalendarSupport {
         )?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getLong(0) else null
         }
+    }
+}
+
+/** Usage access (`PACKAGE_USAGE_STATS`), a special access granted in Settings, not at runtime. */
+object UsageAccess {
+
+    /** True if the user granted this app Usage access (the `GET_USAGE_STATS` app op). */
+    fun isGranted(context: Context): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+        // checkOpNoThrow(String, …) was deprecated for unsafeCheckOpNoThrow on API 29–35, then
+        // un-deprecated on 36 (which deprecated unsafeCheckOpNoThrow instead); both behave identically.
+        val mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 }

@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>An Android SDK and MCP server that lets an LLM use the phone.</b><br/>
-  158 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
+  160 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
   for on-device models and any <a href="https://modelcontextprotocol.io">MCP</a> client, such as Claude or Cursor.
 </p>
 
@@ -207,7 +207,7 @@ Some providers only register tools whose permission is granted, for example `cre
 | `screenshot` | MediaProjection consent, handed to `MediaProjectionHolder` from a `mediaProjection` foreground service | Consent dialog |
 | `dnd` | Do Not Disturb access (`set_dnd_mode`) | Settings › Apps › Special access |
 | `settings`, `ringtone` | Modify system settings (`set_brightness`, `set_ringtone`) | Settings › Apps › Special access |
-| `network` | Usage access (`get_data_usage`) | Settings › Apps › Special access |
+| `network`, `apps` | Usage access (`get_data_usage`, `get_app_usage`) | Settings › Apps › Special access |
 | `shizuku`, `root` | Shizuku running, or a rooted device | See [docs/SHELL.md](docs/SHELL.md) |
 
 > [!NOTE]

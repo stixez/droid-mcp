@@ -27,7 +27,7 @@ class CreateEventTool(private val context: Context) : McpTool {
         ToolParameter("end", "End date/time in YYYY-MM-DD HH:mm format", ParameterType.STRING, required = true),
         ToolParameter("location", "Event location", ParameterType.STRING),
         ToolParameter("description", "Event description", ParameterType.STRING),
-        ToolParameter("calendar_id", "Calendar ID. Defaults to primary calendar.", ParameterType.INTEGER),
+        ToolParameter("calendar_id", "Calendar ID from list_calendars. Defaults to the primary calendar.", ParameterType.INTEGER),
     )
     override val annotations = ToolAnnotations(destructiveHint = true)
     override val outputSchema = OutputSchema.obj {

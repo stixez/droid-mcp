@@ -58,6 +58,7 @@ fun ToolsPage(
         ToolCategory("Calendar", listOf(
             ToolButton("Today", "read_calendar", mapOf("start_date" to today)),
             ToolButton("Search", "search_events", mapOf("query" to "meeting")),
+            ToolButton("Calendars", "list_calendars"),
             // Write buttons only ever touch the event this page created (lastEventId).
             ToolButton(
                 "Create Test Event (writes)",
@@ -115,6 +116,7 @@ fun ToolsPage(
         )),
         ToolCategory("Apps", listOf(
             ToolButton("Installed", "list_installed_apps"),
+            ToolButton("Screen Time", "get_app_usage"),
         )),
         ToolCategory("Screen", listOf(
             ToolButton("State", "get_screen_state"),

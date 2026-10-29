@@ -1,6 +1,6 @@
 # droid-mcp
 
-Android MCP SDK: 158 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
+Android MCP SDK: 160 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
 
 ## Quick Reference
 
@@ -20,7 +20,7 @@ Android MCP SDK: 158 phone capabilities as tools, across 53 modules, for on-devi
 - Fixed-choice params declare `enumValues`; numeric clamps declare `minimum`/`maximum` — keep them identical to what `execute()` enforces
 - ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
 - File access: sandboxed via `PathValidator` — external storage only
-- Shared module logic lives in `io.droidmcp.core.support` (`ActivityLaunch.canStartActivity`, `SqlLike.escape`, `StrictDates.parse`, `CalendarSupport.findWritableCalendarId`) — use these instead of module-local copies
+- Shared module logic lives in `io.droidmcp.core.support` (`ActivityLaunch.canStartActivity`, `SqlLike.escape`, `StrictDates.parse`, `CalendarSupport.findWritableCalendarId`, `UsageAccess.isGranted`) — use these instead of module-local copies
 - Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
 - No fully qualified names inline — use proper imports
 - Long-running tools call `reportProgress(done, total, message)` (no-op when nobody listens); tools needing user input can call `elicit(message, schema)` (returns null when unsupported)
@@ -69,7 +69,7 @@ droid-mcp-{name}/
 |--------|---------|-------|
 | `droid-mcp-core` | `io.droidmcp.core` | Protocol, transports, interfaces |
 | `droid-mcp-device` | `io.droidmcp.device` | get_device_info, get_battery_info, get_connectivity, get_storage_info |
-| `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, create_event, search_events, update_event, delete_event |
+| `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, list_calendars, create_event, search_events, update_event, delete_event |
 | `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts, create_contact, update_contact, delete_contact |
 | `droid-mcp-sms` | `io.droidmcp.sms` | read_messages, send_message, search_messages |
 | `droid-mcp-files` | `io.droidmcp.files` | browse_files, read_file, search_files; opt-in via `all(context, includeWriteTools = true)`: write_file, create_directory, move_file, delete_file |
@@ -79,7 +79,7 @@ droid-mcp-{name}/
 | `droid-mcp-location` | `io.droidmcp.location` | get_current_location, get_location_address |
 | `droid-mcp-health` | `io.droidmcp.health` | get_step_count, get_activity_info |
 | `droid-mcp-clipboard` | `io.droidmcp.clipboard` | read_clipboard, write_clipboard |
-| `droid-mcp-apps` | `io.droidmcp.apps` | list_installed_apps, get_app_info, launch_app |
+| `droid-mcp-apps` | `io.droidmcp.apps` | list_installed_apps, get_app_info, launch_app, get_app_usage |
 | `droid-mcp-alarms` | `io.droidmcp.alarms` | create_alarm, create_timer, create_reminder, get_next_alarm |
 | `droid-mcp-settings` | `io.droidmcp.settings` | get_settings, set_brightness, set_volume, toggle_wifi |
 | `droid-mcp-bluetooth` | `io.droidmcp.bluetooth` | get_bluetooth_status, list_paired_devices |
@@ -177,7 +177,7 @@ object MyTools {
 
 ## Testing
 
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 158 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 609 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
+- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 158 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, apps, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 609 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
 - **Tool modules**: Android API-dependent, tested via sample app on device/emulator
 - **Full build**: `./gradlew assembleDebug`
 - **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md
@@ -213,4 +213,4 @@ object MyTools {
 
 ## Special Permissions
 
-Notification listener, accessibility, IME, overlay, MediaProjection, DND access, Modify system settings, Usage access, Shizuku and root are granted in system Settings, not runtime dialogs; tools return a clear error when missing. The per-module table lives in the README ("Permissions") and each module's section in `docs/TOOLS.md`; shell setup in `docs/SHELL.md`.
+Notification listener, accessibility, IME, overlay, MediaProjection, DND access, Modify system settings, Usage access (`get_data_usage`, `get_app_usage`), Shizuku and root are granted in system Settings, not runtime dialogs; tools return a clear error when missing. The per-module table lives in the README ("Permissions") and each module's section in `docs/TOOLS.md`; shell setup in `docs/SHELL.md`.

@@ -1,4 +1,9 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- get_app_usage: granted by the user in Settings > Special access > Usage access, not at
+         runtime. Lint flags it as system-only, but Usage access is how normal apps get it. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Without this, API 30+ package-visibility filtering makes getInstalledApplications(),
          getPackageInfo(), and getLaunchIntentForPackage() see only a handful of force-visible
          packages — list_installed_apps/get_app_info/launch_app would silently return almost
