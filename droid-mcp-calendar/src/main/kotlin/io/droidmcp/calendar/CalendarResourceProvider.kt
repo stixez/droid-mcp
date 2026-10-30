@@ -6,6 +6,7 @@ import io.droidmcp.core.McpResource
 import io.droidmcp.core.McpResourceTemplate
 import io.droidmcp.core.ResourceContents
 import io.droidmcp.core.ResourceProvider
+import io.droidmcp.core.support.CompletionSupport
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -48,12 +49,10 @@ class CalendarResourceProvider(private val context: Context) : ResourceProvider 
 
     override fun handles(uri: String): Boolean = dateOf(uri) != null
 
-    /** `today`, then the next six days and yesterday as `yyyy-MM-dd`, filtered by what was typed. */
+    /** `today`, then the dates `daily_briefing` suggests ([CompletionSupport.upcomingDates]). */
     override suspend fun complete(uriTemplate: String, argument: String, value: String, context: CompletionContext): List<String> {
         if (argument != "date") return emptyList()
-        val today = LocalDate.now()
-        return (listOf("today") + ((0L..6L).map { today.plusDays(it) } + today.minusDays(1)).map { it.toString() })
-            .filter { it.startsWith(value.trim()) }
+        return listOf("today").filter { it.startsWith(value.trim()) } + CompletionSupport.upcomingDates(value)
     }
 
     override suspend fun read(uri: String): List<ResourceContents>? {

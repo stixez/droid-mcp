@@ -26,12 +26,15 @@ data class PromptResult(
 /**
  * What a completion ([McpPrompt.complete], [ResourceProvider.complete]) can draw on: the other
  * arguments the user has already filled in, and [callTool] for reading device data through a
- * read-only tool, e.g. contact names from `search_contacts`.
+ * read-only tool, e.g. contact names from `search_contacts`. The server builds the context; the
+ * public constructor (no tools, [callTool] always null) is for testing a completer.
  */
-class CompletionContext(
-    val arguments: Map<String, String> = emptyMap(),
-    private val toolCaller: suspend (name: String, params: Map<String, Any>) -> ToolResult? = { _, _ -> null },
+class CompletionContext internal constructor(
+    val arguments: Map<String, String>,
+    private val toolCaller: suspend (name: String, params: Map<String, Any>) -> ToolResult?,
 ) {
+    constructor(arguments: Map<String, String> = emptyMap()) : this(arguments, { _, _ -> null })
+
     /**
      * Runs the tool [name] if it is visible, read-only and needs no host confirmation; null
      * otherwise, so a suggestion never pops a confirmation dialog or changes anything.

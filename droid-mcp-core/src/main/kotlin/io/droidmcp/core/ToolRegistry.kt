@@ -165,14 +165,14 @@ class ToolRegistry(
         }
     }
 
+    /** True when calling [tool] would ask the host's confirmer first. */
+    internal fun needsConfirmation(tool: McpTool): Boolean = confirmer != null && requiresConfirmation(tool)
+
     /**
      * Ask the [confirmer] before serving data that [toolNames] also expose — e.g. a resource read
      * backed by `read_contact` — when any of them [requiresConfirmation]. Returns null when no
      * confirmation is needed or the host approved, else the `tool_call_declined` result.
      */
-    /** True when calling [tool] would ask the host's confirmer first. */
-    internal fun needsConfirmation(tool: McpTool): Boolean = confirmer != null && requiresConfirmation(tool)
-
     internal suspend fun confirmAccess(toolNames: Set<String>, arguments: Map<String, Any>, clientLabel: String?): ToolResult? {
         val confirmer = confirmer ?: return null
         for (name in toolNames) {

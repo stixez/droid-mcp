@@ -64,6 +64,16 @@ class ListNotificationsToolTest {
     }
 
     @Test
+    fun `select drops a group summary only while its bundle has other notifications`() {
+        val events = listOf(
+            event("sum", group = "g", postedAt = 5), event("c1", group = "g", postedAt = 1), event("c2", group = "g", postedAt = 2),
+            event("lonely-sum", group = "h", postedAt = 3),
+        )
+        assertThat(ListNotificationsTool.select(events, 20, null, false, setOf("sum", "lonely-sum")).map { it.key })
+            .containsExactly("lonely-sum", "c2", "c1").inOrder()
+    }
+
+    @Test
     fun `execute returns store contents with big text preferred`() = runTest {
         NotificationListenerHolder.set(mockk<ComponentName>(relaxed = true))
         val nm = mockk<NotificationManager> { every { isNotificationListenerAccessGranted(any()) } returns true }
@@ -94,9 +104,10 @@ class ListNotificationsToolTest {
         bigText: String? = null,
         hasReply: Boolean = false,
         actions: List<String> = emptyList(),
+        group: String? = null,
     ) = NotificationEvent(
         key = key, packageName = pkg, title = "T", text = text, bigText = bigText, subText = null,
-        tickerText = null, category = null, channelId = null, groupKey = null, isOngoing = ongoing,
+        tickerText = null, category = null, channelId = null, groupKey = group, isOngoing = ongoing,
         isClearable = !ongoing, legacyPriority = 0, channelImportance = -1, postedAt = postedAt, `when` = postedAt,
         hasReplyAction = hasReply, actionLabels = actions,
     )

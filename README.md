@@ -207,7 +207,7 @@ Some providers only register tools whose permission is granted, for example `cre
 | `screenshot` | MediaProjection consent, handed to `MediaProjectionHolder` from a `mediaProjection` foreground service | Consent dialog |
 | `dnd` | Do Not Disturb access (`set_dnd_mode`) | Settings › Apps › Special access |
 | `settings`, `ringtone` | Modify system settings (`set_brightness`, `set_ringtone`) | Settings › Apps › Special access |
-| `network`, `apps` | Usage access (`get_data_usage`, `get_app_usage`) | Settings › Apps › Special access |
+| `network`, `apps` | Usage access (`get_data_usage`, `get_app_usage`; to drop the permission, see [docs/TOOLS.md](docs/TOOLS.md#apps)) | Settings › Apps › Special access |
 | `shizuku`, `root` | Shizuku running, or a rooted device | See [docs/SHELL.md](docs/SHELL.md) |
 
 > [!NOTE]

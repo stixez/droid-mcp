@@ -18,7 +18,13 @@ import io.droidmcp.core.ToolCallConfirmer
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolRegistry
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.CompletionSupport
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
@@ -154,6 +160,68 @@ class McpCompletionTest {
     }
 
     @Test
+    fun `a slow completer times out with no values`() = runTest {
+        val slow = object : McpPrompt {
+            override val name = "slow"
+            override val description = "never answers"
+            override suspend fun render(arguments: Map<String, String>) = PromptResult(emptyList())
+            override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> {
+                awaitCancellation()
+            }
+        }
+        val p = protocol(prompts = listOf(slow))
+        val started = System.nanoTime()
+        assertThat(p.complete("""{"type":"ref/prompt","name":"slow"}""", "x", "").values()).isEmpty()
+        assertThat((System.nanoTime() - started) / 1_000_000).isAtLeast(McpProtocolImpl.COMPLETION_TIMEOUT_MS - 100)
+    }
+
+    @Test
+    fun `notifications cancelled stops an in-flight completion with no reply`() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val blocking = object : McpPrompt {
+            override val name = "blocking"
+            override val description = "waits"
+            override suspend fun render(arguments: Map<String, String>) = PromptResult(emptyList())
+            override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> {
+                started.complete(Unit)
+                awaitCancellation()
+            }
+        }
+        val p = protocol(prompts = listOf(blocking))
+        val reply = async {
+            p.handleMessage("""{"jsonrpc":"2.0","id":9,"method":"completion/complete","params":{"ref":{"type":"ref/prompt","name":"blocking"},"argument":{"name":"x","value":""}}}""")
+        }
+        started.await()
+        p.handleMessage("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":9}}""")
+        assertThat(withTimeout(2_000) { reply.await() }).isEmpty()
+    }
+
+    @Test
+    fun `a completion cut short while reading through a tool is still audited`() = runBlocking {
+        val audits = mutableListOf<ToolCallAudit>()
+        val reading = CompletableDeferred<Unit>()
+        val slowReader = object : McpTool {
+            override val name = "slow_reader"
+            override val description = "slow"
+            override val parameters = emptyList<ToolParameter>()
+            override val annotations = ToolAnnotations(readOnlyHint = true)
+            override suspend fun execute(params: Map<String, Any>): ToolResult {
+                reading.complete(Unit)
+                awaitCancellation()
+            }
+        }
+        val p = protocol(tools = listOf(slowReader), audits = audits)
+        val reply = async {
+            p.handleMessage("""{"jsonrpc":"2.0","id":4,"method":"completion/complete","params":{"ref":$fruitRef,"argument":{"name":"tool","value":"slow_reader"}}}""")
+        }
+        reading.await()
+        p.handleMessage("""{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":4}}""")
+        withTimeout(2_000) { reply.await() }
+        assertThat(audits.single().toolName).isEqualTo(McpProtocolImpl.COMPLETION_COMPLETE)
+        assertThat(audits.single().success).isFalse()
+    }
+
+    @Test
     fun `daily briefing completes dates from today`() = runTest {
         val today = LocalDate.now()
         val all = BuiltInPrompts.DailyBriefing.complete("date", "", CompletionContext())
@@ -161,6 +229,15 @@ class McpCompletionTest {
         assertThat(all).hasSize(8)
         assertThat(BuiltInPrompts.DailyBriefing.complete("date", today.toString(), CompletionContext())).containsExactly(today.toString())
         assertThat(BuiltInPrompts.DailyBriefing.complete("date", "x", CompletionContext())).isEmpty()
+    }
+
+    @Test
+    fun `upcomingDates lists today, the next six days, then yesterday`() {
+        val dates = CompletionSupport.upcomingDates(" 2026-1", today = LocalDate.of(2026, 10, 30))
+        assertThat(dates).containsExactly(
+            "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-10-29",
+        ).inOrder()
+        assertThat(CompletionSupport.upcomingDates("2026-11", today = LocalDate.of(2026, 10, 30))).hasSize(5)
     }
 
     @Test

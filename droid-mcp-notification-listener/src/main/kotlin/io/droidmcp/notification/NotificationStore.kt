@@ -38,9 +38,10 @@ object NotificationStore {
 
     fun findRepliable(key: String): RepliableNotification? = repliable[key]
 
-    internal fun put(sbn: StatusBarNotification, channelImportance: Int = -1) {
+    /** Caches [sbn]; [event] is its projection, built once by the caller and shared with the bus. */
+    internal fun put(sbn: StatusBarNotification, event: NotificationEvent?) {
         active[sbn.key] = sbn
-        events[sbn.key] = sbn.toEvent(channelImportance)
+        if (event != null) events[sbn.key] = event else events.remove(sbn.key)
         val projected = sbn.toRepliableOrNull()
         if (projected != null) repliable[sbn.key] = projected else repliable.remove(sbn.key)
     }

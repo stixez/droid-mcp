@@ -57,9 +57,8 @@ public final class io/droidmcp/core/BuiltInPrompts$TriageNotifications : io/droi
 }
 
 public final class io/droidmcp/core/CompletionContext {
-	public fun <init> ()V
-	public fun <init> (Ljava/util/Map;Lkotlin/jvm/functions/Function3;)V
-	public synthetic fun <init> (Ljava/util/Map;Lkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getArguments ()Ljava/util/Map;
 }
@@ -666,6 +665,7 @@ public final class io/droidmcp/core/protocol/McpProtocol$DefaultImpls {
 
 public final class io/droidmcp/core/protocol/McpProtocolImpl : io/droidmcp/core/protocol/McpProtocol {
 	public static final field COMPLETION_COMPLETE Ljava/lang/String;
+	public static final field COMPLETION_TIMEOUT_MS J
 	public static final field Companion Lio/droidmcp/core/protocol/McpProtocolImpl$Companion;
 	public static final field RESOURCES_READ Ljava/lang/String;
 	public fun <init> (Lio/droidmcp/core/ToolRegistry;Ljava/lang/String;Ljava/lang/String;ZLio/droidmcp/core/AuditSink;Lio/droidmcp/core/ResourceRegistry;Lio/droidmcp/core/PromptRegistry;Z)V
@@ -683,9 +683,21 @@ public final class io/droidmcp/core/support/ActivityLaunch {
 	public final fun canStartActivity (Landroid/content/Context;)Z
 }
 
+public final class io/droidmcp/core/support/AppLabels {
+	public fun <init> (Landroid/content/pm/PackageManager;)V
+	public final fun labelFor (Ljava/lang/String;Landroid/content/pm/ApplicationInfo;)Ljava/lang/String;
+	public static synthetic fun labelFor$default (Lio/droidmcp/core/support/AppLabels;Ljava/lang/String;Landroid/content/pm/ApplicationInfo;ILjava/lang/Object;)Ljava/lang/String;
+}
+
 public final class io/droidmcp/core/support/CalendarSupport {
 	public static final field INSTANCE Lio/droidmcp/core/support/CalendarSupport;
 	public final fun findWritableCalendarId (Landroid/content/Context;)Ljava/lang/Long;
+}
+
+public final class io/droidmcp/core/support/CompletionSupport {
+	public static final field INSTANCE Lio/droidmcp/core/support/CompletionSupport;
+	public final fun upcomingDates (Ljava/lang/String;Ljava/time/LocalDate;)Ljava/util/List;
+	public static synthetic fun upcomingDates$default (Lio/droidmcp/core/support/CompletionSupport;Ljava/lang/String;Ljava/time/LocalDate;ILjava/lang/Object;)Ljava/util/List;
 }
 
 public final class io/droidmcp/core/support/SqlLike {

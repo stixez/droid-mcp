@@ -1,5 +1,6 @@
 package io.droidmcp.core
 
+import io.droidmcp.core.support.CompletionSupport
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
@@ -41,14 +42,9 @@ object BuiltInPrompts {
             )
         }
 
-        /** Today, the next six days, then yesterday, as `yyyy-MM-dd`, filtered by what was typed. */
-        override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> {
-            if (argument != "date") return emptyList()
-            val today = LocalDate.now()
-            return ((0L..6L).map { today.plusDays(it) } + today.minusDays(1))
-                .map { it.toString() }
-                .filter { it.startsWith(value.trim()) }
-        }
+        /** Dates around today ([CompletionSupport.upcomingDates]). */
+        override suspend fun complete(argument: String, value: String, context: CompletionContext): List<String> =
+            if (argument == "date") CompletionSupport.upcomingDates(value) else emptyList()
     }
 
     /** Sort active notifications into act-now / later / ignore. */

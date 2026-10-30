@@ -7,8 +7,8 @@ import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
+import io.droidmcp.core.support.AppLabels
 import io.droidmcp.notification.NotificationEvent
-import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
 
 /**
@@ -17,8 +17,10 @@ import io.droidmcp.notification.NotificationStore
  * Requires the listener service bound and notification listener access granted, else an error
  * naming which precondition failed. Results are sorted most-recent-first, optionally filtered to
  * one `package_name`, and capped by `limit` (default 20, clamped 1-100). Ongoing notifications
- * (media players, foreground services) are left out unless `include_ongoing` is true. `text`
- * prefers the expanded body (`EXTRA_BIG_TEXT`), where messaging apps put the full message.
+ * (media players, foreground services) are left out unless `include_ongoing` is true, and so is
+ * a bundle's summary while its children show. `text` prefers the expanded body
+ * (`EXTRA_BIG_TEXT`), where messaging apps put the full message. `app_label` comes from the app
+ * info each notification carries, so package visibility doesn't hide it.
  */
 class ListNotificationsTool(private val context: Context) : McpTool {
 
@@ -47,25 +49,21 @@ class ListNotificationsTool(private val context: Context) : McpTool {
     }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        if (NotificationListenerHolder.componentName == null) {
-            return ToolResult.error("NotificationListenerService not configured. The host app must call NotificationListenerHolder.set() with its listener ComponentName.")
-        }
-        if (!NotificationsReplyTools.isNotificationListenerEnabled(context)) {
-            return ToolResult.error("Notification listener access not granted. Enable it in Settings > Apps > Special access > Notification access.")
-        }
+        listenerUnavailable(context)?.let { return it }
 
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
         val packageName = params["package_name"]?.toString()?.takeIf { it.isNotBlank() }
         val includeOngoing = params["include_ongoing"] as? Boolean ?: false
 
-        val pm = context.packageManager
-        val labelCache = mutableMapOf<String, String?>()
-        fun labelFor(pkg: String): String? = labelCache.getOrPut(pkg) {
-            runCatching { pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString() }.getOrNull()
+        val labels = AppLabels(context.packageManager)
+        val events = NotificationStore.eventSnapshot()
+        val summaryKeys = events.mapNotNullTo(HashSet()) { e ->
+            e.key.takeIf { NotificationStore.findByKey(it)?.isGroupSummary == true }
         }
-
-        val items = select(NotificationStore.eventSnapshot(), limit, packageName, includeOngoing)
-            .map { it.toMap(labelFor(it.packageName)) }
+        val items = select(events, limit, packageName, includeOngoing, summaryKeys).map {
+            val appInfo = NotificationStore.findByKey(it.key)?.postingAppInfo()
+            it.toMap(labels.labelFor(it.packageName, appInfo))
+        }
 
         return ToolResult.success(mapOf(
             "count" to items.size,
@@ -87,15 +85,24 @@ class ListNotificationsTool(private val context: Context) : McpTool {
     )
 
     internal companion object {
+        /**
+         * Filters, newest first, up to [limit]. A group summary ([summaryKeys]) is dropped while
+         * any of its bundle's other notifications is still showing, since it only repeats them.
+         */
         fun select(
             events: List<NotificationEvent>,
             limit: Int,
             packageName: String?,
             includeOngoing: Boolean,
-        ): List<NotificationEvent> = events
-            .filter { packageName == null || it.packageName == packageName }
-            .filter { includeOngoing || !it.isOngoing }
-            .sortedByDescending { it.postedAt }
-            .take(limit)
+            summaryKeys: Set<String> = emptySet(),
+        ): List<NotificationEvent> {
+            val groupsWithChildren = events.mapNotNullTo(HashSet()) { e -> e.groupKey.takeIf { e.key !in summaryKeys } }
+            return events
+                .filter { it.key !in summaryKeys || it.groupKey !in groupsWithChildren }
+                .filter { packageName == null || it.packageName == packageName }
+                .filter { includeOngoing || !it.isOngoing }
+                .sortedByDescending { it.postedAt }
+                .take(limit)
+        }
     }
 }

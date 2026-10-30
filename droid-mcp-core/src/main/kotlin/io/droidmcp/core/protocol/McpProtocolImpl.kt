@@ -193,7 +193,7 @@ class McpProtocolImpl(
                 "resources/read" -> handleResourcesRead(id, params, clientLabel)
                 "prompts/list" -> handlePromptsList(id)
                 "prompts/get" -> handlePromptsGet(id, params)
-                "completion/complete" -> handleComplete(id, params, clientLabel)
+                "completion/complete" -> handleComplete(id, params, clientLabel, sessionId)
                 "ping" -> jsonRpcResponse(id, JsonObject(emptyMap()))
                 else -> jsonRpcError(id, -32601, "Method not found: $method")
             }
@@ -427,9 +427,11 @@ class McpProtocolImpl(
     /**
      * `completion/complete` for a prompt argument (`ref/prompt`) or a resource-template variable
      * (`ref/resource`, whose `uri` is the template). An unknown prompt or template is `-32602`;
-     * an unknown argument, or a completer that fails or times out, just yields no values.
+     * an unknown argument, or a completer that fails or outlasts [COMPLETION_TIMEOUT_MS], just
+     * yields no values. Clients send one per keystroke, so `notifications/cancelled` stops a
+     * superseded one like a `tools/call` (and it gets no response).
      */
-    private suspend fun handleComplete(id: JsonElement?, params: JsonObject, clientLabel: String?): String {
+    private suspend fun handleComplete(id: JsonElement?, params: JsonObject, clientLabel: String?, sessionId: String?): String {
         val ref = params["ref"] as? JsonObject ?: throw InvalidParamsException("missing ref")
         val argument = params["argument"] as? JsonObject ?: throw InvalidParamsException("missing argument")
         val argName = (argument["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
@@ -441,13 +443,14 @@ class McpProtocolImpl(
             .orEmpty()
         val context = CompletionContext(filled) { name, toolParams -> completionToolCall(name, toolParams, clientLabel) }
 
-        val outcome = when ((ref["type"] as? JsonPrimitive)?.contentOrNull) {
+        val completer: suspend () -> List<String> = when ((ref["type"] as? JsonPrimitive)?.contentOrNull) {
             "ref/prompt" -> {
                 val name = (ref["name"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                     ?: throw InvalidParamsException("missing or non-string prompt name")
                 val prompt = visiblePrompts().firstOrNull { it.name == name }
                     ?: throw InvalidParamsException("unknown prompt '$name'")
-                onIo { prompt.complete(argName, value, context) }
+                val run: suspend () -> List<String> = { prompt.complete(argName, value, context) }
+                run
             }
             "ref/resource" -> {
                 val template = (ref["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
@@ -455,9 +458,26 @@ class McpProtocolImpl(
                 val provider = resources.visibleProviders(visibleToolNames())
                     .firstOrNull { p -> p.templates.any { it.uriTemplate == template } }
                     ?: throw InvalidParamsException("unknown resource template '$template'")
-                onIo { provider.complete(template, argName, value, context) }
+                val run: suspend () -> List<String> = { provider.complete(template, argName, value, context) }
+                run
             }
             else -> throw InvalidParamsException("ref.type must be ref/prompt or ref/resource")
+        }
+        val key = (sessionId ?: clientLabel) to id.toString()
+        val outcome = try {
+            coroutineScope {
+                val call = async { runProvider(minOf(registry.toolTimeoutMs, COMPLETION_TIMEOUT_MS), completer) }
+                inFlight[key] = call
+                try {
+                    call.await()
+                } finally {
+                    inFlight.remove(key, call)
+                }
+            }
+        } catch (e: CancellationException) {
+            // Rethrow if this handler itself was cancelled; otherwise the client cancelled it.
+            currentCoroutineContext().ensureActive()
+            return ""
         }
         val values = outcome?.getOrNull().orEmpty().distinct()
         return jsonRpcResponse(id, buildJsonObject {
@@ -474,11 +494,17 @@ class McpProtocolImpl(
         val tool = visibleTools().firstOrNull { it.name == name } ?: return null
         if (!tool.annotations.readOnlyHint || registry.needsConfirmation(tool)) return null
         val startedAt = System.nanoTime()
-        val result = registry.executeTool(name, params, clientLabel)
         val argumentsJson = buildJsonObject {
             put("tool", name)
             put("arguments", ToolSchemas.toJsonElement(params))
         }.toString()
+        val result = try {
+            registry.executeTool(name, params, clientLabel)
+        } catch (e: CancellationException) {
+            // The tool may already have read data, so a cut-short completion is still audited.
+            recordAudit(COMPLETION_COMPLETE, clientLabel, argumentsJson, ToolResult.error("cancelled", "completion cancelled"), (System.nanoTime() - startedAt) / 1_000_000)
+            throw e
+        }
         recordAudit(COMPLETION_COMPLETE, clientLabel, argumentsJson, result, (System.nanoTime() - startedAt) / 1_000_000)
         return result
     }
@@ -757,6 +783,9 @@ class McpProtocolImpl(
 
         /** Audit tool name recorded when a completion reads through a tool. */
         const val COMPLETION_COMPLETE = "completion/complete"
+
+        /** Longest a `completion/complete` may run (capped by the tool timeout); it answers a keystroke. */
+        const val COMPLETION_TIMEOUT_MS = 5_000L
 
         /** Most values one `completion/complete` reply carries (the MCP limit). */
         private const val MAX_COMPLETIONS = 100

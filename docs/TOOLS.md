@@ -300,9 +300,15 @@ Without `duration_ms`, each tool takes a single reading; with it, the tool colle
 | `list_installed_apps` | Installed apps | `include_system` (default false)<br>`limit` (1-100, default 50) |
 | `get_app_info` | Details for one app | `package_name` (required) |
 | `launch_app` | Launch an app | `package_name` (required) |
-| `get_app_usage` | Screen time per app, most used first, from activity resume/pause events | `days` (1-7, default 1 = today since midnight)<br>`limit` (1-100, default 10)<br>`package_name` |
+| `get_app_usage` | Screen time per app, most used first, from activity resume/pause, screen-off and reboot events. The home-screen launcher is left out. | `days` (1-7, default 1 = today since midnight)<br>`limit` (1-100, default 10)<br>`package_name` |
 
-Android keeps only a few days of usage events, so `get_app_usage` caps `days` at 7. Apps without a launcher activity come back with `app_label: null`.
+Android keeps only a few days of usage events, so `get_app_usage` caps `days` at 7. It reads a day further back so an app already open when the window starts is counted from the start. Apps without a launcher activity come back with `app_label: null`.
+
+The module declares `PACKAGE_USAGE_STATS` for `get_app_usage`. A host that doesn't want it in its manifest can remove it, and `get_app_usage` then returns its "Usage access not granted" error:
+
+```xml
+<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:node="remove" />
+```
 
 ## Alarms
 
@@ -481,7 +487,7 @@ By default both tools block loopback, private, link-local and similar addresses.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
-| `list_notifications` | Every active notification from any app, newest first. Ongoing ones (media players, running services) are skipped unless `include_ongoing` is true. `text` is the expanded body when the app provides one. | `limit` (1-100, default 20)<br>`package_name`<br>`include_ongoing` (default false) |
+| `list_notifications` | Every active notification from any app, newest first. Ongoing ones (media players, running services) are skipped unless `include_ongoing` is true, and so is a bundle's summary ("3 new messages") while its messages show. `text` is the expanded body when the app provides one. | `limit` (1-100, default 20)<br>`package_name`<br>`include_ongoing` (default false) |
 | `list_repliable_notifications` | Active notifications that have a free-form RemoteInput reply action | `limit` (1-100, default 20) |
 | `reply_to_notification` | Reply through a notification's RemoteInput action. Success means the PendingIntent fired, not that the app delivered the message. | `key` (required)<br>`text` (required) |
 | `dismiss_notification` | Cancel a notification by key | `key` (required) |
@@ -645,6 +651,6 @@ Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
 | `message_contact` | `contact` | Matching contact names, through `search_contacts` |
 | `droidmcp://calendar/{date}` | `date` | `today`, then the same dates as `daily_briefing` |
 
-To add your own, override `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` reads device data through a tool, but only a visible, read-only tool that needs no host confirmation, so a suggestion never changes anything or shows a dialog. Each such call is audited under the name `completion/complete`.
+To add your own, override `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` reads device data through a tool, but only a visible, read-only tool that needs no host confirmation, so a suggestion never changes anything or shows a dialog. Each such call is audited under the name `completion/complete`. A completion has 5 seconds (`McpProtocolImpl.COMPLETION_TIMEOUT_MS`) before it answers with no values, and `notifications/cancelled` stops one the client no longer needs.
 
 **Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).
