@@ -302,7 +302,7 @@ Without `duration_ms`, each tool takes a single reading; with it, the tool colle
 | `launch_app` | Launch an app | `package_name` (required) |
 | `get_app_usage` | Screen time per app, most used first, from activity resume/pause, screen-off and reboot events. The home-screen launcher is left out. | `days` (1-7, default 1 = today since midnight)<br>`limit` (1-100, default 10)<br>`package_name` |
 
-Android keeps only a few days of usage events, so `get_app_usage` caps `days` at 7. It reads a day further back so an app already open when the window starts is counted from the start. Apps without a launcher activity come back with `app_label: null`.
+Android keeps only a few days of usage events, so `get_app_usage` caps `days` at 7. It reads a day further back so an app already open when the window starts is counted from the start. In split screen both visible apps count, so `total_seconds` can exceed the time the screen was on. Apps without a launcher activity come back with `app_label: null`.
 
 The module declares `PACKAGE_USAGE_STATS` for `get_app_usage`. A host that doesn't want it in its manifest can remove it, and `get_app_usage` then returns its "Usage access not granted" error:
 

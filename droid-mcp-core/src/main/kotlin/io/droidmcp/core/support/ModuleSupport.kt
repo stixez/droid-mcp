@@ -159,7 +159,8 @@ class AppLabels(private val packageManager: PackageManager) {
      * Android 11+ package visibility hides the app from `getApplicationInfo`.
      */
     fun labelFor(packageName: String, appInfo: ApplicationInfo? = null): String? {
-        if (cache.containsKey(packageName)) return cache[packageName]
+        // A miss is retried when this call brings app info the earlier one lacked.
+        if (cache.containsKey(packageName) && (cache[packageName] != null || appInfo == null)) return cache[packageName]
         val label = runCatching {
             packageManager.getApplicationLabel(appInfo ?: packageManager.getApplicationInfo(packageName, 0)).toString()
         }.getOrNull()

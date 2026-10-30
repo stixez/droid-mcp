@@ -14,12 +14,13 @@ import io.droidmcp.notification.NotificationStore
 /**
  * Lists every active notification from any app, read from
  * [NotificationStore.eventSnapshot][io.droidmcp.notification.NotificationStore.eventSnapshot].
- * Requires the listener service bound and notification listener access granted, else an error
- * naming which precondition failed. Results are sorted most-recent-first, optionally filtered to
+ * Requires the listener configured, granted access and connected ([listenerUnavailable]), else
+ * an error naming which precondition failed. Results are sorted most-recent-first, optionally filtered to
  * one `package_name`, and capped by `limit` (default 20, clamped 1-100). Ongoing notifications
  * (media players, foreground services) are left out unless `include_ongoing` is true, and so is
  * a bundle's summary while its children show. `text` prefers the expanded body
- * (`EXTRA_BIG_TEXT`), where messaging apps put the full message. `app_label` comes from the app
+ * (`EXTRA_BIG_TEXT`) over `EXTRA_TEXT`; for chat apps using MessagingStyle that is usually just
+ * the latest message. `app_label` comes from the app
  * info each notification carries, so package visibility doesn't hide it.
  */
 class ListNotificationsTool(private val context: Context) : McpTool {
@@ -96,11 +97,12 @@ class ListNotificationsTool(private val context: Context) : McpTool {
             includeOngoing: Boolean,
             summaryKeys: Set<String> = emptySet(),
         ): List<NotificationEvent> {
-            val groupsWithChildren = events.mapNotNullTo(HashSet()) { e -> e.groupKey.takeIf { e.key !in summaryKeys } }
-            return events
-                .filter { it.key !in summaryKeys || it.groupKey !in groupsWithChildren }
+            val shown = events
                 .filter { packageName == null || it.packageName == packageName }
                 .filter { includeOngoing || !it.isOngoing }
+            val groupsWithChildren = shown.mapNotNullTo(HashSet()) { e -> e.groupKey.takeIf { e.key !in summaryKeys } }
+            return shown
+                .filter { it.key !in summaryKeys || it.groupKey !in groupsWithChildren }
                 .sortedByDescending { it.postedAt }
                 .take(limit)
         }

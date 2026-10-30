@@ -21,7 +21,7 @@ import java.util.Locale
 
 /**
  * Per-app screen time from [UsageStatsManager.queryEvents], computed by [ScreenTime] from
- * activity resume/pause, screen-off and shutdown/boot events (more accurate than the
+ * activity resume/pause/stop, screen-off and shutdown/boot events (more accurate than the
  * daily-bucketed `queryUsageStats`, whose buckets don't start at local midnight). Events are read
  * from [LOOKBACK_MS] before the window so an app already open at its start is counted. The default
  * home-screen launcher is left out. Needs Usage access ([UsageAccess]); without it the tool returns
@@ -126,6 +126,9 @@ private fun kindOf(eventType: Int): UsageTransition.Kind? = when (eventType) {
     UsageEvents.Event.SCREEN_NON_INTERACTIVE -> UsageTransition.Kind.STOP_ALL
     else -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         when (eventType) {
+            // Normally right after ACTIVITY_PAUSED (then a no-op); it closes the stretch when an
+            // app died without a pause being logged.
+            UsageEvents.Event.ACTIVITY_STOPPED -> UsageTransition.Kind.BACKGROUND
             UsageEvents.Event.DEVICE_SHUTDOWN -> UsageTransition.Kind.STOP_ALL
             UsageEvents.Event.DEVICE_STARTUP -> UsageTransition.Kind.STARTUP
             else -> null

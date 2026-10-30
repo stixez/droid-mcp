@@ -3,6 +3,8 @@ package io.droidmcp.notification
 import android.app.PendingIntent
 import android.app.RemoteInput
 import com.google.common.truth.Truth.assertThat
+import android.service.notification.StatusBarNotification
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -59,6 +61,18 @@ class NotificationStoreTest {
         assertThat(NotificationStore.eventSnapshot().map { it.key }).containsExactly("a", "b")
         NotificationStore.clearForTest()
         assertThat(NotificationStore.eventSnapshot()).isEmpty()
+    }
+
+    @Test
+    fun `reset keeps the other notifications when one can't be projected`() {
+        val bad = mockk<StatusBarNotification> {
+            every { key } returns "bad"
+            every { notification } throws IllegalStateException("malformed extras")
+        }
+        val good = mockk<StatusBarNotification>(relaxed = true) { every { key } returns "good" }
+        NotificationStore.reset(arrayOf(bad, good))
+        assertThat(NotificationStore.containsKey("bad")).isTrue()
+        assertThat(NotificationStore.eventSnapshot().map { it.key }).containsExactly("good")
     }
 
     @Test

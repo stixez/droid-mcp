@@ -21,7 +21,7 @@ import java.util.*
 class GetActiveNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "get_active_notifications"
-    override val description = "List the notifications this app itself is showing. It can't see other apps' notifications; for those use list_notifications."
+    override val description = "List the notifications this app itself is showing. It can't see other apps' notifications; for those use list_notifications if it's available."
     override val parameters = listOf(
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )

@@ -69,8 +69,10 @@ object NotificationStore {
         repliable.keys.retainAll(incoming.keys)
         incoming.forEach { (k, sbn) ->
             active[k] = sbn
-            events[k] = sbn.toEvent(channelImportanceOf(sbn))
-            val projected = sbn.toRepliableOrNull()
+            // Any app can post a malformed notification; skip its projections, not the rest.
+            val event = runCatching { sbn.toEvent(channelImportanceOf(sbn)) }.getOrNull()
+            if (event != null) events[k] = event else events.remove(k)
+            val projected = runCatching { sbn.toRepliableOrNull() }.getOrNull()
             if (projected != null) repliable[k] = projected else repliable.remove(k)
         }
     }

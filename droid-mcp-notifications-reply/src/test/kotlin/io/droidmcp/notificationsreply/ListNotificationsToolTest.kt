@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import io.droidmcp.notification.McpNotificationListenerServiceBase
 import io.droidmcp.notification.NotificationEvent
 import io.droidmcp.notification.NotificationListenerHolder
 import io.droidmcp.notification.NotificationStore
@@ -28,7 +29,7 @@ class ListNotificationsToolTest {
     @AfterEach
     fun cleanup() {
         NotificationListenerHolder.clear()
-        unmockkObject(NotificationStore)
+        unmockkObject(NotificationStore, McpNotificationListenerServiceBase.Companion)
     }
 
     @Test
@@ -74,10 +75,28 @@ class ListNotificationsToolTest {
     }
 
     @Test
+    fun `a summary whose only children are filtered out stays visible`() {
+        val events = listOf(event("sum", group = "g", postedAt = 2), event("music", group = "g", postedAt = 1, ongoing = true))
+        assertThat(ListNotificationsTool.select(events, 20, null, false, setOf("sum")).map { it.key }).containsExactly("sum")
+    }
+
+    @Test
+    fun `errors when access is granted but the listener is not connected`() = runTest {
+        NotificationListenerHolder.set(mockk<ComponentName>(relaxed = true))
+        val nm = mockk<NotificationManager> { every { isNotificationListenerAccessGranted(any()) } returns true }
+        every { context.getSystemService(Context.NOTIFICATION_SERVICE) } returns nm
+        val result = ListNotificationsTool(context).execute(emptyMap())
+        assertThat(result.isSuccess).isFalse()
+        assertThat(result.errorMessage).contains("not connected")
+    }
+
+    @Test
     fun `execute returns store contents with big text preferred`() = runTest {
         NotificationListenerHolder.set(mockk<ComponentName>(relaxed = true))
         val nm = mockk<NotificationManager> { every { isNotificationListenerAccessGranted(any()) } returns true }
         every { context.getSystemService(Context.NOTIFICATION_SERVICE) } returns nm
+        mockkObject(McpNotificationListenerServiceBase.Companion)
+        every { McpNotificationListenerServiceBase.isConnected } returns true
         mockkObject(NotificationStore)
         every { NotificationStore.eventSnapshot() } returns listOf(
             event("k", text = "short", bigText = "the full message", hasReply = true, actions = listOf("Reply", "Mark as read")),

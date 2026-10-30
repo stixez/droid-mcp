@@ -83,6 +83,13 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
          * connected. Returns true on successful dispatch, false when no
          * listener is bound or the underlying binder rejected the call.
          */
+        /**
+         * True while a listener is connected and filling [NotificationStore]. Access can be
+         * granted while the service is not (yet) bound, e.g. right after an app update, and then
+         * the store is empty rather than reflecting the user's notifications.
+         */
+        val isConnected: Boolean get() = instance != null
+
         fun cancelByKey(key: String): Boolean {
             val live = instance ?: return false
             return runCatching { live.cancelNotification(key); true }.getOrElse { false }
