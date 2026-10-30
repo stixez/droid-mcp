@@ -14,6 +14,7 @@ public final class io/droidmcp/core/BuiltInPrompts {
 
 public final class io/droidmcp/core/BuiltInPrompts$DailyBriefing : io/droidmcp/core/McpPrompt {
 	public static final field INSTANCE Lio/droidmcp/core/BuiltInPrompts$DailyBriefing;
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getArguments ()Ljava/util/List;
 	public fun getDescription ()Ljava/lang/String;
 	public fun getName ()Ljava/lang/String;
@@ -24,6 +25,7 @@ public final class io/droidmcp/core/BuiltInPrompts$DailyBriefing : io/droidmcp/c
 
 public final class io/droidmcp/core/BuiltInPrompts$DeviceHealthCheck : io/droidmcp/core/McpPrompt {
 	public static final field INSTANCE Lio/droidmcp/core/BuiltInPrompts$DeviceHealthCheck;
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getArguments ()Ljava/util/List;
 	public fun getDescription ()Ljava/lang/String;
 	public fun getName ()Ljava/lang/String;
@@ -34,6 +36,7 @@ public final class io/droidmcp/core/BuiltInPrompts$DeviceHealthCheck : io/droidm
 
 public final class io/droidmcp/core/BuiltInPrompts$MessageContact : io/droidmcp/core/McpPrompt {
 	public static final field INSTANCE Lio/droidmcp/core/BuiltInPrompts$MessageContact;
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getArguments ()Ljava/util/List;
 	public fun getDescription ()Ljava/lang/String;
 	public fun getName ()Ljava/lang/String;
@@ -44,12 +47,20 @@ public final class io/droidmcp/core/BuiltInPrompts$MessageContact : io/droidmcp/
 
 public final class io/droidmcp/core/BuiltInPrompts$TriageNotifications : io/droidmcp/core/McpPrompt {
 	public static final field INSTANCE Lio/droidmcp/core/BuiltInPrompts$TriageNotifications;
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getArguments ()Ljava/util/List;
 	public fun getDescription ()Ljava/lang/String;
 	public fun getName ()Ljava/lang/String;
 	public fun getRequiredTools ()Ljava/util/Set;
 	public fun getTitle ()Ljava/lang/String;
 	public fun render (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/droidmcp/core/CompletionContext {
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun callTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getArguments ()Ljava/util/Map;
 }
 
 public final class io/droidmcp/core/DroidMcp {
@@ -129,6 +140,7 @@ public final class io/droidmcp/core/ElicitationResult$Action : java/lang/Enum {
 }
 
 public abstract interface class io/droidmcp/core/McpPrompt {
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getArguments ()Ljava/util/List;
 	public abstract fun getDescription ()Ljava/lang/String;
 	public abstract fun getName ()Ljava/lang/String;
@@ -138,6 +150,7 @@ public abstract interface class io/droidmcp/core/McpPrompt {
 }
 
 public final class io/droidmcp/core/McpPrompt$DefaultImpls {
+	public static fun complete (Lio/droidmcp/core/McpPrompt;Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun getArguments (Lio/droidmcp/core/McpPrompt;)Ljava/util/List;
 	public static fun getRequiredTools (Lio/droidmcp/core/McpPrompt;)Ljava/util/Set;
 	public static fun getTitle (Lio/droidmcp/core/McpPrompt;)Ljava/lang/String;
@@ -422,6 +435,7 @@ public final class io/droidmcp/core/ResourceContents$Text : io/droidmcp/core/Res
 }
 
 public abstract interface class io/droidmcp/core/ResourceProvider {
+	public fun complete (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getRequiredTools ()Ljava/util/Set;
 	public fun getTemplates ()Ljava/util/List;
 	public abstract fun handles (Ljava/lang/String;)Z
@@ -430,6 +444,7 @@ public abstract interface class io/droidmcp/core/ResourceProvider {
 }
 
 public final class io/droidmcp/core/ResourceProvider$DefaultImpls {
+	public static fun complete (Lio/droidmcp/core/ResourceProvider;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lio/droidmcp/core/CompletionContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun getRequiredTools (Lio/droidmcp/core/ResourceProvider;)Ljava/util/Set;
 	public static fun getTemplates (Lio/droidmcp/core/ResourceProvider;)Ljava/util/List;
 	public static fun list (Lio/droidmcp/core/ResourceProvider;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -649,6 +664,8 @@ public final class io/droidmcp/core/protocol/McpProtocol$DefaultImpls {
 }
 
 public final class io/droidmcp/core/protocol/McpProtocolImpl : io/droidmcp/core/protocol/McpProtocol {
+	public static final field COMPLETION_COMPLETE Ljava/lang/String;
+	public static final field COMPLETION_TIMEOUT_MS J
 	public static final field Companion Lio/droidmcp/core/protocol/McpProtocolImpl$Companion;
 	public static final field RESOURCES_READ Ljava/lang/String;
 	public fun <init> (Lio/droidmcp/core/ToolRegistry;Ljava/lang/String;Ljava/lang/String;ZLio/droidmcp/core/AuditSink;Lio/droidmcp/core/ResourceRegistry;Lio/droidmcp/core/PromptRegistry;Z)V
@@ -666,9 +683,21 @@ public final class io/droidmcp/core/support/ActivityLaunch {
 	public final fun canStartActivity (Landroid/content/Context;)Z
 }
 
+public final class io/droidmcp/core/support/AppLabels {
+	public fun <init> (Landroid/content/pm/PackageManager;)V
+	public final fun labelFor (Ljava/lang/String;Landroid/content/pm/ApplicationInfo;)Ljava/lang/String;
+	public static synthetic fun labelFor$default (Lio/droidmcp/core/support/AppLabels;Ljava/lang/String;Landroid/content/pm/ApplicationInfo;ILjava/lang/Object;)Ljava/lang/String;
+}
+
 public final class io/droidmcp/core/support/CalendarSupport {
 	public static final field INSTANCE Lio/droidmcp/core/support/CalendarSupport;
 	public final fun findWritableCalendarId (Landroid/content/Context;)Ljava/lang/Long;
+}
+
+public final class io/droidmcp/core/support/CompletionSupport {
+	public static final field INSTANCE Lio/droidmcp/core/support/CompletionSupport;
+	public final fun upcomingDates (Ljava/lang/String;Ljava/time/LocalDate;)Ljava/util/List;
+	public static synthetic fun upcomingDates$default (Lio/droidmcp/core/support/CompletionSupport;Ljava/lang/String;Ljava/time/LocalDate;ILjava/lang/Object;)Ljava/util/List;
 }
 
 public final class io/droidmcp/core/support/SqlLike {
@@ -680,6 +709,11 @@ public final class io/droidmcp/core/support/StrictDates {
 	public static final field INSTANCE Lio/droidmcp/core/support/StrictDates;
 	public final fun parse (Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;)Ljava/util/Date;
 	public static synthetic fun parse$default (Lio/droidmcp/core/support/StrictDates;Ljava/lang/String;Ljava/lang/String;Ljava/util/TimeZone;ILjava/lang/Object;)Ljava/util/Date;
+}
+
+public final class io/droidmcp/core/support/UsageAccess {
+	public static final field INSTANCE Lio/droidmcp/core/support/UsageAccess;
+	public final fun isGranted (Landroid/content/Context;)Z
 }
 
 public final class io/droidmcp/core/transport/HttpTransport {

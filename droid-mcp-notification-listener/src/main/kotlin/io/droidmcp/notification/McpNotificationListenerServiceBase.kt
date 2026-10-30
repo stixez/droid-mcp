@@ -23,7 +23,7 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
         // Every sbn is attacker-shaped (any app can post one), so never let a
         // malformed notification throw out of a listener callback — that runs
         // on the host's main thread and would crash the host process.
-        runCatching { NotificationStore.reset(runCatching { activeNotifications }.getOrNull()) }
+        runCatching { NotificationStore.reset(runCatching { activeNotifications }.getOrNull(), ::channelImportanceFor) }
     }
 
     override fun onListenerDisconnected() {
@@ -47,8 +47,9 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
         // Isolated so a malformed notification from any app can't crash the
         // host (this callback runs on the main thread); the store and the bus
         // are updated independently so one failing doesn't block the other.
-        runCatching { NotificationStore.put(sbn) }
-        runCatching { NotificationListenerBus.publish(sbn.toEvent(channelImportanceFor(sbn))) }
+        val event = runCatching { sbn.toEvent(channelImportanceFor(sbn)) }.getOrNull()
+        runCatching { NotificationStore.put(sbn, event) }
+        event?.let { runCatching { NotificationListenerBus.publish(it) } }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
@@ -82,6 +83,13 @@ abstract class McpNotificationListenerServiceBase : NotificationListenerService(
          * connected. Returns true on successful dispatch, false when no
          * listener is bound or the underlying binder rejected the call.
          */
+        /**
+         * True while a listener is connected and filling [NotificationStore]. Access can be
+         * granted while the service is not (yet) bound, e.g. right after an app update, and then
+         * the store is empty rather than reflecting the user's notifications.
+         */
+        val isConnected: Boolean get() = instance != null
+
         fun cancelByKey(key: String): Boolean {
             val live = instance ?: return false
             return runCatching { live.cancelNotification(key); true }.getOrElse { false }

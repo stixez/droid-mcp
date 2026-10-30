@@ -1,6 +1,6 @@
 # Tool Reference
 
-All 157 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
+All 160 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
 
 The generated contract [`droid-mcp-all/api/tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt) lists every tool's parameter types, ranges, enums and annotations. If this page and the contract disagree, the contract is right. Tools annotated `readOnly` there are the only ones listed and callable when the server runs with `readOnly = true`.
 
@@ -39,7 +39,8 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 |------|--------------|------------|
 | `read_calendar` | Events in a date range, including occurrences of recurring events and multi-day events | `start_date` (required, YYYY-MM-DD)<br>`end_date` (YYYY-MM-DD, default `start_date`)<br>`limit` (1-100, default 10) |
 | `search_events` | Events whose title or description contains a keyword. A recurring event is returned once, not per occurrence. | `query` (required)<br>`limit` (1-100, default 10) |
-| `create_event` | Create an event | `title` (required)<br>`start` (required, YYYY-MM-DD HH:mm)<br>`end` (required, YYYY-MM-DD HH:mm)<br>`location`<br>`description`<br>`calendar_id` (integer, default: primary writable calendar) |
+| `list_calendars` | Calendars on the device: id, name, account, color, whether events can be added, and which one `create_event` uses by default | `writable_only` (default false) |
+| `create_event` | Create an event | `title` (required)<br>`start` (required, YYYY-MM-DD HH:mm)<br>`end` (required, YYYY-MM-DD HH:mm)<br>`location`<br>`description`<br>`calendar_id` (integer from `list_calendars`, default: primary writable calendar) |
 | `update_event` | Change an event. Only the fields passed are written. | `event_id` (required, ≥ 1)<br>`title`<br>`description`<br>`location`<br>`start` (YYYY-MM-DD HH:mm, or YYYY-MM-DD for all-day)<br>`end` (same format; exclusive for all-day)<br>`all_day` (changing it needs both `start` and `end`) |
 | `delete_event` | Delete an event. For a recurring event this deletes the whole series. | `event_id` (required, ≥ 1) |
 
@@ -147,7 +148,7 @@ On Android 11+, other apps' non-media files are hidden.
 |------|--------------|------------|
 | `get_active_notifications` | The host app's own active notifications | `limit` (1-100, default 10) |
 
-This returns only notifications the host app posted. To read other apps' notifications, use [Notification Reply](#notification-reply) or [Notification Watch](#notification-watch).
+This returns only notifications the host app posted. To read other apps' notifications, use `list_notifications` in [Notification Reply](#notification-reply), or [Notification Watch](#notification-watch) for a live feed.
 
 ## Device
 
@@ -292,13 +293,22 @@ Without `duration_ms`, each tool takes a single reading; with it, the tool colle
 
 ## Apps
 
-**Needs:** nothing. The module declares a `<queries>` entry for launcher activities, so on Android 11+ apps without a launcher activity are not visible.
+**Needs:** nothing, except `get_app_usage`, which needs Usage access (`PACKAGE_USAGE_STATS`, granted in Settings) and returns an error without it. The module declares a `<queries>` entry for launcher activities, so on Android 11+ apps without a launcher activity are not visible.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
 | `list_installed_apps` | Installed apps | `include_system` (default false)<br>`limit` (1-100, default 50) |
 | `get_app_info` | Details for one app | `package_name` (required) |
 | `launch_app` | Launch an app | `package_name` (required) |
+| `get_app_usage` | Screen time per app, most used first, from activity resume/pause, screen-off and reboot events. The home-screen launcher is left out. | `days` (1-7, default 1 = today since midnight)<br>`limit` (1-100, default 10)<br>`package_name` |
+
+Android keeps only a few days of usage events, so `get_app_usage` caps `days` at 7. It reads a day further back so an app already open when the window starts is counted from the start. In split screen both visible apps count, so `total_seconds` can exceed the time the screen was on. Apps without a launcher activity come back with `app_label: null`.
+
+The module declares `PACKAGE_USAGE_STATS` for `get_app_usage`. A host that doesn't want it in its manifest can remove it, and `get_app_usage` then returns its "Usage access not granted" error:
+
+```xml
+<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:node="remove" />
+```
 
 ## Alarms
 
@@ -473,10 +483,11 @@ By default both tools block loopback, private, link-local and similar addresses.
 ## Notification Reply
 
 > [!NOTE]
-> Needs Notification access. The host's listener service must extend `McpNotificationListenerServiceBase` (it fills the notification store all four tools read) and be registered with `NotificationListenerHolder.set(componentName)`.
+> Needs Notification access. The host's listener service must extend `McpNotificationListenerServiceBase` (it fills the notification store all five tools read) and be registered with `NotificationListenerHolder.set(componentName)`.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
+| `list_notifications` | Every active notification from any app, newest first. Ongoing ones (media players, running services) are skipped unless `include_ongoing` is true, and so is a bundle's summary ("3 new messages") while its messages show. `text` is the expanded body when the app provides one. | `limit` (1-100, default 20)<br>`package_name`<br>`include_ongoing` (default false) |
 | `list_repliable_notifications` | Active notifications that have a free-form RemoteInput reply action | `limit` (1-100, default 20) |
 | `reply_to_notification` | Reply through a notification's RemoteInput action. Success means the PendingIntent fired, not that the app delivered the message. | `key` (required)<br>`text` (required) |
 | `dismiss_notification` | Cancel a notification by key | `key` (required) |
@@ -625,14 +636,21 @@ Besides tools, the server answers MCP resource and prompt requests. Both are opt
 
 | Prompt | Arguments | Uses |
 |--------|-----------|------|
-| `daily_briefing` | `date` (yyyy-MM-dd, default today) | `read_calendar`, `get_active_notifications`, and `read_messages` when available |
-| `triage_notifications` | - | `get_active_notifications` |
+| `daily_briefing` | `date` (yyyy-MM-dd, default today) | `read_calendar`, plus `list_notifications` and `read_messages` when available |
+| `triage_notifications` | - | `list_notifications` |
 | `message_contact` | `contact` (required), `intent` (required) | `search_contacts`, then `send_message` only after the user confirms |
 | `device_health_check` | - | `get_battery_info`, `get_storage_info`, `get_connectivity` |
 
-> [!WARNING]
-> `daily_briefing` and `triage_notifications` read notifications through `get_active_notifications`, which only sees notifications the host app posted itself, not other apps'. Until this is fixed ([#11](https://github.com/stixez/droid-mcp/issues/11)), leave those two out or write your own prompt on `list_repliable_notifications` or `watch_notifications`.
-
 Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
+
+**Completion.** Clients that support `completion/complete` autocomplete prompt arguments and resource-template variables while the user types:
+
+| Prompt or template | Argument | Suggestions |
+|--------------------|----------|-------------|
+| `daily_briefing` | `date` | Today, the next six days, then yesterday |
+| `message_contact` | `contact` | Matching contact names, through `search_contacts` |
+| `droidmcp://calendar/{date}` | `date` | `today`, then the same dates as `daily_briefing` |
+
+To add your own, override `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` reads device data through a tool, but only a visible, read-only tool that needs no host confirmation, so a suggestion never changes anything or shows a dialog. Each such call is audited under the name `completion/complete`. A completion has 5 seconds (`McpProtocolImpl.COMPLETION_TIMEOUT_MS`) before it answers with no values, and `notifications/cancelled` stops one the client no longer needs.
 
 **Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).

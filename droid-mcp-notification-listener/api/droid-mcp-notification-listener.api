@@ -10,6 +10,7 @@ public abstract class io/droidmcp/notification/McpNotificationListenerServiceBas
 
 public final class io/droidmcp/notification/McpNotificationListenerServiceBase$Companion {
 	public final fun cancelByKey (Ljava/lang/String;)Z
+	public final fun isConnected ()Z
 }
 
 public final class io/droidmcp/notification/NotificationEvent {
@@ -73,6 +74,7 @@ public final class io/droidmcp/notification/NotificationListenerHolder {
 public final class io/droidmcp/notification/NotificationStore {
 	public static final field INSTANCE Lio/droidmcp/notification/NotificationStore;
 	public final fun containsKey (Ljava/lang/String;)Z
+	public final fun eventSnapshot ()Ljava/util/List;
 	public final fun findByKey (Ljava/lang/String;)Landroid/service/notification/StatusBarNotification;
 	public final fun findRepliable (Ljava/lang/String;)Lio/droidmcp/notification/RepliableNotification;
 	public final fun repliableSnapshot ()Ljava/util/List;

@@ -140,6 +140,9 @@ internal object CalendarUtils {
         }
     }
 
+    /** A calendar's ARGB color as `#RRGGBB` (alpha dropped). */
+    fun formatColor(argb: Int): String = String.format(Locale.US, "#%06X", argb and 0xFFFFFF)
+
     /** Reads an id param given as a number or numeric string; null if absent, non-numeric or not positive. */
     fun parseId(value: Any?): Long? =
         ((value as? Number)?.toLong() ?: value?.toString()?.trim()?.toLongOrNull())?.takeIf { it > 0 }

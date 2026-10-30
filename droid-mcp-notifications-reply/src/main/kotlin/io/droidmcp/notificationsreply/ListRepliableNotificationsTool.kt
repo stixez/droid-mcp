@@ -1,14 +1,13 @@
 package io.droidmcp.notificationsreply
 
 import android.content.Context
-import android.content.pm.PackageManager
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
 import io.droidmcp.core.ToolAnnotations
 import io.droidmcp.core.ToolParameter
 import io.droidmcp.core.ToolResult
-import io.droidmcp.notification.NotificationListenerHolder
+import io.droidmcp.core.support.AppLabels
 import io.droidmcp.notification.NotificationStore
 import io.droidmcp.notification.RepliableNotification
 
@@ -18,8 +17,8 @@ import io.droidmcp.notification.RepliableNotification
  * [NotificationStore.repliableSnapshot][io.droidmcp.notification.NotificationStore.repliableSnapshot].
  * Requires the listener service bound and notification listener access granted, else an error
  * naming which precondition failed. Results are sorted most-recent-first and capped by `limit`
- * (default 20, clamped 1-100). Each entry includes the app's display label (resolved via
- * `PackageManager`, cached per call) alongside the notification's key, title, text, post time,
+ * (default 20, clamped 1-100). Each entry includes the app's display label (from the app info
+ * the notification carries, cached per call) alongside the notification's key, title, text, post time,
  * and reply-action label/hint — everything [ReplyToNotificationTool] needs.
  */
 class ListRepliableNotificationsTool(private val context: Context) : McpTool {
@@ -45,25 +44,15 @@ class ListRepliableNotificationsTool(private val context: Context) : McpTool {
     }
 
     override suspend fun execute(params: Map<String, Any>): ToolResult {
-        if (NotificationListenerHolder.componentName == null) {
-            return ToolResult.error("NotificationListenerService not configured. The host app must call NotificationListenerHolder.set() with its listener ComponentName.")
-        }
-        if (!NotificationsReplyTools.isNotificationListenerEnabled(context)) {
-            return ToolResult.error("Notification listener access not granted. Enable it in Settings > Apps > Special access > Notification access.")
-        }
+        listenerUnavailable(context)?.let { return it }
 
         val limit = (params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 20
 
-        val pm = context.packageManager
-        val labelCache = mutableMapOf<String, String?>()
-        fun labelFor(pkg: String): String? = labelCache.getOrPut(pkg) {
-            runCatching { pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString() }.getOrNull()
-        }
-
+        val labels = AppLabels(context.packageManager)
         val items = NotificationStore.repliableSnapshot()
             .sortedByDescending { it.postedAt }
             .take(limit)
-            .map { it.toMap(labelFor(it.packageName)) }
+            .map { it.toMap(labels.labelFor(it.packageName, NotificationStore.findByKey(it.key)?.postingAppInfo())) }
 
         return ToolResult.success(mapOf(
             "count" to items.size,

@@ -15,6 +15,16 @@ public final class io/droidmcp/apps/GetAppInfoTool : io/droidmcp/core/McpTool {
 	public fun getParameters ()Ljava/util/List;
 }
 
+public final class io/droidmcp/apps/GetAppUsageTool : io/droidmcp/core/McpTool {
+	public fun <init> (Landroid/content/Context;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
 public final class io/droidmcp/apps/LaunchAppTool : io/droidmcp/core/McpTool {
 	public fun <init> (Landroid/content/Context;)V
 	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

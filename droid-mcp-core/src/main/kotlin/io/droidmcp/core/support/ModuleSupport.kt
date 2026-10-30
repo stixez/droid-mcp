@@ -1,12 +1,18 @@
 package io.droidmcp.core.support
 
+import android.Manifest
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Process
 import android.provider.CalendarContract
 import android.provider.Settings
 import java.text.ParsePosition
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -106,5 +112,59 @@ object CalendarSupport {
         )?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getLong(0) else null
         }
+    }
+}
+
+/** Usage access (`PACKAGE_USAGE_STATS`), a special access granted in Settings, not at runtime. */
+object UsageAccess {
+
+    /**
+     * True if this app has Usage access: the `GET_USAGE_STATS` app op is allowed (the Settings
+     * toggle), or left at its default with `PACKAGE_USAGE_STATS` granted (e.g. `adb shell pm grant`),
+     * which the system's usage-stats service accepts too.
+     */
+    fun isGranted(context: Context): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+        // checkOpNoThrow(String, …) was deprecated for unsafeCheckOpNoThrow on API 29–35, then
+        // un-deprecated on 36 (which deprecated unsafeCheckOpNoThrow instead); both behave identically.
+        return when (appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)) {
+            AppOpsManager.MODE_ALLOWED -> true
+            AppOpsManager.MODE_DEFAULT ->
+                context.checkSelfPermission(Manifest.permission.PACKAGE_USAGE_STATS) == PackageManager.PERMISSION_GRANTED
+            else -> false
+        }
+    }
+}
+
+/** Suggestions for `completion/complete` completers. */
+object CompletionSupport {
+
+    /**
+     * Today, the next six days, then yesterday, as `yyyy-MM-dd`, keeping those that start with
+     * what the user typed ([value], trimmed).
+     */
+    fun upcomingDates(value: String, today: LocalDate = LocalDate.now()): List<String> =
+        ((0L..6L).map { today.plusDays(it) } + today.minusDays(1))
+            .map { it.toString() }
+            .filter { it.startsWith(value.trim()) }
+}
+
+/** App display names for one tool call, cached so each package is looked up once. */
+class AppLabels(private val packageManager: PackageManager) {
+    private val cache = HashMap<String, String?>()
+
+    /**
+     * The display name of [packageName], or null when it can't be resolved. Pass [appInfo] when
+     * the caller already has it (a notification carries its app's): that works even when
+     * Android 11+ package visibility hides the app from `getApplicationInfo`.
+     */
+    fun labelFor(packageName: String, appInfo: ApplicationInfo? = null): String? {
+        // A miss is retried when this call brings app info the earlier one lacked.
+        if (cache.containsKey(packageName) && (cache[packageName] != null || appInfo == null)) return cache[packageName]
+        val label = runCatching {
+            packageManager.getApplicationLabel(appInfo ?: packageManager.getApplicationInfo(packageName, 0)).toString()
+        }.getOrNull()
+        cache[packageName] = label
+        return label
     }
 }

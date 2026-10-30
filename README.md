@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>An Android SDK and MCP server that lets an LLM use the phone.</b><br/>
-  157 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
+  160 tools for calendar, contacts, SMS, files, camera, sensors, notifications and UI automation,
   for on-device models and any <a href="https://modelcontextprotocol.io">MCP</a> client, such as Claude or Cursor.
 </p>
 
@@ -33,7 +33,7 @@ Highlights:
 
 - **Pick only what you need.** 53 independent modules. Each adds only its own permissions to your manifest.
 - **Safe by default.** Bearer auth, Origin and session checks, an SSRF guard, sandboxed file access, read-only mode, per-tool gating, and optional user confirmation for risky calls.
-- **Current MCP.** Protocol 2025-11-25: typed results (`outputSchema`) on every tool, resources, prompts, live `list_changed` updates, image content, progress, elicitation and cancellation.
+- **Current MCP.** Protocol 2025-11-25: typed results (`outputSchema`) on every tool, resources, prompts with argument completion, live `list_changed` updates, image content, progress, elicitation and cancellation.
 - **Your permission UX.** The library never asks for permissions. Your app decides when and how.
 
 ## Quick start
@@ -48,11 +48,11 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.12.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.12.1")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.12.1")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.13.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.13.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-contacts:0.13.0")
     // or everything except the opt-in modules:
-    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.12.1")
+    // implementation("com.github.stixez.droid-mcp:droid-mcp-all:0.13.0")
 }
 ```
 
@@ -207,7 +207,7 @@ Some providers only register tools whose permission is granted, for example `cre
 | `screenshot` | MediaProjection consent, handed to `MediaProjectionHolder` from a `mediaProjection` foreground service | Consent dialog |
 | `dnd` | Do Not Disturb access (`set_dnd_mode`) | Settings › Apps › Special access |
 | `settings`, `ringtone` | Modify system settings (`set_brightness`, `set_ringtone`) | Settings › Apps › Special access |
-| `network` | Usage access (`get_data_usage`) | Settings › Apps › Special access |
+| `network`, `apps` | Usage access (`get_data_usage`, `get_app_usage`; to drop the permission, see [docs/TOOLS.md](docs/TOOLS.md#apps)) | Settings › Apps › Special access |
 | `shizuku`, `root` | Shizuku running, or a rooted device | See [docs/SHELL.md](docs/SHELL.md) |
 
 > [!NOTE]

@@ -45,7 +45,7 @@ TXT records:
 
 | Key | Values | Meaning |
 |---|---|---|
-| `version` | e.g. `0.12.1` | droid-mcp version on the device |
+| `version` | e.g. `0.13.0` | droid-mcp version on the device |
 | `auth` | `bearer`, `none` | Whether a bearer token is required |
 | `readonly` | `true`, `false` | Whether only read-only tools are served |
 | `tls` | `true`, `false` | Whether the endpoint is HTTPS |

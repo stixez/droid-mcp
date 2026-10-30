@@ -12,8 +12,8 @@ import java.util.*
  * Reads the host app's currently active (status-bar) notifications via [NotificationManager.getActiveNotifications].
  *
  * No permissions required. KNOWN LIMITATION: this only returns notifications posted by the MCP
- * host app itself. Cross-app access needs a `NotificationListenerService` — use the
- * `droid-mcp-notifications-reply` / `droid-mcp-notification-watch` modules for that.
+ * host app itself. Cross-app access needs a `NotificationListenerService` — use `list_notifications` in
+ * `droid-mcp-notifications-reply` (or `droid-mcp-notification-watch` for a live feed).
  *
  * Result keys: `notifications` (list of maps with `id`, `tag`, `package_name`, `title`, `text`,
  * `timestamp`, `is_ongoing`, `is_foreground_service`), `count`, and a `note` describing the limitation.
@@ -21,7 +21,7 @@ import java.util.*
 class GetActiveNotificationsTool(private val context: Context) : McpTool {
 
     override val name = "get_active_notifications"
-    override val description = "List the notifications this app itself is showing. It can't see other apps' notifications; for those use list_repliable_notifications or watch_notifications."
+    override val description = "List the notifications this app itself is showing. It can't see other apps' notifications; for those use list_notifications if it's available."
     override val parameters = listOf(
         ToolParameter("limit", "Max number of notifications to return. Default 10.", ParameterType.INTEGER, minimum = 1.0, maximum = 100.0),
     )
