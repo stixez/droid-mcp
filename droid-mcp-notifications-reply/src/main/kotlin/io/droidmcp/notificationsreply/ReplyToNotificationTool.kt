@@ -53,6 +53,10 @@ class ReplyToNotificationTool(private val context: Context) : McpTool {
 
         val repliable = NotificationStore.findRepliable(key)
             ?: return ToolResult.error("No repliable notification found for key '$key'.")
+        // The host's own notifications can hold its approval buttons; a client must never answer them.
+        if (repliable.packageName == context.packageName) {
+            return ToolResult.error("Notifications from this app can't be replied to.")
+        }
         val replyAction = repliable.replyAction
             ?: return ToolResult.error("Notification has no RemoteInput action.")
 

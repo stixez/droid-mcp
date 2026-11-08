@@ -11,6 +11,7 @@ public abstract class io/droidmcp/server/DroidMcpServerService : android/app/Ser
 	public fun onBind (Landroid/content/Intent;)Landroid/os/IBinder;
 	public fun onDestroy ()V
 	protected fun onServerStartFailed (Ljava/lang/Exception;)V
+	protected fun onServerStarted (Lio/droidmcp/core/DroidMcp;)V
 	protected fun onServerStopped ()V
 	public fun onStartCommand (Landroid/content/Intent;II)I
 }

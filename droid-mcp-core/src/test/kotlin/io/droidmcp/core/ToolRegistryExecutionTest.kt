@@ -112,6 +112,24 @@ class ToolRegistryExecutionTest {
     }
 
     @Test
+    fun `read-only tools that reach the internet still ask by default`() = runBlocking {
+        var ran = false
+        val fetch = object : McpTool {
+            override val name = "fetch"
+            override val description = "test"
+            override val parameters = emptyList<ToolParameter>()
+            override val annotations = ToolAnnotations(readOnlyHint = true, openWorldHint = true)
+            override suspend fun execute(params: Map<String, Any>): ToolResult {
+                ran = true
+                return ToolResult.success(mapOf())
+            }
+        }
+        val registry = ToolRegistry(confirmer = { false }).apply { register(fetch) }
+        assertThat(registry.executeTool("fetch", emptyMap()).errorMessage).startsWith("tool_call_declined")
+        assertThat(ran).isFalse()
+    }
+
+    @Test
     fun `non-destructive tools skip confirmation by default`() = runBlocking {
         val registry = ToolRegistry(confirmer = { error("must not be asked") }).apply {
             register(tool("read") { ToolResult.success(mapOf()) })

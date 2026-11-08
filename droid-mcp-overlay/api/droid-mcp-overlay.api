@@ -1,3 +1,47 @@
+public final class io/droidmcp/overlay/ClearGuideTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/overlay/GuideOverlay;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
+public final class io/droidmcp/overlay/GuideOverlay {
+	public static final field Companion Lio/droidmcp/overlay/GuideOverlay$Companion;
+	public fun <init> (Landroid/content/Context;)V
+	public final fun canShow ()Z
+	public final fun hide (Ljava/lang/Long;)V
+	public static synthetic fun hide$default (Lio/droidmcp/overlay/GuideOverlay;Ljava/lang/Long;ILjava/lang/Object;)V
+	public final fun show (Landroid/graphics/Rect;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)J
+}
+
+public final class io/droidmcp/overlay/GuideOverlay$Companion {
+	public final fun shared (Landroid/content/Context;)Lio/droidmcp/overlay/GuideOverlay;
+}
+
+public final class io/droidmcp/overlay/GuideOverlay$Outcome : java/lang/Enum {
+	public static final field Cleared Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static final field Closed Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static final field Done Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static final field Failed Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static final field Replaced Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lio/droidmcp/overlay/GuideOverlay$Outcome;
+	public static fun values ()[Lio/droidmcp/overlay/GuideOverlay$Outcome;
+}
+
+public final class io/droidmcp/overlay/GuideUserTool : io/droidmcp/core/McpTool {
+	public fun <init> (Lio/droidmcp/overlay/GuideOverlay;)V
+	public fun execute (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getAnnotations ()Lio/droidmcp/core/ToolAnnotations;
+	public fun getDescription ()Ljava/lang/String;
+	public fun getName ()Ljava/lang/String;
+	public fun getOutputSchema ()Ljava/util/Map;
+	public fun getParameters ()Ljava/util/List;
+}
+
 public final class io/droidmcp/overlay/OverlayConfig {
 	public fun <init> (Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Integer;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V

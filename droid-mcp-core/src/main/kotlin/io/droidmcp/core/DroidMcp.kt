@@ -115,6 +115,15 @@ class DroidMcp private constructor(
      */
     fun pairClient(label: String): String? = httpTransport?.pairClient(label)
 
+    /**
+     * Re-register a paired client the host saved earlier, keeping its token, so pairings survive
+     * an app restart. Persist what [pairClient] / [pairedClients] return, then restore it here
+     * after [Builder.build]. No-op without an authenticated HTTP server.
+     */
+    fun restoreClient(client: TokenStore.PairedClient) {
+        httpTransport?.restoreClient(client)
+    }
+
     /** Revoke a paired client's token. @return true if a client with that label existed. */
     fun revokeClient(label: String): Boolean = httpTransport?.revokeClient(label) ?: false
 
@@ -145,7 +154,7 @@ class DroidMcp private constructor(
         private var allowedOrigins: Set<String> = emptySet()
         private var toolTimeoutMs: Long = ToolRegistry.DEFAULT_TOOL_TIMEOUT_MS
         private var confirmer: ToolCallConfirmer? = null
-        private var requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint }
+        private var requiresConfirmation: (McpTool) -> Boolean = ToolRegistry.CONFIRM_BY_DEFAULT
 
         /** Add a single tool to the registry. */
         fun addTool(tool: McpTool) = apply { tools.add(tool) }
@@ -183,12 +192,13 @@ class DroidMcp private constructor(
 
         /**
          * Ask the host before running tools that match [requiresConfirmation] (by default every
-         * tool with [ToolAnnotations.destructiveHint]) — on both transports. [confirmer] typically
+         * tool with [ToolAnnotations.destructiveHint] or [ToolAnnotations.openWorldHint]: a web
+         * fetch can carry phone data off the device) — on both transports. [confirmer] typically
          * shows a dialog; a decline, a missing answer within the tool timeout, or an exception
          * returns a `tool_call_declined` error and the tool never runs.
          */
         fun confirmToolCalls(
-            requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint },
+            requiresConfirmation: (McpTool) -> Boolean = ToolRegistry.CONFIRM_BY_DEFAULT,
             confirmer: ToolCallConfirmer,
         ) = apply {
             this.requiresConfirmation = requiresConfirmation

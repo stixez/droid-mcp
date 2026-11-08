@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">droid-mcp</string>
+    <string name="accessibility_service_label">droid-mcp screen control</string>
+    <string name="ime_label">droid-mcp keyboard</string>
+
+    <!-- Override the SDK's developer-facing text: people read these in Accessibility settings. -->
+    <string name="droid_mcp_accessibility_summary" tools:ignore="UnusedResources">Lets AI clients you connect read the screen and tap, type and scroll for you.</string>
+    <string name="droid_mcp_accessibility_description" tools:ignore="UnusedResources">Lets AI clients you connect from your computer read what is on screen and tap, type and scroll in any app. You can switch tools off in the droid-mcp app, and by default it asks you before anything is sent, deleted or changed.</string>
+</resources>

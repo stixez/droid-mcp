@@ -13,8 +13,50 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # The droid-mcp app APKs are signed with the release key from repo secrets, so every release
+      # installs over the previous one. Without the secrets the APK steps are skipped.
+      - name: Decode signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::KEYSTORE_BASE64 is not set; the release will have no APK."
+          fi
+
+      # One APK per CPU type (arm64-v8a, armeabi-v7a, x86_64), named droid-mcp-<version>-<abi>.apk.
+      - name: Build app APKs
+        if: env.KEYSTORE_PATH != ''
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:assembleRelease --no-daemon
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          for apk in app/build/outputs/apk/release/app-*-release.apk; do
+            name=$(basename "$apk")
+            abi=${name#app-}
+            abi=${abi%-release.apk}
+            cp "$apk" "dist/droid-mcp-$version-$abi.apk"
+          done
+          ls -l dist
+
       - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           draft: false
           prerelease: false
+          files: dist/*.apk

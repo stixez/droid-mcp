@@ -1,19 +1,31 @@
 # Tool Reference
 
-All 160 tools droid-mcp ships, in 45 modules, one section per module. Each section starts with what the module needs (permissions, special access, host setup), followed by a table of its tools. [Resources and prompts](#resources-and-prompts) are at the end.
+Every tool droid-mcp ships, one section per module: what the module needs, then its tools. [Resources and prompts](#resources-and-prompts) are at the end. The exact types, ranges and result keys are in the generated [`tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt).
 
-The generated contract [`droid-mcp-all/api/tool-contract.txt`](../droid-mcp-all/api/tool-contract.txt) lists every tool's parameter types, ranges, enums and annotations. If this page and the contract disagree, the contract is right. Tools annotated `readOnly` there are the only ones listed and callable when the server runs with `readOnly = true`.
+**Parameters** are optional unless marked (required). Ranges are inclusive: `limit` (1-100, default 10). Choices are separated by slashes: `box` (`inbox`/`sent`). A dash means no parameters.
 
-**Reading the Parameters column.** Parameters are optional unless marked (required). Ranges are inclusive: `limit` (1-100, default 10). Enum values are separated by slashes: `box` (`inbox`/`sent`). A dash means the tool takes no parameters.
-
-**Structured results.** Every tool declares an `outputSchema`, and a successful call returns its result map as `structuredContent` (MCP 2025-06-18+). The contract lists each tool's result keys as `=> key: type` lines; `?` marks a key that is only sometimes present.
-
-**Image results.** `take_photo` (with `return_data`), `take_screenshot_via_a11y`, `capture_screen_quiet` and `generate_qr_code` return their image as an MCP `image` content block. Over MCP, the base64 key (`image_data`, `image_base64` or `qr_image`) is left out of the JSON text so the image is sent only once. In-process callers still find the base64 under that key in `ToolResult.data`.
+**Results.** Every tool declares an `outputSchema`, and a successful call returns `structuredContent`. Image tools (`take_photo` with `return_data`, `take_screenshot_via_a11y`, `capture_screen_quiet`, `generate_qr_code`) send the image as an MCP `image` block instead of base64 in the JSON; in-process callers still get the base64 in `ToolResult.data`.
 
 > [!IMPORTANT]
-> On Android 10+, a tool that starts an activity returns an error when the host app is in the background and lacks "Display over other apps" (`SYSTEM_ALERT_WINDOW`). This applies to `launch_app`, `create_alarm`, `create_timer`, `toggle_wifi`, `set_brightness` (when it opens the grant screen), `send_intent`, `share_content` and `open_deep_link`.
+> On Android 10+, tools that open another app or screen (`launch_app`, `create_alarm`, `create_timer`, `toggle_wifi`, `set_brightness`, `send_intent`, `share_content`, `open_deep_link`) fail while the host app is in the background, unless it can display over other apps.
 
-The `shell-core` tools (17) are registered through either the `shizuku` or the `root` module. `core`, `notification-listener`, `overlay`, `audit`, `tls` and `server-service` expose no LLM tools.
+## Special access
+
+Most permissions are runtime permissions your app requests. These are granted in system Settings instead:
+
+| Module | Needs | Granted in |
+|--------|-------|-----------|
+| `playback`, `notifications-reply`, `notification-watch` | Notification access; your service extends `McpNotificationListenerServiceBase` | Settings › Notification access |
+| `accessibility` | Your service extends `DroidMcpAccessibilityService` | Settings › Accessibility |
+| `ime` | Your service extends `DroidMcpInputMethodService`, enabled and selected | Settings › Keyboard |
+| `overlay` | Display over other apps | Settings › Special access |
+| `screenshot` | Screen-capture consent, held by `DroidMcpCaptureService` | Consent dialog |
+| `dnd` | Do Not Disturb access (`set_dnd_mode`) | Settings › Special access |
+| `settings`, `ringtone` | Modify system settings (`set_brightness`, `set_ringtone`) | Settings › Special access |
+| `network`, `apps` | Usage access (`get_data_usage`, `get_app_usage`) | Settings › Special access |
+| `shizuku`, `root` | Shizuku running, or a rooted device | [SHELL.md](SHELL.md) |
+
+The host app's [manifest](../app/src/main/AndroidManifest.xml) declares each of these services, with the XML configs they need.
 
 ## Contents
 
@@ -27,7 +39,7 @@ The `shell-core` tools (17) are registered through either the `shizuku` or the `
 | Web | [Web](#web) |
 | Other apps and UI | [Playback](#playback), [Notification Reply](#notification-reply), [Notification Watch](#notification-watch), [Accessibility](#accessibility), [IME](#ime), [Overlay](#overlay) |
 | Power tools (opt-in) | [Shell: Shizuku or root](#shell-shizuku-or-root) |
-| Beyond tools | [Resources and prompts](#resources-and-prompts) |
+| Beyond tools | [Special access](#special-access), [Resources and prompts](#resources-and-prompts) |
 
 ---
 
@@ -429,13 +441,13 @@ Only the eight actions above are accepted, as full strings (for example `android
 
 ## Screenshot
 
-**Needs:** user consent through MediaProjection. The host calls `MediaProjectionManager.createScreenCaptureIntent()` and passes the projection to `MediaProjectionHolder.set(projection)`. On Android 14+ it must also run a `mediaProjection` foreground service.
+**Needs:** screen-capture consent. Launch `DroidMcpCaptureService.consentIntent(context)` (on Android 14+ it asks for the whole screen, not one app) and pass the result to `DroidMcpCaptureService.start(context, serviceClass, resultCode, data)`. Declare that service (or a subclass with your own notification) with `android:foregroundServiceType="mediaProjection"`; Android 14+ requires it. It holds the projection until the user stops capture.
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
 | `capture_screen` | Screenshot saved to `Pictures/droid-mcp`. Returns the path and content URI, not the image itself. | `format` (`png`/`jpeg`, default `png`)<br>`quality` (1-100, default 90; JPEG only) |
 
-On API 28 without `WRITE_EXTERNAL_STORAGE`, the image goes to the app cache (`saved_to = "cache"`). For a screenshot returned inline, use `take_screenshot_via_a11y` ([Accessibility](#accessibility)) or `capture_screen_quiet` ([Shell](#shell-shizuku-or-root)).
+On API 28 without `WRITE_EXTERNAL_STORAGE` it saves to the app cache (`saved_to = "cache"`). For an image returned inline, use `take_screenshot_via_a11y` or `capture_screen_quiet`.
 
 ## QR and Barcode
 
@@ -506,15 +518,7 @@ By default both tools block loopback, private, link-local and similar addresses.
 
 Filters combine with AND, and substring matches ignore case. A watch fires once per notification key unless `fire_on_update` is set, and sees only notifications posted after it was registered. At most 50 watches can be active.
 
-Hosts can also collect `NotificationListenerBus.events` (`SharedFlow<NotificationEvent>`, in `droid-mcp-notification-listener`) directly. `NotificationEvent` fields:
-
-- `key`, `packageName`
-- `title`, `text`, `bigText`, `subText`, `tickerText`
-- `category`, `channelId`, `groupKey`
-- `isOngoing`, `isClearable`
-- `legacyPriority`, `channelImportance` (`-1` if unknown)
-- `postedAt`, `when`
-- `hasReplyAction`, `actionLabels`
+Hosts can also collect `NotificationListenerBus.events`, a `SharedFlow<NotificationEvent>` with the notification's key, package, texts, category, channel, flags, times and action labels.
 
 ## Accessibility
 
@@ -537,11 +541,11 @@ Hosts can also collect `NotificationListenerBus.events` (`SharedFlow<Notificatio
 | `tap` | Tap at screen coordinates | `x` (required, ≥ 0)<br>`y` (required, ≥ 0) |
 | `long_press` | Long-press at screen coordinates | `x` (required, ≥ 0)<br>`y` (required, ≥ 0)<br>`duration_ms` (100-5000, default 800) |
 | `find_and_tap` | Find a node and click it, or its nearest clickable ancestor. Returns `node_not_found` if nothing matches. | `match` (required)<br>`match_kind` (`text`/`desc`/`id`/`class`, default `text`)<br>`case_insensitive` (default true; substring kinds only) |
-| `scroll_to_find` | Scroll until `match` appears. Each step asks the largest container that can move in `direction` to scroll itself (directional scroll action). If that fails, it swipes inside that container, or across the screen when none is found. After each scroll it re-checks for up to 1 s. | `match` (required, case-insensitive substring of text or description)<br>`direction` (`down`/`up`/`left`/`right`, default `down`; `down` reveals content below)<br>`max_scrolls` (1-20, default 5) |
+| `scroll_to_find` | Scroll until `match` appears: the largest scrollable container scrolls itself, or gets swiped when it won't. Returns `found`, `scrolls` and the matched `node`, or `scroll_exhausted`. | `match` (required, case-insensitive substring of text or description)<br>`direction` (`down`/`up`/`left`/`right`, default `down`; `down` reveals content below)<br>`max_scrolls` (1-20, default 5) |
 
 **Selector.** `text` (case-insensitive substring of text or content description), `view_id`, `class_name`, `package_name` (exact matches). At least one is required; they combine with AND. `index` picks among multiple matches. Ancestor fallback climbs at most 8 levels.
 
-`scroll_to_find` returns `found`, `scrolls` and the matched `node`, or `scroll_exhausted` after `max_scrolls` scrolls. `AccessibilityTools.supportedTools(context)` drops `take_screenshot_via_a11y` below Android 11.
+`take_screenshot_via_a11y` needs Android 11+.
 
 ## IME
 
@@ -562,30 +566,18 @@ The editing tools (`type_text`, `commit_keystroke`, `delete_text`, `set_selectio
 
 ## Overlay
 
-**Needs:** `SYSTEM_ALERT_WINDOW` (Settings > Display over other apps). No LLM tools: `droid-mcp-overlay` exposes `OverlayController` for a floating button drawn with `TYPE_APPLICATION_OVERLAY`.
+**Needs:** `SYSTEM_ALERT_WINDOW` (Settings > Display over other apps). Without it both tools return `overlay_permission_missing`.
 
-```kotlin
-val overlay = OverlayController(context)
-if (!overlay.isPermissionGranted()) {
-    startActivity(overlay.permissionIntent())  // ACTION_MANAGE_OVERLAY_PERMISSION
-}
-overlay.show(OverlayConfig(
-    label = "Ask",
-    onClick = { /* open chat */ },
-    onLongPress = { /* quick voice */ },
-    onDragEnd = { x, y -> /* persist position */ },
-))
-overlay.hide()
-```
+| Tool | What it does | Parameters |
+|------|--------------|------------|
+| `guide_user` | Point the user at a spot on screen (ring and arrow) with a short instruction, and wait for **Done** or **Close**. Touches pass through to the real control. Returns `result` (`done`/`closed`/`timeout`/`replaced`/`cleared`, or `shown` without waiting) and `waited_ms`. | `left`, `top`, `right`, `bottom` (required, screen pixels, as `find_node` / `query_screen` report)<br>`message` (required, cut at 300 chars)<br>`wait` (default true)<br>`timeout_seconds` (5-240, default 120) |
+| `clear_guide` | Remove the guide, e.g. one shown with `wait=false` | - |
+
+Android hides app overlays over system Settings and permission dialogs, so the guide doesn't show there. The module also has `OverlayController`, a host-only floating button.
 
 ## Shell: Shizuku or root
 
-`droid-mcp-shell-core` defines these 17 tools. `droid-mcp-shizuku` (`ShizukuTools.all(context)`) runs them as the shell UID through Shizuku; `droid-mcp-root` (`RootTools.all(context)`) runs them through libsu's `su` with the same names, parameters and output. Setup, backend choice and limits are in [SHELL.md](SHELL.md).
-
-> [!WARNING]
-> Register one backend, not both: the registry keeps the last tool registered under each name. Both providers take a `ShellPolicy`. The default, `ShellPolicy.RECOMMENDED`, refuses sensitive setting keys (accessibility services, notification listeners, input methods, ADB, developer options, package verifier) and grants of development permissions such as `WRITE_SECURE_SETTINGS`, returning `denied_by_policy`. `ShellPolicy.PERMISSIVE` denies nothing; use it only with a fully trusted model.
-
-**Needs:** for Shizuku, the Shizuku service running and its permission granted to the host. For root, a rooted device whose superuser manager grants root to the host; `RootTools.requestAccess()` from an Activity triggers the prompt.
+**Needs:** `droid-mcp-shizuku` (Shizuku running and permitted) or `droid-mcp-root` (a rooted device). Both run these 17 tools with the same names and results; register one. Setup, `ShellPolicy`, the `run_shell` allowlist, error codes and limits are in [SHELL.md](SHELL.md).
 
 | Tool | What it does | Parameters |
 |------|--------------|------------|
@@ -607,23 +599,18 @@ overlay.hide()
 | `capture_screen_quiet` | `screencap -p` with no consent prompt or indicator, returned as a PNG image content block | `display` (≥ 0, default 0) |
 | `run_shell` | Run a command the host allowlisted with `ShellAllowlist.set(...)`. Returns `exit_code`, `stdout`, `stderr` and truncation flags. | `command` (required)<br>`args` (array; argv form, no shell splitting)<br>`max_stdout_bytes` (1024-65536, default 8192; also caps stderr) |
 
-**Errors.** `shell_unavailable` means the backend can't be reached: Shizuku isn't running, or root hasn't been checked yet. `shell_permission_denied` means it is reachable but the host isn't allowed: the Shizuku permission isn't granted, or root was denied. Other codes: `denied_by_policy`, `run_shell_not_enabled` (command not allowlisted), `invalid_args`, `shell_spawn_failed`, and a per-verb failure such as `install_failed` or `settings_put_failed`.
-
-**`run_shell` allowlist.** Entries match argv token by token. Entries that start with an interpreter or exec wrapper (`sh`, `su`, `toybox`, `env`, and similar) throw when set. In string form `command` is split on whitespace, so use `args` for anything with spaces or quotes. Root-only abilities (`pm hide`, `/system` writes, reading `/data/data/<pkg>`) are reachable only through `run_shell`.
-
 ---
 
 ## Resources and prompts
 
-Besides tools, the server answers MCP resource and prompt requests. Both are opt-in on the builder.
+Both are opt-in on the builder.
 
-**Resources.** Register a module's provider with `Builder.addResourceProvider(...)`, or at runtime with `DroidMcp.registerResourceProvider(...)`.
+**Resources.** Add a provider with `addResourceProvider(...)` (or `registerResourceProvider` at runtime). A provider:
 
-- Providers check their own permissions. Without them they list nothing, and reads fail as not found (`-32002`).
-- Each provider follows the tool that serves the same data (`get_media_metadata`, `read_file`, `read_contact`, `read_calendar`). While that tool is unregistered, gated off or hidden by read-only mode, the provider is hidden too.
-- A read goes through the host's confirmer (`confirmToolCalls`) whenever that tool would. A declined read returns `-32001`.
-- Every `resources/read` is recorded to the audit sink under the name `resources/read`.
-- Long listings are paginated from one snapshot, so pages don't shift.
+- lists nothing without its permissions
+- is visible only while the tool serving the same data is (so gating or read-only mode hides it too)
+- goes through `confirmToolCalls` whenever that tool would
+- is audited as `resources/read`
 
 | Provider | URIs | Listed up front | Contents |
 |----------|------|-----------------|----------|
@@ -651,6 +638,6 @@ Add your own by implementing `McpPrompt` and calling `addPrompt(...)`.
 | `message_contact` | `contact` | Matching contact names, through `search_contacts` |
 | `droidmcp://calendar/{date}` | `date` | `today`, then the same dates as `daily_briefing` |
 
-To add your own, override `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` reads device data through a tool, but only a visible, read-only tool that needs no host confirmation, so a suggestion never changes anything or shows a dialog. Each such call is audited under the name `completion/complete`. A completion has 5 seconds (`McpProtocolImpl.COMPLETION_TIMEOUT_MS`) before it answers with no values, and `notifications/cancelled` stops one the client no longer needs.
+Add your own by overriding `McpPrompt.complete(...)` or `ResourceProvider.complete(...)`. `CompletionContext.callTool` may only use visible, read-only tools that need no confirmation, so a suggestion never changes anything. A completion that takes over 5 s answers empty.
 
-**Change notifications.** When the host registers or unregisters tools (`DroidMcp.registerTools` / `unregisterTool`), changes tool gating, or adds or removes a resource provider, clients listening on `GET /mcp` get `list_changed` notifications. A tool change also refreshes resources and prompts, since their visibility follows the tools. See [PAIRING.md](PAIRING.md#streaming-responses).
+**Change notifications.** Registering or removing tools or providers, or changing gating, sends `list_changed` to clients listening on `GET /mcp`. See [PAIRING.md](PAIRING.md#endpoint).

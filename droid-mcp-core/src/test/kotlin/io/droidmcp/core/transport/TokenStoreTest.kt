@@ -92,4 +92,21 @@ class TokenStoreTest {
     fun `empty presented token never verifies`() {
         assertThat(TokenStore().verify("")).isNull()
     }
+
+    @Test
+    fun `restored client keeps its token and verifies`() {
+        val store = TokenStore("seed-token-0123456789")
+        store.restore(TokenStore.PairedClient("laptop", "laptop-token-0123456789", createdAt = 42))
+        assertThat(store.verify("laptop-token-0123456789")).isEqualTo("laptop")
+        assertThat(store.pairedClients().single().createdAt).isEqualTo(42)
+        assertThat(store.revoke("laptop")).isTrue()
+        assertThat(store.verify("laptop-token-0123456789")).isNull()
+    }
+
+    @Test
+    fun `restore rejects the primary label and blank values`() {
+        val store = TokenStore()
+        assertThrows<IllegalArgumentException> { store.restore(TokenStore.PairedClient(TokenStore.PRIMARY_LABEL, "x".repeat(20), 0)) }
+        assertThrows<IllegalArgumentException> { store.restore(TokenStore.PairedClient("a", " ", 0)) }
+    }
 }

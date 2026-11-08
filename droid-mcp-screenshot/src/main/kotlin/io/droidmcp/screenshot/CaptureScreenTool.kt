@@ -13,6 +13,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.view.Display
+import androidx.core.graphics.createBitmap
 import io.droidmcp.core.McpTool
 import io.droidmcp.core.OutputSchema
 import io.droidmcp.core.ParameterType
@@ -23,6 +24,7 @@ import kotlinx.coroutines.delay
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -93,15 +95,24 @@ class CaptureScreenTool(private val context: Context) : McpTool {
                 ?: return ToolResult.error("MediaProjection not available. The host app must grant screen capture consent first.")
 
             // The first capture after the virtual display is created (or resized) must wait
-            // for a frame to render; later captures usually have one immediately.
+            // for a frame to render; later captures usually have one immediately. The very first
+            // frame can arrive fully transparent (nothing composited yet): skip it while there is
+            // time, checking the raw pixels so no bitmap is built for it, and take whatever is
+            // there at the deadline. Only for a new virtual display: after that a static screen
+            // sends no new frames, so waiting again would only delay every capture.
+            val fresh = capture !== settled?.get()
             var bitmap: Bitmap? = null
             val deadline = System.currentTimeMillis() + FRAME_WAIT_MS
-            while (bitmap == null) {
-                bitmap = capture.withLatestFrame { image -> imageToBitmap(image, image.width, image.height) }
-                if (bitmap != null || System.currentTimeMillis() >= deadline) break
+            while (true) {
+                val last = !fresh || System.currentTimeMillis() >= deadline
+                bitmap = capture.withLatestFrame { image ->
+                    if (!last && image.isFullyTransparent()) null else imageToBitmap(image, image.width, image.height)
+                }
+                if (bitmap != null || last) break
                 delay(FRAME_POLL_MS)
             }
             if (bitmap == null) return ToolResult.error("Failed to capture screen image")
+            settled = WeakReference(capture)
 
             val width = bitmap.width
             val height = bitmap.height
@@ -133,9 +144,7 @@ class CaptureScreenTool(private val context: Context) : McpTool {
         val rowStride = plane.rowStride
         val rowPadding = rowStride - pixelStride * width
 
-        val padded = Bitmap.createBitmap(
-            width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888
-        )
+        val padded = createBitmap(width + rowPadding / pixelStride, height)
         padded.copyPixelsFromBuffer(buffer)
 
         return if (rowPadding > 0) {
@@ -209,7 +218,30 @@ class CaptureScreenTool(private val context: Context) : McpTool {
         override fun close() = delegate.close()
     }
 
+    /**
+     * True when a grid of sampled RGBA_8888 pixels all have alpha 0: a frame with nothing drawn
+     * yet. Reads the plane directly, without moving the buffer's position.
+     */
+    private fun Image.isFullyTransparent(): Boolean {
+        val plane = planes[0]
+        val buffer = plane.buffer
+        val steps = 16
+        for (i in 0 until steps) {
+            for (j in 0 until steps) {
+                val x = (width - 1) * i / (steps - 1)
+                val y = (height - 1) * j / (steps - 1)
+                val alphaAt = y * plane.rowStride + x * plane.pixelStride + 3
+                if (alphaAt < buffer.limit() && buffer.get(alphaAt) != 0.toByte()) return false
+            }
+        }
+        return true
+    }
+
     private companion object {
+        /** The virtual display that has already shown a frame (later ones aren't skipped). */
+        @Volatile
+        var settled: WeakReference<Any>? = null
+
         const val FRAME_WAIT_MS = 1_000L
         const val FRAME_POLL_MS = 50L
     }

@@ -84,6 +84,7 @@ public final class io/droidmcp/core/DroidMcp {
 	public final fun readResource (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun registerResourceProvider (Lio/droidmcp/core/ResourceProvider;)V
 	public final fun registerTools (Ljava/util/List;)V
+	public final fun restoreClient (Lio/droidmcp/core/transport/TokenStore$PairedClient;)V
 	public final fun revokeClient (Ljava/lang/String;)Z
 	public final fun rotateToken ()Ljava/lang/String;
 	public final fun setDisabledTools (Ljava/util/Set;)V
@@ -622,6 +623,7 @@ public final class io/droidmcp/core/ToolRegistry {
 }
 
 public final class io/droidmcp/core/ToolRegistry$Companion {
+	public final fun getCONFIRM_BY_DEFAULT ()Lkotlin/jvm/functions/Function1;
 }
 
 public final class io/droidmcp/core/ToolResult {
@@ -731,6 +733,7 @@ public final class io/droidmcp/core/transport/HttpTransport {
 	public final fun isTlsEnabled ()Z
 	public final fun pairClient (Ljava/lang/String;)Ljava/lang/String;
 	public final fun pairedClients ()Ljava/util/List;
+	public final fun restoreClient (Lio/droidmcp/core/transport/TokenStore$PairedClient;)V
 	public final fun revokeClient (Ljava/lang/String;)Z
 	public final fun rotateToken ()Ljava/lang/String;
 	public final fun start ()V
@@ -775,6 +778,7 @@ public final class io/droidmcp/core/transport/TokenStore {
 	public final fun getPrimaryToken ()Ljava/lang/String;
 	public final fun pair (Ljava/lang/String;)Ljava/lang/String;
 	public final fun pairedClients ()Ljava/util/List;
+	public final fun restore (Lio/droidmcp/core/transport/TokenStore$PairedClient;)V
 	public final fun revoke (Ljava/lang/String;)Z
 	public final fun rotatePrimary ()Ljava/lang/String;
 	public final fun verify (Ljava/lang/String;)Ljava/lang/String;

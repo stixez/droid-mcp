@@ -1,234 +1,102 @@
 package io.droidmcp.sample
 
-import android.Manifest
-import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.media.projection.MediaProjectionManager
-import android.widget.Toast
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.content.pm.PackageManager
-import io.droidmcp.overlay.OverlayController
-import io.droidmcp.playback.NotificationListenerHolder
-import io.droidmcp.root.RootTools
-import io.droidmcp.shizuku.ShizukuTools
-import rikka.shizuku.Shizuku
-import io.droidmcp.sample.ui.MainScreen
-import io.droidmcp.sample.ui.theme.DroidMcpTheme
+import io.droidmcp.calendar.CalendarTools
+import java.time.LocalDate
 
 class MainActivity : ComponentActivity() {
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        if (results.isNotEmpty()) initViewModel()
-    }
-
-    private val screenCaptureLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val data = result.data
-        if (result.resultCode == Activity.RESULT_OK && data != null) {
-            // Don't call getMediaProjection() here: on Android 14+ (targetSdk 34+) it throws
-            // SecurityException unless a mediaProjection foreground service is already
-            // running. ScreenCaptureService enters the foreground first, then obtains the
-            // projection and hands it to MediaProjectionHolder.
-            ScreenCaptureService.start(this, result.resultCode, data)
-        }
-    }
-
-    private var viewModelRef: MainViewModel? = null
-
-    /**
-     * Shizuku grant feedback. Registered in onCreate, unregistered in
-     * onDestroy. When the user grants permission for our request code, the
-     * ViewModel re-initializes so the Tools page reflects the new state
-     * without a manual restart.
-     */
-    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
-        if (requestCode == SHIZUKU_REQUEST_CODE && grantResult == PackageManager.PERMISSION_GRANTED) {
-            viewModelRef?.initialize()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
-
-        // Configure NotificationListenerService component for playback tools
-        NotificationListenerHolder.set(
-            ComponentName(this, McpNotificationListenerService::class.java)
-        )
-
-        // The ViewModel stops the server when it's cleared, i.e. when this activity finishes.
-        // Back at the root would finish it (and an MCP client's global_action "back" would kill
-        // the server it's talking to), so keep the task alive in the background instead.
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                moveTaskToBack(true)
-            }
-        })
+        enableEdgeToEdge()
         setContent {
-            DroidMcpTheme {
-                val vm: MainViewModel = viewModel()
-                viewModelRef = vm
-                val state by vm.state.collectAsState()
-
-                // Auto-initialize on first composition
-                LaunchedEffect(Unit) {
-                    vm.initialize()
-                }
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { contentPadding ->
-                    MainScreen(
-                        state = state,
-                        onRequestPermissions = { requestAllPermissions() },
-                        onStartServer = { vm.startServer() },
-                        onStopServer = { vm.stopServer() },
-                        onCallTool = { name, params -> vm.callTool(name, params) },
-                        onClearLogs = { vm.clearLogs() },
-                        onRequestSpecialPermission = { type -> requestSpecialPermission(type) },
-                        onToggleReadOnly = { value -> vm.setReadOnly(value) },
-                        onToggleTls = { value -> vm.setTls(value) },
-                        onToggleStrictShellPolicy = { value -> vm.setStrictShellPolicy(value) },
-                        onToggleTool = { name, enabled -> vm.setToolEnabled(name, enabled) },
-                        onSetToolsEnabled = { names, enabled -> vm.setToolsEnabled(names, enabled) },
-                        onClearAuditLog = { vm.clearAuditLog() },
-                        onExportAuditLog = { vm.exportAuditLog { json -> copyAuditToClipboard(json) } },
-                        contentPadding = contentPadding,
-                    )
-                }
+            MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+                SampleScreen()
             }
         }
     }
+}
 
-    private fun requestAllPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.READ_CALENDAR,
-            Manifest.permission.WRITE_CALENDAR,
-            Manifest.permission.READ_CONTACTS,
-            Manifest.permission.WRITE_CONTACTS,
-            Manifest.permission.READ_SMS,
-            Manifest.permission.SEND_SMS,
-            Manifest.permission.READ_CALL_LOG,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_PHONE_STATE,
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
-            permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
-            permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
-            // For the foreground-service ongoing notification (server keeps running without it).
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        permissionLauncher.launch(permissions.toTypedArray())
-    }
+@Composable
+private fun SampleScreen(vm: SampleViewModel = viewModel()) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val askCalendar = rememberLauncherForActivityResult(RequestMultiplePermissions()) { vm.refreshTools() }
 
-    private fun requestSpecialPermission(type: String) {
-        when (type) {
-            "notification_listener" -> {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            }
-            "dnd_access" -> {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
-            }
-            "screen_capture" -> {
-                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
-            }
-            "write_settings" -> {
-                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                    data = android.net.Uri.parse("package:$packageName")
-                })
-            }
-            "accessibility" -> {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
-            "ime_settings" -> {
-                startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
-            }
-            "overlay" -> {
-                startActivity(OverlayController(this).permissionIntent())
-            }
-            "shizuku" -> {
-                if (ShizukuTools.isShizukuReady()) {
-                    // Already granted — nothing to do.
-                } else if (Shizuku.pingBinder()) {
-                    // Installed + running, just not granted — request it.
-                    ShizukuTools.requestPermission(SHIZUKU_REQUEST_CODE)
-                } else {
-                    // Not installed or not activated — open Shizuku app / Play.
-                    startActivity(ShizukuTools.installOrOpenIntent(this))
+    Scaffold { padding ->
+        Column(
+            Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("droid-mcp sample", style = MaterialTheme.typography.headlineSmall)
+            Text("${state.toolCount} tools registered")
+
+            Section("Call a tool on the phone") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { vm.call("get_battery_info") }) { Text("Battery") }
+                    if (state.calendarGranted) {
+                        OutlinedButton(onClick = { vm.call("read_calendar", mapOf("start_date" to LocalDate.now().toString())) }) {
+                            Text("Today's events")
+                        }
+                    } else {
+                        OutlinedButton(onClick = { askCalendar.launch(CalendarTools.requiredPermissions().toTypedArray()) }) {
+                            Text("Allow calendar")
+                        }
+                    }
                 }
+                state.lastResult?.let { Code(it) }
             }
-            "root" -> {
-                // Trigger the libsu su prompt asynchronously. On grant, re-run
-                // the ViewModel initializer so Root-backed tools appear in the
-                // registry (without an app restart). Callback runs on libsu's
-                // worker thread — bounce to main for the ViewModel mutation.
-                RootTools.requestAccess { granted ->
-                    if (granted) runOnUiThread { viewModelRef?.initialize() }
+
+            Section("Serve to your computer") {
+                Button(onClick = vm::toggleServer) { Text(if (state.serverRunning) "Stop server" else "Start server") }
+                state.connectCommand?.let {
+                    Text("Run this on a computer on the same Wi-Fi:")
+                    Code(it)
                 }
             }
         }
     }
+}
 
-    companion object {
-        private const val SHIZUKU_REQUEST_CODE = 0xCAFE
+@Composable
+private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            content()
+        }
     }
+}
 
-    private fun initViewModel() {
-        viewModelRef?.initialize()
-    }
-
-    /** Export the audit JSON to the clipboard — the sample's "do something with it" sink. */
-    private fun copyAuditToClipboard(json: String) {
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("droid-mcp audit", json))
-        Toast.makeText(this, "Audit log copied (${json.length} chars)", Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // print_content needs an Activity to launch the system print UI from.
-        CurrentActivityHolder.set(this)
-    }
-
-    override fun onPause() {
-        CurrentActivityHolder.clear(this)
-        super.onPause()
-    }
-
-    override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
-        super.onDestroy()
-    }
+@Composable
+private fun Code(text: String) {
+    SelectionContainer { Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) }
 }

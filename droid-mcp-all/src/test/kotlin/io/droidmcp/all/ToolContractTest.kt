@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Guards the per-tool wire contract from docs/VERSIONING.md: every tool's name, annotations,
+ * Snapshots what clients see of each tool (docs/VERSIONING.md): every tool's name, annotations,
  * parameters (name, type, required, items, enum, range) and output-schema result keys (type,
  * optional). Descriptions are deliberately left out.
  *

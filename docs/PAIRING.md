@@ -1,127 +1,48 @@
-# Pairing a desktop MCP client
+# Connecting clients
 
-How a desktop MCP client finds the phone's HTTP server, authenticates, and talks to it.
+How a desktop MCP client reaches the phone's server. With the droid-mcp app, **Copy command** on the home screen does all of this for you; this page is for SDK hosts and client authors.
 
-A client can find the server in two ways:
+## Endpoint
 
-- **mDNS.** The server advertises `_mcp._tcp` on the local network when `enableHttpServer(context = ...)` receives an Android `Context`.
-- **QR code.** The sample app shows a QR code with everything a client needs. The [payload format](#qr-payload) is documented so clients can import it.
-
-## Connecting
-
-The server speaks MCP Streamable HTTP at `/mcp`, with protocol versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05.
+The server speaks MCP Streamable HTTP at `/mcp` (protocol 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05).
 
 | Request | Behavior |
 |---|---|
-| `POST /mcp` | JSON-RPC. The body must be `Content-Type: application/json` (415 otherwise) and at most 4 MB (413 otherwise). |
-| `DELETE /mcp` | Ends the session named in `Mcp-Session-Id`. 200 when it existed, 404 otherwise. |
-| `GET /mcp` | Opens the session's server stream (SSE) for `list_changed` notifications. Needs `Accept: text/event-stream` (406 otherwise) and a valid `Mcp-Session-Id`. |
-| `GET /health` | Tool count and read-only state. Needs the bearer token. |
+| `POST /mcp` | JSON-RPC. `Content-Type: application/json` (else 415), at most 4 MB (else 413). |
+| `GET /mcp` | The session's event stream for `list_changed` notifications. Needs `Accept: text/event-stream` and a session ID. |
+| `DELETE /mcp` | Ends the session. |
+| `GET /health` | Tool count and read-only state. Needs the token. |
 
-Each request is checked for:
+Every request is checked for:
 
-1. **Origin.** A request with an `Origin` header not listed in `enableHttpServer(allowedOrigins = ...)` gets 403. Native clients send no `Origin` and are unaffected; browser tools such as MCP Inspector must be allowlisted.
-2. **Protocol version.** An `MCP-Protocol-Version` header the server doesn't support gets 400.
-3. **Auth.** Auth is on by default (`requireAuth = true`). Send `Authorization: Bearer <token>`. The `Bearer` scheme is required and case-insensitive. A missing or wrong token gets 401 with `WWW-Authenticate: Bearer realm="droid-mcp"`.
-4. **Session.** A successful `initialize` response carries an `Mcp-Session-Id` header. Send it on every later request. A missing session ID gets 400; an unknown one, or one issued to a different token, gets 404.
+1. **Origin.** A browser `Origin` not in `allowedOrigins` gets 403. Native clients send none.
+2. **Protocol version.** An unsupported `MCP-Protocol-Version` gets 400.
+3. **Token.** `Authorization: Bearer <token>`; missing or wrong gets 401.
+4. **Session.** `initialize` returns `Mcp-Session-Id`; send it on every later request. Missing gets 400; unknown, or issued to another token, gets 404.
 
-### Streaming responses
-
-**During a tool call.** Replies are plain JSON, except for a `tools/call` whose tool reports progress or asks for elicitation while it runs. That call answers with an SSE stream carrying the progress notifications or elicitation requests, then the result. To receive it, send `Accept: application/json, text/event-stream`, and include a `progressToken` in `_meta` if you want progress. A call that sends nothing mid-run still gets plain JSON.
-
-**Between calls.** `GET /mcp` opens the session's own stream. It carries `notifications/tools/list_changed`, `notifications/resources/list_changed` and `notifications/prompts/list_changed` whenever the host changes what's exposed, plus a `: keepalive` comment every 25 s. A tool change sends all three, because resources and prompts are visible only while their tools are. A session has one stream: opening a second closes the first, and `DELETE /mcp` closes it with the session.
-
-Elicitation is offered only to sessions whose client declared the `elicitation` capability at `initialize`. Answer an elicitation request with a separate `POST` in the same session; answers from another session are ignored.
-
-## mDNS
-
-| Field | Value |
-|---|---|
-| Service type | `_mcp._tcp.` |
-| Service name | `droid-mcp-<Build.MODEL>`. Characters other than `A-Z a-z 0-9 -` become `-`, and the name is capped at 63 characters. |
-| Port | The bound port: `TlsConfig.httpsPort` when TLS is on, otherwise `enableHttpServer(port = ...)` |
-
-TXT records:
-
-| Key | Values | Meaning |
-|---|---|---|
-| `version` | e.g. `0.13.0` | droid-mcp version on the device |
-| `auth` | `bearer`, `none` | Whether a bearer token is required |
-| `readonly` | `true`, `false` | Whether only read-only tools are served |
-| `tls` | `true`, `false` | Whether the endpoint is HTTPS |
-
-The token is never broadcast. To check from macOS:
-
-```bash
-dns-sd -B _mcp._tcp.
-# Expect an instance such as "droid-mcp-Pixel-8"
-```
-
-## QR payload
-
-The sample app shows the QR code while the server runs. It encodes one JSON object:
-
-```json
-{
-  "v": 1,
-  "url": "http://192.168.1.42:8080/mcp",
-  "token": "8t3wQ...",
-  "tls_fingerprint": "AB:CD:EF:...",
-  "name": "Pixel 8"
-}
-```
-
-| Field | Required | Description |
-|---|---|---|
-| `v` | yes | Schema version, currently `1`. Clients should reject unknown versions. |
-| `url` | yes | Full endpoint URL. Starts with `https://` when TLS is on. |
-| `token` | no | Bearer token (`DroidMcp.serverToken`). Omitted when auth is off. |
-| `tls_fingerprint` | no | Present only when TLS is on. See [TLS](#tls). |
-| `name` | yes | Display name (`Build.MODEL` in the sample app) |
-
-To connect by hand, copy `url` and `token` into your client's configuration. For Claude Code:
-
-```json
-{
-  "mcpServers": {
-    "droid": {
-      "type": "http",
-      "url": "http://192.168.1.42:8080/mcp",
-      "headers": {
-        "Authorization": "Bearer 8t3wQ..."
-      }
-    }
-  }
-}
-```
+Replies are plain JSON, except a `tools/call` whose tool reports progress or asks for input while it runs. That reply is an event stream, if the client accepts `text/event-stream`. The `GET /mcp` stream sends a keep-alive every 25 s; opening a second one closes the first.
 
 ## Tokens
 
-| | Behavior |
-|---|---|
-| Generated | Without an explicit token, `build()` generates 32 `SecureRandom` bytes, encoded as URL-safe base64 without padding. The token survives `stopServer()` / `startServer()` on the same `DroidMcp` instance; a newly built instance gets a new one. |
-| Custom | `enableHttpServer(token = ...)` sets a fixed token. It must be at least 16 characters, or the call throws `IllegalArgumentException`. |
-| Rotation | `DroidMcp.rotateToken()` replaces the primary token and returns the new one. The old one stops working, so show a new QR code. |
-| Per client | `DroidMcp.pairClient(label)` issues a separate token for one client and `revokeClient(label)` revokes it. `pairedClients()` lists them. Rotating the primary token doesn't affect them. |
+- **Generated:** without `enableHttpServer(token = ...)`, `build()` creates a random 32-byte token. It lasts as long as that `DroidMcp` instance. A token you pass in must be 16+ characters.
+- **Rotate:** `rotateToken()` replaces it; the old one stops working at once.
+- **Per client:** `pairClient(label)` issues a separate token and `revokeClient(label)` removes it. `restoreClient(...)` re-registers saved ones after a restart. Rotating the main token doesn't touch them.
+
+## Discovery
+
+With an Android `Context`, the server advertises `_mcp._tcp` over mDNS as `droid-mcp-<model>`. TXT records hold `version`, `auth`, `readonly` and `tls`. The token is never broadcast.
 
 ## TLS
 
-`enableTls(config)` serves HTTPS on `TlsConfig.httpsPort` (default 8443) instead of the plaintext port. The opt-in `droid-mcp-tls` module creates a self-signed certificate and saves it:
+`enableTls(config)` serves HTTPS on port 8443 instead of plain HTTP. The opt-in `droid-mcp-tls` module makes and keeps a self-signed certificate:
 
 ```kotlin
 val tls = SelfSignedCert.loadOrCreate(File(context.filesDir, "droid-mcp-tls.p12"))
-DroidMcp.builder()
-    .enableHttpServer(context = context)
-    .enableTls(tls)
+DroidMcp.builder().enableHttpServer(context = context).enableTls(tls)
 ```
 
-- The certificate is self-signed (`CN=droid-mcp`, no SANs), so clients can't validate it through a CA chain. They should pin its SHA-256 fingerprint instead: `DroidMcp.tlsFingerprint`, which is the QR code's `tls_fingerprint`.
-- The fingerprint is colon-separated uppercase hex of the certificate's DER encoding.
-- Reusing the same keystore file keeps the fingerprint stable across restarts.
+Clients can't check a self-signed certificate against a CA, so they pin its SHA-256 fingerprint (`DroidMcp.tlsFingerprint`, colon-separated hex). The same keystore file keeps the same fingerprint.
 
 ## Read-only mode
 
-`enableHttpServer(readOnly = true)` lists only tools annotated `readOnlyHint`. Calling any other tool returns an MCP content error (`isError: true`, `"Tool '<name>' is not available in read-only mode"`).
-
-> [!IMPORTANT]
-> mDNS makes the device discoverable to everyone on the network. On any network you don't fully trust, keep `requireAuth = true`.
+`enableHttpServer(readOnly = true)` lists only tools marked `readOnlyHint`. Calling another tool returns `isError: true` with "not available in read-only mode".
