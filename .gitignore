@@ -33,3 +33,11 @@ local.properties
 /captures
 .externalNativeBuild
 .cxx
+
+# Kotlin compiler session data
+.kotlin/
+
+# Signing keys never go in the repo
+*.jks
+*.keystore
+*.p12

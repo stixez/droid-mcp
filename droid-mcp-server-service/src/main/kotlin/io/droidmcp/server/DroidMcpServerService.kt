@@ -106,7 +106,15 @@ abstract class DroidMcpServerService : Service() {
             if (destroyed) true else { server = created; false }
         }
         // The service was destroyed while we were starting: don't leak a bound server.
-        if (stopImmediately) created.stopServer()
+        if (stopImmediately) {
+            created.stopServer()
+            return
+        }
+        mainHandler.post {
+            // Skip if the service was destroyed between the bind and this post.
+            val stillRunning = synchronized(lock) { server === created }
+            if (stillRunning) onServerStarted(created)
+        }
     }
 
     override fun onDestroy() {
@@ -114,9 +122,17 @@ abstract class DroidMcpServerService : Service() {
             destroyed = true
             server.also { server = null }
         }
-        running?.stopServer()
-        onServerStopped()
         super.onDestroy()
+        if (running == null) {
+            onServerStopped()
+            return
+        }
+        // Stopping waits for in-flight calls (up to a few seconds); keep that off the main thread.
+        // onServerStopped follows once the port is free, so a restart from it can bind again.
+        Thread({
+            runCatching { running.stopServer() }.onFailure { Log.w(TAG, "Stopping the MCP server failed", it) }
+            mainHandler.post { onServerStopped() }
+        }, "droid-mcp-server-stop").start()
     }
 
     /**
@@ -126,7 +142,14 @@ abstract class DroidMcpServerService : Service() {
     protected open fun onServerStartFailed(error: Exception) {}
 
     /**
-     * Called after the server is stopped on service destroy. Override to
+     * Called on the main thread once [server] is listening. Override to publish "running"
+     * state (address, port) to your UI. Default no-op.
+     */
+    protected open fun onServerStarted(server: DroidMcp) {}
+
+    /**
+     * Called on the main thread after the service is destroyed and its server has stopped (the
+     * stop itself runs on a background thread, so this may come shortly after [onDestroy]). Override to
      * release host-owned resources tied to the server — e.g. `close()` a
      * `RoomAuditSink` so its DB connection and write scope don't leak across
      * service restarts. Default is a no-op.

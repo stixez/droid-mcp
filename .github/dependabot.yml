@@ -25,6 +25,10 @@ updates:
         versions: [">= 6"]
       - dependency-name: "org.junit.platform:*"
         versions: [">= 6"]
+      # ClassGraph 6 needs JDK 25+ and 5.x has the same API change; CI builds with JDK 17.
+      # Test-only (ToolDiscovery). Revisit if CI moves to JDK 25.
+      - dependency-name: "io.github.classgraph:classgraph"
+        versions: [">= 5"]
 
   - package-ecosystem: github-actions
     directory: /

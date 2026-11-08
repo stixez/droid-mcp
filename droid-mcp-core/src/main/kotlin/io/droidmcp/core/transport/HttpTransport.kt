@@ -483,6 +483,16 @@ class HttpTransport(
      */
     fun pairClient(label: String): String? = tokenStore?.pair(label)
 
+    /**
+     * Re-register a persisted paired client with its existing token. No-op on an open server.
+     * @throws IllegalArgumentException if the token is shorter than [MIN_TOKEN_LENGTH].
+     */
+    fun restoreClient(client: TokenStore.PairedClient) {
+        val store = tokenStore ?: return
+        require(client.token.length >= MIN_TOKEN_LENGTH) { "token must be at least $MIN_TOKEN_LENGTH characters" }
+        store.restore(client)
+    }
+
     /** Revoke a paired client's token. @return true if a client with that label existed. */
     fun revokeClient(label: String): Boolean = tokenStore?.revoke(label) ?: false
 

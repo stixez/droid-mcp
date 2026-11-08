@@ -81,6 +81,17 @@ class TokenStore(seedPrimary: String? = null) {
         return token
     }
 
+    /**
+     * Re-register a client the host persisted earlier (e.g. across an app restart), keeping its
+     * existing [token] so the client doesn't have to re-pair. Replaces any client with that label.
+     */
+    fun restore(client: PairedClient) {
+        require(client.label.isNotBlank()) { "label must not be blank" }
+        require(client.token.isNotBlank()) { "token must not be blank" }
+        require(client.label != PRIMARY_LABEL) { "\"$PRIMARY_LABEL\" is reserved for the primary token" }
+        clients[client.label] = client
+    }
+
     /** Revoke a client's token. @return true if a client with that label existed. */
     fun revoke(label: String): Boolean = clients.remove(label) != null
 

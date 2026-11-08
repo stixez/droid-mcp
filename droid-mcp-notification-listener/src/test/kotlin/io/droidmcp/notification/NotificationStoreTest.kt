@@ -76,28 +76,28 @@ class NotificationStoreTest {
     }
 
     @Test
-    fun `concurrent put and remove never throws`() {
-        val pool = Executors.newFixedThreadPool(8)
-        try {
-            repeat(8) { worker ->
+    fun `concurrent put and snapshot never throw`() {
+        // Built before the threads start: making mocks inside the workers made this slow enough
+        // to time out under load, and workers still running then leaked entries into later tests.
+        val reply = replyAction()
+        val batches = List(WORKERS) { worker -> List(PER_WORKER) { i -> dto("w$worker-$i", reply = reply) } }
+        val pool = Executors.newFixedThreadPool(WORKERS)
+        val runs = try {
+            batches.map { batch ->
                 pool.submit {
-                    repeat(500) { i ->
-                        val key = "w$worker-$i"
-                        NotificationStore.putRepliableForTest(dto(key))
-                        if (i % 2 == 0) {
-                            // Indirect remove via clearForTest-equivalent: just leave them;
-                            // verify the snapshot doesn't blow up under contention.
-                            NotificationStore.repliableSnapshot()
-                        }
+                    batch.forEachIndexed { i, item ->
+                        NotificationStore.putRepliableForTest(item)
+                        if (i % 2 == 0) NotificationStore.repliableSnapshot()
                     }
                 }
             }
         } finally {
             pool.shutdown()
-            assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).isTrue()
+            if (!pool.awaitTermination(30, TimeUnit.SECONDS)) pool.shutdownNow()
         }
-        // After concurrent inserts, the store should hold 8*500 distinct keys.
-        assertThat(NotificationStore.repliableSnapshot()).hasSize(8 * 500)
+        // get() rethrows anything a worker threw; submit() alone would swallow it.
+        runs.forEach { it.get(0, TimeUnit.SECONDS) }
+        assertThat(NotificationStore.repliableSnapshot()).hasSize(WORKERS * PER_WORKER)
     }
 
     private fun event(key: String): NotificationEvent = NotificationEvent(
@@ -113,18 +113,26 @@ class NotificationStoreTest {
         title: String? = "T",
         text: String? = "msg",
         postedAt: Long = 0L,
+        reply: ReplyAction = replyAction(),
     ): RepliableNotification = RepliableNotification(
         key = key,
         packageName = packageName,
         title = title,
         text = text,
         postedAt = postedAt,
-        replyAction = ReplyAction(
-            label = "Reply",
-            resultKey = "rk",
-            hintLabel = null,
-            remoteInputs = arrayOf(mockk<RemoteInput>(relaxed = true)),
-            pendingIntent = mockk<PendingIntent>(relaxed = true),
-        ),
+        replyAction = reply,
     )
+
+    private fun replyAction() = ReplyAction(
+        label = "Reply",
+        resultKey = "rk",
+        hintLabel = null,
+        remoteInputs = arrayOf(mockk<RemoteInput>(relaxed = true)),
+        pendingIntent = mockk<PendingIntent>(relaxed = true),
+    )
+
+    private companion object {
+        const val WORKERS = 8
+        const val PER_WORKER = 500
+    }
 }

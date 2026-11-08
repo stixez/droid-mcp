@@ -36,8 +36,9 @@ data class ToolAnnotations(
  * `Dispatchers.IO`) and must degrade gracefully — when a required permission is missing
  * or the device lacks a capability, return [ToolResult.error] rather than throwing.
  *
- * The wire contract is the [name], the [parameters] (names + types), and the keys of the
- * map returned in [ToolResult.data]. These are frozen at 1.0; treat renames as breaking.
+ * What clients depend on is the [name], the [parameters] (names + types), and the keys of the
+ * map returned in [ToolResult.data]. Changing any of them affects clients, so note it in the
+ * release notes (docs/VERSIONING.md).
  */
 interface McpTool {
     /** Stable, unique tool identifier in `snake_case` (e.g. `read_calendar`). Part of the wire contract. */

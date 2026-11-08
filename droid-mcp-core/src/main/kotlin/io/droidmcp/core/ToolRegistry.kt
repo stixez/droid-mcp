@@ -24,13 +24,13 @@ import java.util.concurrent.ConcurrentHashMap
  *   bound applies to waiting for [confirmer].
  * @property confirmer Optional host approval step run before tools matching
  *   [requiresConfirmation]; a decline, timeout or exception returns `tool_call_declined`.
- * @property requiresConfirmation Which tools go through [confirmer]; defaults to those with
- *   [ToolAnnotations.destructiveHint].
+ * @property requiresConfirmation Which tools go through [confirmer]; defaults to
+ *   [CONFIRM_BY_DEFAULT].
  */
 class ToolRegistry(
     val toolTimeoutMs: Long = DEFAULT_TOOL_TIMEOUT_MS,
     private val confirmer: ToolCallConfirmer? = null,
-    private val requiresConfirmation: (McpTool) -> Boolean = { it.annotations.destructiveHint },
+    private val requiresConfirmation: (McpTool) -> Boolean = CONFIRM_BY_DEFAULT,
 ) {
 
     init {
@@ -195,12 +195,26 @@ class ToolRegistry(
         }
         return when (approved) {
             true -> null
-            false -> ToolResult.error("tool_call_declined", "The user declined '${request.toolName}'")
-            null -> ToolResult.error("tool_call_declined", "No confirmation for '${request.toolName}' within ${toolTimeoutMs}ms")
+            // Confirmers report "no answer in time" as false too, so don't claim the user said no.
+            false -> ToolResult.error(
+                "tool_call_declined",
+                "The user didn't approve '${request.toolName}' (they declined or didn't answer in time). It did not run.",
+            )
+            null -> ToolResult.error(
+                "tool_call_declined",
+                "No answer about '${request.toolName}' within ${toolTimeoutMs / 1000} s. It did not run.",
+            )
         }
     }
 
     companion object {
+        /**
+         * Tools that change something ([ToolAnnotations.destructiveHint]) or reach the outside
+         * world ([ToolAnnotations.openWorldHint]). The second matters even for read-only tools: a
+         * prompt-injected model can read messages and then put them in a fetched URL.
+         */
+        val CONFIRM_BY_DEFAULT: (McpTool) -> Boolean = { it.annotations.destructiveHint || it.annotations.openWorldHint }
+
         /** Default per-call ceiling: generous enough for TTS playback and camera capture. */
         const val DEFAULT_TOOL_TIMEOUT_MS: Long = 5 * 60 * 1000L
     }

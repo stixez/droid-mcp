@@ -61,6 +61,10 @@ class InvokeNotificationActionTool(private val context: Context) : McpTool {
 
         val sbn = NotificationStore.findByKey(key)
             ?: return ToolResult.error("notification_not_found", null)
+        // The host's own notifications can hold its approval buttons; a client must never press them.
+        if (sbn.packageName == context.packageName) {
+            return ToolResult.error("own_notification", "Notifications from this app can't be acted on")
+        }
         val actions = sbn.notification?.actions
         if (actions.isNullOrEmpty()) return ToolResult.error("action_not_found", "notification has no actions")
 

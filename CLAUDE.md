@@ -1,217 +1,62 @@
 # droid-mcp
 
-Android MCP SDK: 160 phone capabilities as tools, across 53 modules, for on-device LLMs (in-process calls) and desktop MCP clients (HTTP server on the phone).
+Android MCP SDK (160+ phone capabilities as tools, one module per area) plus `:app`, an installable "MCP server for your phone". Tools serve on-device models (in-process) and desktop MCP clients (HTTP server on the phone).
 
-## Quick Reference
+## Quick reference
 
-- **Language:** Kotlin 2.4, Android SDK 28+ (compile/target 36), Gradle 9.8, AGP 9 (built-in Kotlin — modules don't apply `kotlin.android`)
-- **Build:** `./gradlew assembleDebug` | **Test:** `./gradlew :droid-mcp-core:test`
-- **Opt-in modules** (not in `:droid-mcp-all`, they pull third-party deps): `shizuku`, `root` (shell tools), `audit` (Room), `tls` (BouncyCastle), `server-service`
-- **Checks before committing:** `./gradlew assembleDebug testDebugUnitTest apiCheck lintDebug` (CI runs the same)
+- Kotlin 2.4, Gradle 9.8, AGP 9 with built-in Kotlin (modules don't apply `kotlin.android`). minSdk 28; libraries compile against 36, `app` and `sample-app` against 37
+- Before committing: `./gradlew assembleDebug testDebugUnitTest apiCheck lintDebug` (what CI runs). On Windows the qr, mlkit and files path tests fail (drive letters, symlinks); CI is Linux
+- Opt-in modules, kept out of `droid-mcp-all` for their dependencies: `shizuku`, `root`, `audit`, `tls`, `server-service`
+- Module list: `settings.gradle.kts`; tools per module: `docs/TOOLS.md`
+- `sample-app` is a minimal one-screen SDK example (core, device, calendar); `app` is the product and the reference for services and special access
 
-## Key Conventions
+## Conventions
 
-- Every tool implements `McpTool` interface: `name`, `description`, `parameters`, `suspend fun execute()`
-- `description` is what a model reads to pick a tool: one or two plain sentences that start with a verb, say what comes back, and name the sibling tool to use instead when two overlap (e.g. `tap` vs `find_and_tap`). Leave out Android API names unless the model needs them; descriptions aren't part of the frozen wire contract
-- Every tool declares `outputSchema = OutputSchema.obj { ... }` matching exactly what `execute()` returns on success: `nullable = true` for values that can be null, `optional = true` for keys only sometimes present, and no entry for a key passed to `withImage()` (it isn't in `structuredContent`)
-- Every module has a provider object (e.g. `CalendarTools`) with `all(context)`, `requiredPermissions()`, `hasPermissions(context)`
-- Modules with browsable data also expose `resources(...)`: a `ResourceProvider` that checks its own permissions, returns empty / null instead of throwing, and sets `requiredTools` to the tool serving the same data so gating that tool hides the resource too (media, files, contacts, calendar)
-- Limit params: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`, declared with `minimum = 1.0, maximum = 100.0` so the schema advertises the clamp
-- Fixed-choice params declare `enumValues`; numeric clamps declare `minimum`/`maximum` — keep them identical to what `execute()` enforces
-- ContentResolver queries: use `?.use { cursor -> }`, NO `LIMIT`/`OFFSET` in sortOrder (handle in cursor loop)
-- File access: sandboxed via `PathValidator` — external storage only
-- Shared module logic lives in `io.droidmcp.core.support` (`ActivityLaunch.canStartActivity`, `SqlLike.escape`, `StrictDates.parse`, `CalendarSupport.findWritableCalendarId`, `UsageAccess.isGranted`, `AppLabels`, `CompletionSupport.upcomingDates`) — use these instead of module-local copies
-- Tool calls run on `Dispatchers.IO` (enforced by `ToolRegistry.executeTool`, with a per-call timeout — default 5 min, `Builder.toolTimeout()`), never main thread
-- No fully qualified names inline — use proper imports
-- Long-running tools call `reportProgress(done, total, message)` (no-op when nobody listens); tools needing user input can call `elicit(message, schema)` (returns null when unsupported)
+- Every tool implements `McpTool`. Its `description` is what a model reads: one or two plain sentences that start with a verb, say what comes back, and name the sibling tool when two overlap (`tap` vs `find_and_tap`). No Android API names unless the model needs them
+- Every tool declares `outputSchema` matching exactly what `execute()` returns on success: `nullable = true` for nullable values, `optional = true` for keys only sometimes present, no entry for a key passed to `withImage()`
+- Every module has a provider object (`CalendarTools`) with `all(context)`, `requiredPermissions()`, `hasPermissions(context)`. Modules with browsable data also have `resources(...)`: a `ResourceProvider` that checks its own permissions, returns empty instead of throwing, and sets `requiredTools` so gating the tool hides the resource
+- Limits: `(params["limit"] as? Number)?.toInt()?.coerceIn(1, 100) ?: 10`, declared with `minimum`/`maximum`. Fixed choices declare `enumValues`. Keep schema and `execute()` identical
+- Shared helpers live in `io.droidmcp.core.support` (`ActivityLaunch`, `SqlLike`, `StrictDates`, `CalendarSupport`, `UsageAccess`, `AppLabels`, `CompletionSupport`); use them instead of module copies
+- Tools run on `Dispatchers.IO` with a timeout (`ToolRegistry`). Long tools call `reportProgress(...)`; tools needing input call `elicit(...)` (null when unsupported)
+- ContentResolver: `?.use { cursor -> }`, paging in the loop. File paths go through `PathValidator` (external storage only)
+- Imports, not inline fully qualified names
 
 ## Don't
 
-- Don't add `LIMIT` or `OFFSET` to ContentResolver `sortOrder` strings — not supported on all devices
-- Don't request permissions from library code — apps handle their own permission UX
-- Don't use `SmsManager.getDefault()` — use version-checked `context.getSystemService()` on API 31+
+- Don't put `LIMIT`/`OFFSET` in ContentResolver `sortOrder`; not every device supports it
+- Don't request permissions from library code; host apps own the permission UX
+- Don't use `SmsManager.getDefault()`; use `context.getSystemService()` on API 31+
 - Don't require media permissions for File API access on API 33+
+- Don't loosen a security check without saying so in the PR: Origin/session/token checks, `PathValidator`, the web SSRF guard, the `send_intent` action and URI allowlists, `ShellPolicy.RECOMMENDED`, the `run_shell` allowlist rules, password-field refusal in `get_text_around_cursor`. The model is in `docs/SECURITY.md`
 
-<!-- SECTION: architecture -->
+## Adding a tool module
 
-## Architecture
+1. `droid-mcp-{name}/` with `build.gradle.kts` (android library, `implementation(project(":droid-mcp-core"))`, copy an existing module), a manifest with its permissions, the tools and a provider object
+2. Add it to `settings.gradle.kts`, `droid-mcp-all`, `app` (`ServerController`, `ToolCatalog`, and `Capabilities` if it needs a permission), the README module table and `docs/TOOLS.md`
+3. `./gradlew :droid-mcp-{name}:apiDump` and `./gradlew :droid-mcp-all:testDebugUnitTest -PupdateToolContract`, commit the `api/` changes
 
-Multi-module Gradle project. Each phone API is an independent module depending only on `:droid-mcp-core`.
+## API change checks
 
-**Core** (`droid-mcp-core`):
-- `McpTool` — interface every tool implements
-- `ToolParameter`, `ToolResult` — typed params and results
-- `ToolRegistry` — thread-safe tool collection (ConcurrentHashMap)
-- `McpProtocolImpl` — JSON-RPC 2.0 handler (initialize, tools/*, resources/*, prompts/*, completion/complete, ping)
-- `ResourceRegistry` / `PromptRegistry` — resource providers and prompts (`BuiltInPrompts`); registries notify listeners so `HttpTransport` pushes `list_changed` over the `GET /mcp` stream
-- `InProcessTransport` — direct calls for on-device LLMs
-- `HttpTransport` — Ktor server for desktop MCP clients
-- `DroidMcp` — builder pattern entry point
+`apiCheck` compares each library's public API with `<module>/api/*.api`; `ToolContractTest` compares tool names, parameters, annotations and result keys with `droid-mcp-all/api/tool-contract.txt`. Regenerate them (commands above) for intended changes. Pre-1.0, changes are allowed; list anything users must act on under "Before you upgrade" in the release notes (`docs/VERSIONING.md`).
 
-**Tool modules** (each follows identical pattern):
-```
-droid-mcp-{name}/
-  build.gradle.kts          — android library, depends on :droid-mcp-core
-  src/main/AndroidManifest.xml — declares module-specific permissions
-  src/main/kotlin/io/droidmcp/{name}/
-    {Name}Tools.kt           — provider object
-    {ToolName}Tool.kt         — individual tool implementations
-```
+## The app (`:app`)
 
-**Convenience:** `droid-mcp-all` — `api()` dependency on every module except the opt-in ones (`shizuku`, `root`, `audit`, `tls`, `server-service`).
-**Sample:** `sample-app` — Compose UI, Material 3, dynamic colors, all tools registered
+- **MVI:** each screen is `feature/<name>/` with `*Contract.kt` (State, Intent, Effect, pure reducers), `*ViewModel.kt` (extends `MviViewModel`) and `*Screen.kt`. The UI only sends intents; one-off events are effects. Pure functions and ViewModels are unit-tested with fakes (`app/src/test`)
+- **No DI framework:** `AppGraph` (built in `DroidMcpApp`) wires everything; `context.appGraph` reaches it from services
+- **Server:** `ServerController` builds and owns the one `DroidMcp`; `McpServerService` only hosts it, so it outlives the UI and START_STICKY restarts rebuild it. Permission changes add or remove tools live (`syncTools`). Settings baked in at build time (port, TLS, read-only, file writes, approvals, shell policy, token) show "Restart to apply"
+- **Trusted Wi-Fi:** off a trusted network the listener pauses but the service stays up, because Android won't start a foreground service from the background. The network flow (`AppGraph.networkUpdates`) also re-reads on Wi-Fi permission and Location changes and when the app comes to the front. `NetworkAddress` keeps a network's name once read, since Android hides it from background apps and callbacks fire often. After a reconnect in the background the name stays hidden, so the server pauses until the app opens, unless the user granted "All the time" location (offered only by a Home banner after such a pause, never in Setup)
+- **Permissions:** `Capabilities.kt` maps plain names ("Calendar", "Screen control") to permissions or Settings pages; `ToolCatalog` gates tool groups on them
+- **Approvals:** `ConfirmationCenter` is the `ToolCallConfirmer`: an in-app dialog when visible, otherwise a notification. "Always" is saved, "1 hour" is memory only (`ApprovalPolicy`)
+- **Per-computer tokens:** saved as `PairedComputer`s and restored on every build with `DroidMcp.restoreClient`
+- **Design:** Material 3, fixed palette (no dynamic color), JetBrains Mono for technical text (`AppTheme.code`), shared pieces in `ui/components`
+- **Release:** R8 with broad keeps for Netty, Ktor and BouncyCastle; per-ABI APKs (~45 MB). Signing from `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`; CI decodes `KEYSTORE_BASE64`. After release-config changes, install the release APK and make real MCP calls; R8 breakage only shows at runtime
 
-<!-- SECTION: modules -->
+## Testing on a device
 
-## Modules
-
-| Module | Package | Tools |
-|--------|---------|-------|
-| `droid-mcp-core` | `io.droidmcp.core` | Protocol, transports, interfaces |
-| `droid-mcp-device` | `io.droidmcp.device` | get_device_info, get_battery_info, get_connectivity, get_storage_info |
-| `droid-mcp-calendar` | `io.droidmcp.calendar` | read_calendar, list_calendars, create_event, search_events, update_event, delete_event |
-| `droid-mcp-contacts` | `io.droidmcp.contacts` | search_contacts, read_contact, list_contacts, create_contact, update_contact, delete_contact |
-| `droid-mcp-sms` | `io.droidmcp.sms` | read_messages, send_message, search_messages |
-| `droid-mcp-files` | `io.droidmcp.files` | browse_files, read_file, search_files; opt-in via `all(context, includeWriteTools = true)`: write_file, create_directory, move_file, delete_file |
-| `droid-mcp-notifications` | `io.droidmcp.notifications` | get_active_notifications |
-| `droid-mcp-calllog` | `io.droidmcp.calllog` | read_call_log, search_call_log |
-| `droid-mcp-media` | `io.droidmcp.media` | search_media, get_media_metadata, list_albums |
-| `droid-mcp-location` | `io.droidmcp.location` | get_current_location, get_location_address |
-| `droid-mcp-health` | `io.droidmcp.health` | get_step_count, get_activity_info |
-| `droid-mcp-clipboard` | `io.droidmcp.clipboard` | read_clipboard, write_clipboard |
-| `droid-mcp-apps` | `io.droidmcp.apps` | list_installed_apps, get_app_info, launch_app, get_app_usage |
-| `droid-mcp-alarms` | `io.droidmcp.alarms` | create_alarm, create_timer, create_reminder, get_next_alarm |
-| `droid-mcp-settings` | `io.droidmcp.settings` | get_settings, set_brightness, set_volume, toggle_wifi |
-| `droid-mcp-bluetooth` | `io.droidmcp.bluetooth` | get_bluetooth_status, list_paired_devices |
-| `droid-mcp-wifi` | `io.droidmcp.wifi` | get_wifi_info, list_saved_networks |
-| `droid-mcp-downloads` | `io.droidmcp.downloads` | list_downloads, search_downloads |
-| `droid-mcp-screen` | `io.droidmcp.screen` | get_screen_state, get_display_info |
-| `droid-mcp-tts` | `io.droidmcp.tts` | speak_text, get_tts_info |
-| `droid-mcp-web` | `io.droidmcp.web` | web_search, fetch_webpage |
-| `droid-mcp-telephony` | `io.droidmcp.telephony` | get_phone_number, get_sim_info, get_network_operator, get_call_state |
-| `droid-mcp-vibration` | `io.droidmcp.vibration` | vibrate, vibrate_pattern, cancel_vibration |
-| `droid-mcp-flashlight` | `io.droidmcp.flashlight` | toggle_flashlight, set_flashlight_brightness |
-| `droid-mcp-biometric` | `io.droidmcp.biometric` | check_biometric_availability, get_biometric_enrollments |
-| `droid-mcp-network` | `io.droidmcp.network` | get_data_usage, get_cellular_signal, is_vpn_active |
-| `droid-mcp-sensors` | `io.droidmcp.sensors` | get_accelerometer, get_gyroscope, get_light_level, get_proximity |
-| `droid-mcp-qr` | `io.droidmcp.qr` | scan_qr_code, scan_barcode, generate_qr_code |
-| `droid-mcp-camera` | `io.droidmcp.camera` | take_photo, capture_video, get_camera_capabilities |
-| `droid-mcp-audio` | `io.droidmcp.audio` | get_audio_devices |
-| `droid-mcp-nfc` | `io.droidmcp.nfc` | get_nfc_status, read_nfc_tag, write_nfc_tag |
-| `droid-mcp-intent` | `io.droidmcp.intent` | send_intent, share_content, open_deep_link |
-| `droid-mcp-playback` | `io.droidmcp.playback` | get_now_playing, media_control |
-| `droid-mcp-screenshot` | `io.droidmcp.screenshot` | capture_screen |
-| `droid-mcp-dnd` | `io.droidmcp.dnd` | get_dnd_status, set_dnd_mode |
-| `droid-mcp-keyguard` | `io.droidmcp.keyguard` | get_lock_state, get_keyguard_info |
-| `droid-mcp-wallpaper` | `io.droidmcp.wallpaper` | get_wallpaper_info, set_wallpaper |
-| `droid-mcp-ringtone` | `io.droidmcp.ringtone` | list_ringtones, get_active_ringtone, set_ringtone |
-| `droid-mcp-usb` | `io.droidmcp.usb` | list_usb_devices, get_usb_device_info |
-| `droid-mcp-print` | `io.droidmcp.print` | list_printers, print_content |
-| `droid-mcp-mlkit` | `io.droidmcp.mlkit` | recognize_text, label_image, detect_faces |
-| `droid-mcp-notification-listener` | `io.droidmcp.notification` | Shared listener support (Holder, Store, base service) |
-| `droid-mcp-notifications-reply` | `io.droidmcp.notificationsreply` | list_notifications, list_repliable_notifications, reply_to_notification, dismiss_notification, invoke_notification_action |
-| `droid-mcp-notification-watch` | `io.droidmcp.notificationwatch` | watch_notifications, unwatch_notifications, list_notification_watches, poll_notification_watch (+ NotificationListenerBus SharedFlow) |
-| `droid-mcp-accessibility` | `io.droidmcp.accessibility` | query_screen, find_node, wait_for_text, click_node, long_click_node, set_node_text, scroll_node, gesture, global_action, get_active_window_info, take_screenshot_via_a11y, tap, long_press, find_and_tap, scroll_to_find |
-| `droid-mcp-ime` | `io.droidmcp.ime` | is_ime_active, type_text, commit_keystroke, delete_text, set_selection, get_text_around_cursor, switch_to_previous_ime |
-| `droid-mcp-overlay` | `io.droidmcp.overlay` | OverlayController programmatic API only (no LLM tools) |
-| `droid-mcp-shell-core` | `io.droidmcp.shell` | Backend-agnostic shell tools (ShellBackend interface + 17 tool implementations: install_apk, uninstall_app, clear_app_data, force_stop_app, disable_app, enable_app, grant_permission, revoke_permission, list_app_permissions, put_secure_setting, put_global_setting, put_system_setting, get_top_window, set_app_standby_bucket, make_app_inactive, capture_screen_quiet, run_shell) |
-| `droid-mcp-shizuku` | `io.droidmcp.shizuku` | ShizukuShellBackend + ShizukuTools provider — wires shell-core tools against the Shizuku binder |
-| `droid-mcp-root` | `io.droidmcp.root` | RootShellBackend + RootTools provider — wires shell-core tools against libsu's `su` shell |
-| `droid-mcp-audit` | `io.droidmcp.audit` | RoomAuditSink — Room-backed `AuditSink` for the core `tools/call` audit hook (opt-in; pulls Room+KSP) |
-| `droid-mcp-tls` | `io.droidmcp.tls` | SelfSignedCert — BouncyCastle PKCS12 cert generation → `TlsConfig` for `enableTls` (opt-in) |
-| `droid-mcp-server-service` | `io.droidmcp.server` | DroidMcpServerService — abstract foreground service keeping the HTTP server alive (opt-in) |
-
-<!-- SECTION: new-tool-guide -->
-
-## Adding a New Tool Module
-
-1. Create `droid-mcp-{name}/build.gradle.kts`:
-```kotlin
-plugins {
-    alias(libs.plugins.android.library)
-}
-android {
-    namespace = "io.droidmcp.{name}"
-    compileSdk = libs.versions.compileSdk.get().toInt()
-    defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
-    compileOptions { sourceCompatibility = JavaVersion.VERSION_11; targetCompatibility = JavaVersion.VERSION_11 }
-}
-dependencies { implementation(project(":droid-mcp-core")) }
-```
-
-2. Create `src/main/AndroidManifest.xml` with required permissions
-
-3. Implement tools extending `McpTool`:
-```kotlin
-class MyTool(private val context: Context) : McpTool {
-    override val name = "my_tool"
-    override val description = "What it does"
-    override val parameters = listOf(
-        ToolParameter("param", "Description", ParameterType.STRING, required = true),
-    )
-    override val outputSchema = OutputSchema.obj {
-        string("result")
-    }
-    override suspend fun execute(params: Map<String, Any>): ToolResult {
-        val param = params["param"]?.toString() ?: return ToolResult.error("param is required")
-        // ... do work ...
-        return ToolResult.success(mapOf("result" to value))
-    }
-}
-```
-
-4. Create provider object:
-```kotlin
-object MyTools {
-    fun all(context: Context): List<McpTool> = listOf(MyTool(context))
-    fun requiredPermissions(): List<String> = listOf(Manifest.permission.WHATEVER)
-    fun hasPermissions(context: Context): Boolean =
-        PermissionHelper.hasPermissions(context, requiredPermissions())
-}
-```
-
-5. Add to `settings.gradle.kts`, `droid-mcp-all/build.gradle.kts`, the `sample-app` ViewModel, the README module table, `docs/TOOLS.md`, and the module table below
-6. Run `./gradlew :droid-mcp-{name}:apiDump` and `./gradlew :droid-mcp-all:testDebugUnitTest -PupdateToolContract`, then commit `api/` changes
-
-<!-- SECTION: testing -->
-
-## Testing
-
-- **Unit tests** (core module): `./gradlew :droid-mcp-core:test` — 172 tests covering ToolRegistry (dispatch/timeout/cancellation/change listeners), ToolParameter, ToolResult, OutputSchema, McpProtocol (JSON-RPC/MCP spec compliance, resources, prompts, completion), InProcessTransport, TokenStore, HttpTransport routes (Ktor `testApplication`) and the `GET /mcp` stream (real Netty), DroidMcp builder. Most modules with pure logic also have JVM unit tests (accessibility, alarms, apps, calendar, calllog, contacts, files, ime, intent, media, mlkit, notification-*, qr, root, shell-core, sms, tls, web, plus the tool-contract snapshot and an output-schema smoke test over every tool in `all`) — 645 in total: `./gradlew testDebugUnitTest`. On a Windows host, the qr/mlkit/files path-validator tests fail (drive letters parse as URI schemes; symlinks need a privilege); CI runs on Linux
-- **Tool modules**: Android API-dependent, tested via sample app on device/emulator
-- **Full build**: `./gradlew assembleDebug`
-- **API guards** (CI): `./gradlew apiCheck` (public JVM API vs `<module>/api/*.api`) and `ToolContractTest` in `droid-mcp-all` (tool names/params/annotations vs `droid-mcp-all/api/tool-contract.txt`). Regenerate with `apiDump` / `-PupdateToolContract` only for intended changes — see docs/VERSIONING.md
-- **HTTP transport**: Start server in sample app, connect from Claude Code via `http://<phone-ip>:8080/mcp` (or `adb forward tcp:8080 tcp:8080`)
-- **Device tests**: use a dedicated emulator, not one hosting other apps. `adb install -g` grants runtime permissions; grant special access with `settings put secure enabled_accessibility_services …`, `cmd notification allow_listener …`, `ime enable/set …`, `appops set … SYSTEM_ALERT_WINDOW allow`. A UiAutomation client (uiautomator dump, mobile-mcp) suppresses accessibility services while connected
-
-<!-- SECTION: security -->
-
-## Security Decisions
-
-- HTTP transport rejects foreign `Origin` headers (403; allowlist via `enableHttpServer(allowedOrigins=)`), non-JSON bodies (415), bodies > 4 MB (413) and unknown `MCP-Protocol-Version` (400). Every request after `initialize` must carry the `Mcp-Session-Id` issued to the same client. `GET /mcp` is 405 (no standalone stream; server messages ride on the `tools/call` reply). Protocol negotiates 2025-11-25 / 2025-06-18 / 2025-03-26 / 2024-11-05.
-- `Builder.confirmToolCalls` gates `destructiveHint` tools behind a host confirmer on both transports (decline/timeout → `tool_call_declined`)
-- `tools/call` replies upgrade to SSE only when the tool sends progress/elicitation and the client accepts `text/event-stream`; in-flight calls and elicitation answers are scoped per MCP session (random request ids)
-- HTTP transport requires bearer auth by default (`requireAuth = true`); token auto-generated via `SecureRandom` if not supplied, accessible via `DroidMcp.serverToken`. 401 responses include `WWW-Authenticate: Bearer realm="droid-mcp"`.
-- Server `readOnly = true` flag filters `tools/list` to read-only tools and rejects `tools/call` for non-readonly tools with an MCP content error (`isError: true`, message `"Tool '<name>' is not available in read-only mode"`).
-- `completion/complete` completers read device data only through `CompletionContext.callTool`, which runs visible, read-only tools that need no host confirmation (else null) and audits each call as `completion/complete`
-- mDNS (`_mcp._tcp`) broadcasts version/auth/readonly/tls via TXT records; does NOT broadcast the bearer token. `/health` requires auth.
-- File and ML Kit tools sandboxed to `Environment.getExternalStorageDirectory()` via `PathValidator` (canonical path); QR `image_uri` via `ImageUriValidator`
-- SMS `send_message` validates phone number format before sending
-- HTTP transport binds all interfaces on its port (no host restriction) — auth and Origin checks are the boundary, not the network; tokens passed in must be ≥ 16 chars
-- MCP protocol: malformed JSON returns -32700 parse error (no crash); `notifications/cancelled` cancels the same session's in-flight `tools/call` (no response is sent)
-- Image tools attach `ToolResult.withImage(key, mime)`: MCP sends an `image` content block and drops that key from the JSON; in-process `data` keeps it
-- All numeric params clamped to safe ranges
-- `ToolRegistry` uses `ConcurrentHashMap` for thread safety
-- Settings: `set_brightness` registers only when `Settings.System.canWrite()`; `toggle_wifi` only with `CHANGE_WIFI_STATE`; `get_settings` and `set_volume` always register
-- `send_intent` restricted to safe action allowlist — blocks CALL, DELETE, FACTORY_RESET, etc.; `send_intent`/`open_deep_link` data URIs limited to http(s), geo, tel, mailto, sms(to), mms(to), market
-- `fetch_webpage`/`web_search` block private, loopback and link-local addresses (SSRF) before connecting, following redirects manually so every hop is checked, unless `allowPrivateNetwork = true`
-- `run_shell` allowlist matches argv token-by-token and rejects interpreter entries; `ShellPolicy.RECOMMENDED` (the default) denies sensitive setting keys/permissions; `PERMISSIVE` is opt-in
-- `get_text_around_cursor` refuses password fields
-- `set_wallpaper` validates file path against external storage root (same sandboxing as file tools)
-- `set_ringtone` only accepts `content://` URIs — rejects `file://` and other schemes
-- Playback tools use `NotificationListenerHolder` — host app must explicitly configure its service ComponentName
-- Screenshot uses `MediaProjectionHolder` — host app must obtain user consent and pass the projection token
-
-## Special Permissions
-
-Notification listener, accessibility, IME, overlay, MediaProjection, DND access, Modify system settings, Usage access (`get_data_usage`, `get_app_usage`), Shizuku and root are granted in system Settings, not runtime dialogs; tools return a clear error when missing. The per-module table lives in the README ("Permissions") and each module's section in `docs/TOOLS.md`; shell setup in `docs/SHELL.md`.
+- Use a dedicated emulator. `adb install -g` grants runtime permissions; special access: `settings put secure enabled_accessibility_services …`, `cmd notification allow_listener …`, `ime enable/set …`, `appops set … SYSTEM_ALERT_WINDOW allow`
+- `uiautomator dump` (and any UiAutomation client) unbinds accessibility services while it runs, so the app briefly sees Screen control as off. It also fails silently during animations and leaves the old dump file behind. Prefer screenshots and coordinates
+- Android hides app overlays over system Settings and permission dialogs; test `guide_user` over a normal app
+- The SSID (trusted Wi-Fi) needs precise location, and Android hides it from a background app (after boot or a network change) unless something keeps the process in use, such as the bound accessibility service, or the app has "All the time" location. Opening the app reads it again. `pm revoke ... ACCESS_BACKGROUND_LOCATION` resets the Home banner test
+- `am force-stop` turns off the app's accessibility service; re-enable it before testing anything that needs it
+- Keep `Application.onCreate` light (`AppGraph` builds heavy things lazily): after boot a slow start is killed as an ANR, which also blocks the boot-time server
+- On the API 35 emulator, `screencap` returns black frames while our screen capture is active; stop the capture (force-stop) to take screenshots again

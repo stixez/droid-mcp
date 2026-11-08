@@ -103,7 +103,7 @@ subprojects {
 }
 
 // ---- Dokka: aggregate API docs for every published library module ----
-// Excludes :sample-app (the demo application) and :droid-mcp-all (a sourceless
+// Excludes :sample-app and :app (applications) and :droid-mcp-all (a sourceless
 // convenience aggregator). Output: build/dokka/html. Generate with:
 //   ./gradlew :dokkaGenerate
 dokka {
@@ -112,7 +112,7 @@ dokka {
 
 dependencies {
     subprojects
-        .filter { it.name != "sample-app" && it.name != "droid-mcp-all" && it.name != "abi-dump" }
+        .filter { it.name !in setOf("sample-app", "app", "droid-mcp-all", "abi-dump") }
         .forEach { dokka(it) }
 }
 

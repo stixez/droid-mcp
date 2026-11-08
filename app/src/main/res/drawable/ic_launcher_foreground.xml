@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone outline with signal arcs: "your phone, reachable". 108dp canvas, art inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E8F5EF"
+        android:strokeWidth="4"
+        android:pathData="M40,34 h18 a5,5 0 0 1 5,5 v32 a5,5 0 0 1 -5,5 h-18 a5,5 0 0 1 -5,-5 v-32 a5,5 0 0 1 5,-5 z" />
+    <path
+        android:fillColor="#E8F5EF"
+        android:pathData="M46.5,69 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0 z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#7FD8BE"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M69,47 a9,9 0 0 1 0,12" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#7FD8BE"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M75,41 a17,17 0 0 1 0,24" />
+</vector>

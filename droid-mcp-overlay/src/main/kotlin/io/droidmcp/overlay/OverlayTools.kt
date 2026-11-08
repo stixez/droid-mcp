@@ -5,13 +5,17 @@ import io.droidmcp.core.McpTool
 import io.droidmcp.core.PermissionStatus
 
 /**
- * No LLM tools — overlay is a programmatic-only primitive. The provider
- * object exists for shape parity with other modules (so the sample app can
- * uniformly query `permissionStatus(context)`).
+ * Overlay tools: `guide_user` points the user at something on screen and waits for them, and
+ * `clear_guide` removes it. Both need "display over other apps" ([permissionStatus]). The
+ * floating chip ([OverlayController]) stays a host-only API.
  */
 object OverlayTools {
 
-    fun all(context: Context): List<McpTool> = emptyList()
+    /** Both tools, sharing the process-wide [GuideOverlay.shared] so rebuilt tools still see an older guide. */
+    fun all(context: Context): List<McpTool> {
+        val overlay = GuideOverlay.shared(context)
+        return listOf(GuideUserTool(overlay), ClearGuideTool(overlay))
+    }
 
     fun requiredPermissions(): List<String> = emptyList()
 
@@ -29,5 +33,5 @@ object OverlayTools {
         }
     }
 
-    fun supportedTools(context: Context): Set<String> = emptySet()
+    fun supportedTools(context: Context): Set<String> = setOf("guide_user", "clear_guide")
 }

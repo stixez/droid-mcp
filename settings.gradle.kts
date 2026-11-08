@@ -73,6 +73,7 @@ include(
     ":droid-mcp-server-service",
     ":droid-mcp-all",
     ":sample-app",
+    ":app",
 )
 
 // Build-time tooling (not published)
