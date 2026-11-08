@@ -42,7 +42,7 @@ There are 160+ tools in 50+ modules, each with only its own permissions. See [al
 Then ask *"What's on my calendar today?"*
 
 <p align="center">
-  <img src="docs/images/ask-first.gif" width="820" alt="Claude Code is asked to text Mom; the phone shows an approval notification, the user taps Deny, and Claude reports that the text wasn't sent" />
+  <img src="docs/images/ask-first.gif" width="820" alt="Claude Code is asked to text Mom; the phone shows an approval notification, the user taps Allow, the text appears in Messages, and Claude confirms it was sent" />
 </p>
 
 The app asks you before a client sends, deletes or changes anything (once, for an hour, or always), logs every call, can give each computer its own token, and can pause itself off your home Wi-Fi. It isn't on Google Play, whose policies don't allow AI control through accessibility or SMS access.
