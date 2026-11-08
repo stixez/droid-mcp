@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/logo.svg" width="96" alt="" /></p>
+
 <h1 align="center">droid-mcp</h1>
 
 <p align="center">

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72" width="512" height="512">
+  <title>droid-mcp</title>
+  <!-- Same art as the app's adaptive launcher icon (app/src/main/res/drawable/ic_launcher_foreground.xml). -->
+  <rect x="18" y="18" width="72" height="72" rx="18" fill="#123B31"/>
+  <path d="M40,34 h18 a5,5 0 0 1 5,5 v32 a5,5 0 0 1 -5,5 h-18 a5,5 0 0 1 -5,-5 v-32 a5,5 0 0 1 5,-5 z" fill="none" stroke="#E8F5EF" stroke-width="4"/>
+  <path d="M46.5,69 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0 z" fill="#E8F5EF"/>
+  <path d="M69,47 a9,9 0 0 1 0,12" fill="none" stroke="#7FD8BE" stroke-width="4" stroke-linecap="round"/>
+  <path d="M75,41 a17,17 0 0 1 0,24" fill="none" stroke="#7FD8BE" stroke-width="4" stroke-linecap="round"/>
+</svg>
