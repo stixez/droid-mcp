@@ -42,6 +42,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.droidmcp.app.confirm.ApprovalScope
 import io.droidmcp.app.confirm.ConfirmationCenter
+import io.droidmcp.app.confirm.PendingConfirmation
 import io.droidmcp.app.ui.navigation.AppShell
 import io.droidmcp.app.ui.theme.AppTheme
 import io.droidmcp.app.ui.theme.DroidMcpTheme
@@ -179,12 +180,23 @@ private fun ConfirmationDialogHost(center: ConfirmationCenter) {
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 8.dp),
                         ) { Text("Allow 1 hour", maxLines = 1) }
-                        OutlinedButton(
-                            onClick = { center.answer(request.id, allow = true, scope = ApprovalScope.Always) },
-                            enabled = armed,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                        ) { Text("Always allow", maxLines = 1) }
+                        // Screen control reaches every app, so it never gets "Always".
+                        if (!request.screenControl) {
+                            OutlinedButton(
+                                onClick = { center.answer(request.id, allow = true, scope = ApprovalScope.Always) },
+                                enabled = armed,
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                            ) { Text("Always allow", maxLines = 1) }
+                        }
+                    }
+                    if (request.screenControl) {
+                        Text(
+                            PendingConfirmation.SCREEN_CONTROL_WARNING,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                     }
                     Text(
                         "Declined automatically in ${(remainingMs + 999) / 1000} s" +

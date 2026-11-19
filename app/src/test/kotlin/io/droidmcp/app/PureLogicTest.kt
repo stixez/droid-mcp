@@ -157,6 +157,13 @@ class ConfirmationTextTest {
         assertThat(item.detail).contains("family 👨‍👩")
     }
 
+    @Test fun `screen-control requests are marked`() {
+        val tap = ConfirmationCenter.describe(1, ToolCallRequest("tap", mapOf("x" to 1), ToolAnnotations(), null))
+        val sms = ConfirmationCenter.describe(2, ToolCallRequest("send_message", emptyMap(), ToolAnnotations(), null))
+        assertThat(tap.screenControl).isTrue()
+        assertThat(sms.screenControl).isFalse()
+    }
+
     @Test fun `describe without arguments says so`() {
         val request = ToolCallRequest("toggle_wifi", emptyMap(), ToolAnnotations(), null)
         assertThat(ConfirmationCenter.describe(1, request).detail).isEqualTo("No details")

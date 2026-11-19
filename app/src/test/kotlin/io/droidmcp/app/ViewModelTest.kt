@@ -282,6 +282,30 @@ class ViewModelTest {
         coroutineContext.cancelChildren()
     }
 
+    @Test fun `screen control can't be allowed always`() = runTest(dispatcher) {
+        val settings = FakeSettingsStore()
+        val policy = ApprovalPolicy(settings, this)
+        advanceUntilIdle()
+        policy.remember("tap", ApprovalScope.Always)
+        advanceUntilIdle()
+        assertThat(settings.state.value.alwaysAllowedTools).doesNotContain("tap")
+        assertThat(policy.isPreApproved("tap")).isFalse()
+        // An hour is still possible, with the warning in the dialog.
+        policy.remember("tap", ApprovalScope.OneHour)
+        assertThat(policy.isPreApproved("tap")).isTrue()
+        coroutineContext.cancelChildren()
+    }
+
+    @Test fun `screen control saved by an older version is ignored and removed`() = runTest(dispatcher) {
+        val settings = FakeSettingsStore(AppSettings(alwaysAllowedTools = setOf("type_text", "vibrate")))
+        val policy = ApprovalPolicy(settings, this)
+        advanceUntilIdle()
+        assertThat(policy.isPreApproved("type_text")).isFalse()
+        assertThat(policy.isPreApproved("vibrate")).isTrue()
+        assertThat(settings.state.value.alwaysAllowedTools).containsExactly("vibrate")
+        coroutineContext.cancelChildren()
+    }
+
     @Test fun `trusting a network while turning the rule on`() = runTest(dispatcher) {
         val settings = FakeSettingsStore()
         val vm = SettingsViewModel(

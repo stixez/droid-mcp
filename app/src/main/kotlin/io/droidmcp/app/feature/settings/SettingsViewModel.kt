@@ -3,6 +3,7 @@ package io.droidmcp.app.feature.settings
 import androidx.lifecycle.viewModelScope
 import io.droidmcp.app.core.mvi.MviViewModel
 import io.droidmcp.app.confirm.ApprovalMemory
+import io.droidmcp.app.confirm.ApprovalPolicy
 import io.droidmcp.app.data.permissions.Capabilities
 import io.droidmcp.app.data.server.LocalNetwork
 import io.droidmcp.app.data.server.ServerControl
@@ -40,7 +41,7 @@ class SettingsViewModel(
                         checkForUpdates = s.checkForUpdates,
                         trustedWifiOnly = s.trustedWifiOnly,
                         trustedNetworks = s.trustedNetworks.sorted(),
-                        alwaysAllowed = s.alwaysAllowedTools.sorted(),
+                        alwaysAllowed = s.alwaysAllowedTools.filter(ApprovalPolicy::canAlwaysAllow).sorted(),
                         computerCount = s.pairedComputers.size,
                     )
                 }

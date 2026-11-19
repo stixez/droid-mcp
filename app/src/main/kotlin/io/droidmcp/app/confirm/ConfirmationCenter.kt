@@ -37,7 +37,17 @@ data class PendingConfirmation(
     val clientLabel: String?,
     /** Wall-clock time this request is declined automatically. */
     val expiresAt: Long = 0L,
-)
+    /**
+     * The tool taps, types or presses buttons in any app ([ConfirmationCenter.UI_DRIVERS]):
+     * no "Always", and "1 hour" comes with [SCREEN_CONTROL_WARNING].
+     */
+    val screenControl: Boolean = false,
+) {
+    companion object {
+        const val SCREEN_CONTROL_WARNING =
+            "Allowing for 1 hour lets it tap and type in any app, including sending messages, for the next hour."
+    }
+}
 
 /**
  * Asks the person holding the phone before a client runs a tool that sends, deletes or changes
@@ -173,7 +183,8 @@ class ConfirmationCenter(
         } else {
             NotificationCompat.Action.Builder(0, "Review", open).build()
         }
-        val allowHourAction = if (secure) {
+        // An hour of screen control is granted only in the app, where the warning is shown.
+        val allowHourAction = if (secure && !item.screenControl) {
             NotificationCompat.Action.Builder(
                 0,
                 "Allow 1 h",
@@ -272,6 +283,7 @@ class ConfirmationCenter(
                 detail = detail,
                 toolName = request.toolName,
                 clientLabel = request.clientLabel,
+                screenControl = request.toolName in UI_DRIVERS,
             )
         }
 

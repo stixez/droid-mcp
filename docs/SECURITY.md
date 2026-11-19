@@ -34,6 +34,7 @@ The server listens on every interface, so anyone on the same Wi-Fi can reach it.
 Web pages, messages, notifications, the clipboard and screen text can contain instructions for the model. droid-mcp returns them as data but can't stop a model from obeying. Two defenses:
 
 - **Confirm on the phone:** `confirmToolCalls { request -> askUser(request) }` runs before every tool that changes something (`destructiveHint`) or reaches the internet (`openWorldHint`), since a fetched URL can carry data the model just read. The host app also refuses tools that tap, type, press notification buttons or draw overlays while an approval is waiting, so a model can't answer its own approval, and `invoke_notification_action` never acts on the host's own notifications. Decline, error or timeout returns `tool_call_declined` and the tool never runs.
+- **Screen control is never pre-approved for good.** In the droid-mcp app, approvals can be remembered for an hour or always, but tools that tap, type or press notification buttons get at most an hour, with a warning in the dialog. Driving the screen reaches every app, so an agent allowed it could open a messaging app and press Send, getting around the approval on `send_message`. Entries saved by older versions are removed.
 - **Confirm on the client:** `ToolCallConfirmer.viaClientElicitation(fallback)` asks the desktop user through MCP elicitation, for clients that support it. It catches a misled model, not a compromised client; for that, confirm on the phone.
 
 ## What the host app owns
