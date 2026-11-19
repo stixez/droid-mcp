@@ -27,7 +27,7 @@ dependencies {
     implementation(project(":droid-mcp-core"))
     implementation(libs.kotlinx.coroutines.core)
     implementation("com.squareup.okhttp3:okhttp:4.12.1")
-    implementation("org.jsoup:jsoup:1.23.2")
+    implementation("org.jsoup:jsoup:1.24.1")
     testImplementation(libs.junit5.api)
     testRuntimeOnly(libs.junit5.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
