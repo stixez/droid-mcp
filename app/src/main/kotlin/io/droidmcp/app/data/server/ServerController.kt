@@ -182,7 +182,9 @@ class ServerController(
 
     override val restartNeeded: StateFlow<Boolean> =
         combine(currentSettings, built, _status) { current, used, status ->
-            status is ServerStatus.Running && used != null && BakedSettings(used) != BakedSettings(current)
+            // Paused counts too: turning on HTTPS or USB only is how to serve on a network that paused it.
+            (status is ServerStatus.Running || status is ServerStatus.Paused) &&
+                used != null && BakedSettings(used) != BakedSettings(current)
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     @Volatile
@@ -254,6 +256,11 @@ class ServerController(
                 rememberRoot(granted)
                 syncTools()
             }
+        }
+        // Keep trusted networks recognisable while Android hides their names (see learnTrust).
+        scope.launch {
+            combine(network, currentSettings) { net, s -> net.takeIf { learnTrust(it, s, servedHere.value) != null } }
+                .collect { net -> if (net != null) settings.update { s -> learnTrust(net, s, servedHere.value) ?: s } }
         }
         // Pause and resume as the network changes: trusted Wi-Fi only, or unencrypted on a new Wi-Fi.
         scope.launch {
@@ -509,12 +516,12 @@ class ServerController(
 
     override fun serveOnThisNetwork() {
         val net = currentNetwork()
-        val ssid = net.ssid
-        if (ssid != null) {
-            scope.launch { settings.update { it.copy(trustedNetworks = it.trustedNetworks + ssid) } }
-        } else {
+        // Nothing to remember it by (no name, no router): allow it until the address changes.
+        if (trustNetwork(net, currentSettings.value) == null) {
             servedHere.value = net.address
+            return
         }
+        scope.launch { settings.update { s -> trustNetwork(net, s) ?: s } }
     }
 
     /** Why the Wi-Fi name can't be read, in words the user can act on. */

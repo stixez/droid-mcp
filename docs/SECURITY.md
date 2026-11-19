@@ -29,7 +29,7 @@ By default the server listens on every interface, so anyone on the same Wi-Fi ca
 In the droid-mcp app:
 
 - **USB only** (Settings) binds `127.0.0.1`.
-- **Without HTTPS**, joining a Wi-Fi the server hasn't served on pauses it until the user taps "Serve on this network" on Home. The network's name then joins the trusted list. If Android hides the name, the answer holds only until the network changes. Mobile data and the phone's own hotspot aren't paused.
+- **Without HTTPS**, joining a Wi-Fi or wired network the server hasn't served on pauses it until the user taps "Serve on this network" on Home. The network's name joins the trusted list, together with its fingerprint (router address, subnet, DNS domain). Android hides Wi-Fi names from background apps, for example after a reboot, so while the name is hidden a matching fingerprint counts as trusted. That's weaker than the name, since another network can use the same router address and subnet. Wired networks have no name and go by fingerprint only. Mobile data and the phone's own hotspot aren't paused.
 - **Trusted Wi-Fi only** serves on the trusted list and nowhere else, HTTPS or not.
 
 > [!NOTE]

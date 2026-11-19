@@ -323,6 +323,15 @@ fun SettingsContent(state: SettingsState, onIntent: (SettingsIntent) -> Unit, co
                             onRemove = { onIntent(SettingsIntent.ForgetNetwork(ssid)) },
                         )
                     }
+                    state.unnamedNetworks.forEach { fingerprint ->
+                        RowDivider()
+                        RemovableRow(
+                            title = describeFingerprint(fingerprint),
+                            subtitle = "Trusted · no name (wired, or hidden at the time)",
+                            removeLabel = "Stop trusting this network",
+                            onRemove = { onIntent(SettingsIntent.ForgetUnnamedNetwork(fingerprint)) },
+                        )
+                    }
                     val ssid = state.currentSsid
                     when {
                         ssid != null && !state.currentNetworkTrusted -> {

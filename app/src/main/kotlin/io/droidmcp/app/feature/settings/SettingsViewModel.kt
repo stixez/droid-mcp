@@ -42,6 +42,7 @@ class SettingsViewModel(
                         usbOnly = s.usbOnly,
                         trustedWifiOnly = s.trustedWifiOnly,
                         trustedNetworks = s.trustedNetworks.sorted(),
+                        unnamedNetworks = s.trustedFingerprints.filterValues { it.isEmpty() }.keys.sorted(),
                         alwaysAllowed = s.alwaysAllowedTools.filter(ApprovalPolicy::canAlwaysAllow).sorted(),
                         computerCount = s.pairedComputers.size,
                     )
@@ -140,7 +141,14 @@ class SettingsViewModel(
                 val ssid = currentState.currentSsid ?: return
                 update { it.copy(trustedNetworks = it.trustedNetworks + ssid) }
             }
-            is SettingsIntent.ForgetNetwork -> update { it.copy(trustedNetworks = it.trustedNetworks - intent.ssid) }
+            is SettingsIntent.ForgetNetwork -> update {
+                it.copy(
+                    trustedNetworks = it.trustedNetworks - intent.ssid,
+                    trustedFingerprints = it.trustedFingerprints.filterValues { name -> name != intent.ssid },
+                )
+            }
+            is SettingsIntent.ForgetUnnamedNetwork ->
+                update { it.copy(trustedFingerprints = it.trustedFingerprints - intent.fingerprint) }
             is SettingsIntent.ForgetAlwaysAllowed -> approvals?.forgetAlways(intent.tool)
             SettingsIntent.ForgetTemporaryApprovals -> approvals?.forgetTemporary()
             SettingsIntent.OpenComputers -> emit(SettingsEffect.NavigateComputers)

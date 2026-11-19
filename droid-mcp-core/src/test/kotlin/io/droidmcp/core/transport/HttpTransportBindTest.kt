@@ -36,12 +36,27 @@ class HttpTransportBindTest {
         false
     }
 
-    /** An IPv4 address of this machine that isn't loopback, or null on a host without one. */
-    private fun lanAddress(): String? = NetworkInterface.getNetworkInterfaces().toList()
-        .filter { it.isUp && !it.isLoopback }
-        .flatMap { it.inetAddresses.toList() }
-        .firstOrNull { it is Inet4Address }
-        ?.hostAddress
+    /**
+     * An IPv4 address of this machine that isn't loopback and that a socket listening on every
+     * interface can be reached on (VPN tunnels and firewalled bridges may not be), or null.
+     */
+    private fun lanAddress(): String? {
+        val candidates = NetworkInterface.getNetworkInterfaces().toList()
+            .filter { it.isUp && !it.isLoopback && !it.isPointToPoint && !it.isVirtual }
+            .flatMap { it.inetAddresses.toList() }
+            .filterIsInstance<Inet4Address>()
+            .mapNotNull { it.hostAddress }
+        return ServerSocket(0).use { probe ->
+            candidates.firstOrNull { address ->
+                try {
+                    Socket().use { it.connect(InetSocketAddress(address, probe.localPort), 1_000) }
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+            }
+        }
+    }
 
     @Test
     @Timeout(20, unit = TimeUnit.SECONDS)

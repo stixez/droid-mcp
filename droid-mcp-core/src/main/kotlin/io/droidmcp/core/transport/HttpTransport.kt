@@ -569,9 +569,15 @@ class HttpTransport(
         const val ANONYMOUS_LABEL: String = "anonymous"
     }
 
+    /** `localhost`, 127/8 and `::1`, from the text alone, so it never waits on DNS. */
+    private fun isLoopback(host: String): Boolean {
+        val h = host.trim().removeSurrounding("[", "]").lowercase()
+        return h == "localhost" || h.startsWith("127.") || h == "::1" || h == "0:0:0:0:0:0:0:1"
+    }
+
     private fun registerNsd() {
         // Nobody on the network can connect, so there's nothing to announce.
-        if (host == LOOPBACK) return
+        if (isLoopback(host)) return
         val ctx = context ?: return
         val nsd = ctx.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return
         val info = NsdServiceInfo().apply {

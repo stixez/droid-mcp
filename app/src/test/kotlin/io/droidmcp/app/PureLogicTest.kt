@@ -8,7 +8,12 @@ import io.droidmcp.app.data.permissions.GrantMethod
 import io.droidmcp.app.data.server.ConnectionInfo
 import io.droidmcp.app.data.server.LocalNetwork
 import io.droidmcp.app.data.server.TrustVerdict
+import io.droidmcp.app.data.server.WIRED_REASON
+import io.droidmcp.app.data.server.learnTrust
+import io.droidmcp.app.data.server.networkFingerprint
+import io.droidmcp.app.data.server.trustNetwork
 import io.droidmcp.app.data.server.trustVerdict
+import io.droidmcp.app.feature.settings.describeFingerprint
 import io.droidmcp.app.data.settings.AppSettings
 import io.droidmcp.app.data.settings.PairedComputer
 import io.droidmcp.app.data.settings.SettingsRepository
@@ -357,6 +362,66 @@ class NetworkTrustTest {
         assertThat(verdict(cafe, strict)?.canServeHere).isFalse()
         assertThat(verdict(mobile, strict)?.reason).isEqualTo("Paused: not on Wi-Fi")
         assertThat(verdict(cafe, strict, bound = strict.copy(usbOnly = true))).isNull()
+    }
+
+    private val fp = "gw=192.168.1.1;net=192.168.1.0/24"
+    private val homeFp = home.copy(fingerprint = fp)
+    private val trustedFp = plain.copy(trustedFingerprints = mapOf(fp to "Home"))
+
+    @Test fun `a trusted network is recognised by fingerprint while its name is hidden`() {
+        assertThat(verdict(homeFp.copy(ssid = null), trustedFp)).isNull()
+        // Another network with the same fingerprint but a readable, untrusted name isn't trusted.
+        assertThat(verdict(homeFp.copy(ssid = "Cafe"), trustedFp)?.canServeHere).isTrue()
+        // Trusted Wi-Fi only still goes by name.
+        assertThat(verdict(homeFp.copy(ssid = null), trustedFp.copy(trustedWifiOnly = true))).isNotNull()
+    }
+
+    @Test fun `wired networks ask once and are remembered by fingerprint`() {
+        val wired = LocalNetwork("192.168.1.9", onWifi = true, wired = true, fingerprint = fp)
+        assertThat(verdict(wired, plain)?.reason).isEqualTo(WIRED_REASON)
+        val trusted = trustNetwork(wired, plain)!!
+        assertThat(trusted.trustedFingerprints).containsExactly(fp, "")
+        assertThat(verdict(wired, trusted)).isNull()
+    }
+
+    @Test fun `trusting records the name and the fingerprint`() {
+        val cafe = cafe.copy(fingerprint = "gw=10.0.0.1;net=10.0.0.0/24")
+        val s = trustNetwork(cafe, plain)!!
+        assertThat(s.trustedNetworks).containsExactly("Home", "Cafe")
+        assertThat(s.trustedFingerprints).containsExactly("gw=10.0.0.1;net=10.0.0.0/24", "Cafe")
+        // No name and no router: nothing to save, the controller falls back to the address.
+        assertThat(trustNetwork(LocalNetwork("10.0.0.7", onWifi = true), plain)).isNull()
+    }
+
+    @Test fun `learning records a trusted name's fingerprint`() {
+        val learned = learnTrust(homeFp, plain, servedHere = null)
+        assertThat(learned?.trustedFingerprints).containsExactly(fp, "Home")
+        assertThat(learnTrust(homeFp, learned!!, servedHere = null)).isNull()
+        assertThat(learnTrust(cafe.copy(fingerprint = "x"), plain, servedHere = null)).isNull()
+    }
+
+    @Test fun `approved while hidden stays approved when the name shows`() {
+        val approved = plain.copy(trustedFingerprints = mapOf("gw=10.0.0.1;net=10.0.0.0/24" to ""))
+        val named = cafe.copy(fingerprint = "gw=10.0.0.1;net=10.0.0.0/24")
+        assertThat(verdict(named, approved)).isNull()
+        val learned = learnTrust(named, approved, servedHere = null)!!
+        assertThat(learned.trustedNetworks).contains("Cafe")
+        assertThat(learned.trustedFingerprints).containsExactly("gw=10.0.0.1;net=10.0.0.0/24", "Cafe")
+        // Same for an address-only approval.
+        assertThat(verdict(cafe, plain, here = "10.0.0.7")).isNull()
+        assertThat(learnTrust(cafe, plain, servedHere = "10.0.0.7")?.trustedNetworks).contains("Cafe")
+    }
+
+    @Test fun `fingerprint has the subnet, router and domain`() {
+        val bytes = byteArrayOf(192.toByte(), 168.toByte(), 1, 77)
+        assertThat(networkFingerprint("192.168.1.1", bytes, 24, "lan")).isEqualTo("gw=192.168.1.1;net=192.168.1.0/24;dns=lan")
+        assertThat(networkFingerprint("10.1.0.1", byteArrayOf(10, 1, 200.toByte(), 3), 16, null)).isEqualTo("gw=10.1.0.1;net=10.1.0.0/16")
+        assertThat(describeFingerprint("gw=192.168.1.1;net=192.168.1.0/24;dns=lan")).isEqualTo("192.168.1.0/24 via 192.168.1.1 lan")
+    }
+
+    @Test fun `fingerprints survive encoding`() {
+        val map = mapOf(fp to "Home", "gw=10.0.0.1;net=10.0.0.0/8" to "")
+        assertThat(SettingsRepository.decodeFingerprints(SettingsRepository.encodeFingerprints(map))).isEqualTo(map)
     }
 
     @Test fun `usb only pins the route to usb and leaving it restores wifi`() {

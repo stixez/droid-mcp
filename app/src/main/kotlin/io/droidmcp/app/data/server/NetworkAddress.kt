@@ -29,6 +29,14 @@ data class LocalNetwork(
      * location access on Android 10+).
      */
     val ssid: String? = null,
+    /** On Ethernet rather than Wi-Fi: [onWifi] is true, but there's never a name. */
+    val wired: Boolean = false,
+    /**
+     * Router address, subnet and DNS domain, e.g. `gw=192.168.1.1;net=192.168.1.0/24;dns=lan`.
+     * Android shows these to background apps, unlike the name, so a trusted network can be
+     * recognised after a reboot. Weaker than the name: another network can use the same values.
+     */
+    val fingerprint: String? = null,
 )
 
 /**
@@ -58,13 +66,16 @@ class NetworkAddress(context: Context) {
         val candidates = cm.allNetworks.mapNotNull { network ->
             val caps = cm.getNetworkCapabilities(network) ?: return@mapNotNull null
             if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return@mapNotNull null
-            val address = ipv4(cm.getLinkProperties(network)) ?: return@mapNotNull null
-            network to LocalNetwork(address, onWifi = caps.isLan())
+            val links = cm.getLinkProperties(network)
+            val address = ipv4(links) ?: return@mapNotNull null
+            val wired = caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) &&
+                !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+            network to LocalNetwork(address, onWifi = caps.isLan(), wired = wired, fingerprint = fingerprint(links))
         }
         val (network, best) = candidates.firstOrNull { it.second.onWifi }
             ?: candidates.firstOrNull()
             ?: return LocalNetwork(null, onWifi = false)
-        if (!best.onWifi) return best
+        if (!best.onWifi || best.wired) return best
         val handle = network.networkHandle
         val ssid = currentSsid()
         if (ssid != null) known = handle to ssid
@@ -132,6 +143,25 @@ class NetworkAddress(context: Context) {
         ?.firstOrNull { it is Inet4Address && !it.isLoopbackAddress && !it.isAnyLocalAddress }
         ?.hostAddress
 
+    private fun fingerprint(links: LinkProperties?): String? {
+        links ?: return null
+        val gateway = links.routes.firstOrNull { it.isDefaultRoute && it.gateway is Inet4Address }
+            ?.gateway?.hostAddress ?: return null
+        val link = links.linkAddresses.firstOrNull { it.address is Inet4Address } ?: return null
+        return networkFingerprint(gateway, link.address.address, link.prefixLength, links.domains)
+    }
+
     private fun NetworkCapabilities.isLan(): Boolean =
         hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+}
+
+/** Pure: see [LocalNetwork.fingerprint]. [address] is the phone's IPv4 address, 4 bytes. */
+internal fun networkFingerprint(gateway: String, address: ByteArray, prefixLength: Int, domains: String?): String {
+    val bits = prefixLength.coerceIn(0, 32)
+    val mask = if (bits == 0) 0 else -1 shl (32 - bits)
+    val ip = address.fold(0) { acc, b -> (acc shl 8) or (b.toInt() and 0xff) }
+    val net = ip and mask
+    val subnet = (3 downTo 0).joinToString(".") { ((net ushr (it * 8)) and 0xff).toString() }
+    val dns = domains?.trim()?.takeIf { it.isNotEmpty() }?.let { ";dns=$it" }.orEmpty()
+    return "gw=$gateway;net=$subnet/$bits$dns"
 }
