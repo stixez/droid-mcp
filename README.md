@@ -64,8 +64,8 @@ dependencyResolutionManagement {
 
 // build.gradle.kts: pick modules, or droid-mcp-all for everything except the opt-in ones
 dependencies {
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.14.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.14.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.15.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.15.0")
 }
 ```
 

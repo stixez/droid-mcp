@@ -15,7 +15,7 @@ Root only adds what you allowlist for `run_shell` (writing `/system`, reading ot
 
 ## Setup: Shizuku
 
-1. Add `implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.14.0")`.
+1. Add `implementation("com.github.stixez.droid-mcp:droid-mcp-shizuku:0.15.0")`.
 2. Declare the provider in your manifest (its authority must use your application ID):
 
    ```xml
@@ -48,7 +48,7 @@ R8 rules ship with the module.
 
 ## Setup: root
 
-1. Add `implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.14.0")` (libsu comes from JitPack).
+1. Add `implementation("com.github.stixez.droid-mcp:droid-mcp-root:0.15.0")` (libsu comes from JitPack).
 2. Ask for root, then register:
 
    ```kotlin
