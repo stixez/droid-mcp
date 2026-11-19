@@ -7,6 +7,8 @@ import io.droidmcp.app.data.permissions.CapabilitySection
 import io.droidmcp.app.data.permissions.GrantMethod
 import io.droidmcp.app.data.server.ConnectionInfo
 import io.droidmcp.app.data.server.LocalNetwork
+import io.droidmcp.app.data.server.TrustVerdict
+import io.droidmcp.app.data.server.trustVerdict
 import io.droidmcp.app.data.settings.AppSettings
 import io.droidmcp.app.data.settings.PairedComputer
 import io.droidmcp.app.data.settings.SettingsRepository
@@ -311,5 +313,57 @@ class NewFeatureLogicTest {
             .map { it.substringBefore(' ') }
             .toSet()
         assertThat(contract).containsAtLeastElementsIn(ConfirmationCenter.UI_DRIVERS)
+    }
+}
+
+class NetworkTrustTest {
+    private val home = LocalNetwork("192.168.1.5", onWifi = true, ssid = "Home")
+    private val cafe = LocalNetwork("10.0.0.7", onWifi = true, ssid = "Cafe")
+    private val hidden = LocalNetwork("10.0.0.7", onWifi = true, ssid = null)
+    private val mobile = LocalNetwork("100.64.0.9", onWifi = false)
+    private val plain = AppSettings(trustedNetworks = setOf("Home"))
+
+    private fun verdict(net: LocalNetwork, saved: AppSettings, bound: AppSettings = saved, here: String? = null) =
+        trustVerdict(net, saved, bound, here) { "Paused: hidden" }
+
+    @Test fun `plain http serves on a trusted wifi and asks on a new one`() {
+        assertThat(verdict(home, plain)).isNull()
+        val v = verdict(cafe, plain)
+        assertThat(v?.canServeHere).isTrue()
+        assertThat(v?.reason).contains("Cafe")
+    }
+
+    @Test fun `a hidden name asks, and the answer holds for that address only`() {
+        assertThat(verdict(hidden, plain)).isEqualTo(TrustVerdict("Paused: hidden", canServeHere = true))
+        assertThat(verdict(hidden, plain, here = "10.0.0.7")).isNull()
+        assertThat(verdict(hidden.copy(address = "10.0.0.8"), plain, here = "10.0.0.7")).isNotNull()
+    }
+
+    @Test fun `https, usb only and mobile data serve anywhere`() {
+        assertThat(verdict(cafe, plain, bound = plain.copy(tlsEnabled = true))).isNull()
+        assertThat(verdict(cafe, plain, bound = plain.copy(usbOnly = true))).isNull()
+        assertThat(verdict(mobile, plain)).isNull()
+    }
+
+    @Test fun `https and usb only count as built, not as saved`() {
+        // Turned on but not restarted yet: the live server is still plain HTTP on every interface.
+        assertThat(verdict(cafe, plain.copy(tlsEnabled = true), bound = plain)).isNotNull()
+        assertThat(verdict(cafe, plain.copy(usbOnly = true), bound = plain)).isNotNull()
+    }
+
+    @Test fun `trusted wifi only never offers serving elsewhere`() {
+        val strict = plain.copy(trustedWifiOnly = true, tlsEnabled = true)
+        assertThat(verdict(home, strict)).isNull()
+        assertThat(verdict(cafe, strict)?.canServeHere).isFalse()
+        assertThat(verdict(mobile, strict)?.reason).isEqualTo("Paused: not on Wi-Fi")
+        assertThat(verdict(cafe, strict, bound = strict.copy(usbOnly = true))).isNull()
+    }
+
+    @Test fun `usb only pins the route to usb and leaving it restores wifi`() {
+        val wifi = HomeState().withNetwork(home)
+        val usb = wifi.withSettings(AppSettings(usbOnly = true))
+        assertThat(usb.route).isEqualTo(Route.Usb)
+        assertThat(usb.withNetwork(home).route).isEqualTo(Route.Usb)
+        assertThat(usb.withSettings(AppSettings()).route).isEqualTo(Route.Wifi)
     }
 }

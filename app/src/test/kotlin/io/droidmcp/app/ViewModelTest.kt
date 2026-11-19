@@ -96,6 +96,14 @@ class ViewModelTest {
         assertThat(server.calls).containsExactly("start", "stop").inOrder()
     }
 
+    @Test fun `home serves on this network when asked`() = runTest(dispatcher) {
+        val server = FakeServer()
+        server.status.value = ServerStatus.Paused("Paused: \"Cafe\" is new", canServeHere = true)
+        val vm = home(server = server)
+        vm.onIntent(HomeIntent.ServeOnThisNetwork)
+        assertThat(server.calls).containsExactly("serveOnThisNetwork")
+    }
+
     @Test fun `home falls back to usb without a wifi address`() = runTest(dispatcher) {
         val vm = home(network = LocalNetwork(null, onWifi = false))
         assertThat(vm.state.value.route).isEqualTo(Route.Usb)

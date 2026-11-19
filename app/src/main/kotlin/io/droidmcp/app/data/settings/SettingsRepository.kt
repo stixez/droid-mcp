@@ -56,9 +56,14 @@ data class AppSettings(
     val latestVersion: String? = null,
     /** The user tapped "Later" on the banner for this version. */
     val dismissedUpdate: String? = null,
+    /** Listen on 127.0.0.1 only: reachable through `adb forward` over USB, never over Wi-Fi. */
+    val usbOnly: Boolean = false,
     /** Only serve on the Wi-Fi networks in [trustedNetworks]; pause everywhere else. */
     val trustedWifiOnly: Boolean = false,
-    /** Wi-Fi names (SSIDs) the server may run on. */
+    /**
+     * Wi-Fi names (SSIDs) the server may run on: the only ones with [trustedWifiOnly], and the
+     * ones it serves on without asking when HTTPS is off.
+     */
     val trustedNetworks: Set<String> = emptySet(),
     /** Tools that run without asking even when approvals are on. */
     val alwaysAllowedTools: Set<String> = emptySet(),
@@ -138,6 +143,7 @@ class SettingsRepository(context: Context) : SettingsStore {
         lastUpdateCheck = this[Keys.LAST_UPDATE_CHECK] ?: 0L,
         latestVersion = this[Keys.LATEST_VERSION],
         dismissedUpdate = this[Keys.DISMISSED_UPDATE],
+        usbOnly = this[Keys.USB_ONLY] ?: false,
         trustedWifiOnly = this[Keys.TRUSTED_WIFI_ONLY] ?: false,
         trustedNetworks = this[Keys.TRUSTED_NETWORKS] ?: emptySet(),
         alwaysAllowedTools = this[Keys.ALWAYS_ALLOWED] ?: emptySet(),
@@ -162,6 +168,7 @@ class SettingsRepository(context: Context) : SettingsStore {
         this[Keys.LAST_UPDATE_CHECK] = s.lastUpdateCheck
         if (s.latestVersion != null) this[Keys.LATEST_VERSION] = s.latestVersion else remove(Keys.LATEST_VERSION)
         if (s.dismissedUpdate != null) this[Keys.DISMISSED_UPDATE] = s.dismissedUpdate else remove(Keys.DISMISSED_UPDATE)
+        this[Keys.USB_ONLY] = s.usbOnly
         this[Keys.TRUSTED_WIFI_ONLY] = s.trustedWifiOnly
         this[Keys.TRUSTED_NETWORKS] = s.trustedNetworks
         this[Keys.ALWAYS_ALLOWED] = s.alwaysAllowedTools
@@ -186,6 +193,7 @@ class SettingsRepository(context: Context) : SettingsStore {
         val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
         val LATEST_VERSION = stringPreferencesKey("latest_version")
         val DISMISSED_UPDATE = stringPreferencesKey("dismissed_update")
+        val USB_ONLY = booleanPreferencesKey("usb_only")
         val TRUSTED_WIFI_ONLY = booleanPreferencesKey("trusted_wifi_only")
         val TRUSTED_NETWORKS = stringSetPreferencesKey("trusted_networks")
         val ALWAYS_ALLOWED = stringSetPreferencesKey("always_allowed_tools")

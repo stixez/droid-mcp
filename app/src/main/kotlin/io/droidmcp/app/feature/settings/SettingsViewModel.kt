@@ -39,6 +39,7 @@ class SettingsViewModel(
                         themeMode = s.themeMode,
                         startOnBoot = s.startOnBoot,
                         checkForUpdates = s.checkForUpdates,
+                        usbOnly = s.usbOnly,
                         trustedWifiOnly = s.trustedWifiOnly,
                         trustedNetworks = s.trustedNetworks.sorted(),
                         alwaysAllowed = s.alwaysAllowedTools.filter(ApprovalPolicy::canAlwaysAllow).sorted(),
@@ -119,6 +120,7 @@ class SettingsViewModel(
                     emit(SettingsEffect.Message(newer?.let { "Version $it is available. See Home." } ?: "You have the latest version"))
                 }
             }
+            is SettingsIntent.SetUsbOnly -> update { it.copy(usbOnly = intent.value) }
             is SettingsIntent.SetTrustedWifiOnly -> {
                 val ssid = currentState.currentSsid
                 update { s ->

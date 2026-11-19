@@ -11,20 +11,26 @@ On both, calls run off the main thread with a timeout (default 5 min), and `conf
 
 ## An attacker on the same network
 
-The server listens on every interface, so anyone on the same Wi-Fi can reach it.
+By default the server listens on every interface, so anyone on the same Wi-Fi can reach it. `enableHttpServer(host = HttpTransport.LOOPBACK)` listens on `127.0.0.1` only: `adb forward` over USB still works, and nothing on the network can connect (mDNS is skipped too).
 
 | Attack | Defense |
 |---|---|
 | Call tools without credentials | Bearer token, on by default: random 32 bytes, or 16+ characters if you supply one. Compared in constant time. |
 | A web page on the phone calls `127.0.0.1:8080` (drive-by, DNS rebinding) | Foreign `Origin` gets 403; only `application/json` bodies are accepted, which rules out CORS "simple" requests. |
 | Use another client's session | Sessions are tied to the token that created them. |
-| Sniff traffic | Optional TLS with a pinned self-signed certificate. Without it, treat the network as trusted. |
+| Sniff traffic | Optional TLS with a pinned self-signed certificate. Without it the token travels in plain text, so treat the network as trusted, or listen on loopback only. |
 | Reuse a leaked token | `rotateToken()`, or revoke one client's token (`revokeClient`). |
 | Reach files outside shared storage | Paths are resolved, symlinks included, and refused outside external storage. Write tools are opt-in. See [Files](TOOLS.md#files). |
 | Change things on an observe-only setup | `readOnly = true` lists and runs only read-only tools. |
 | Call a tool you didn't mean to expose | `setDisabledTools` hides it from listing and calling; its resources and prompts disappear too. |
 | Find the server | mDNS advertises version, auth, read-only and TLS flags, never the token. `/health` needs auth. |
 | Exhaust resources | 4 MB body cap, capped sessions, call timeouts, shell output caps. |
+
+In the droid-mcp app:
+
+- **USB only** (Settings) binds `127.0.0.1`.
+- **Without HTTPS**, joining a Wi-Fi the server hasn't served on pauses it until the user taps "Serve on this network" on Home. The network's name then joins the trusted list. If Android hides the name, the answer holds only until the network changes. Mobile data and the phone's own hotspot aren't paused.
+- **Trusted Wi-Fi only** serves on the trusted list and nowhere else, HTTPS or not.
 
 > [!NOTE]
 > Read-only means "changes nothing", not "harmless". Reading messages and taking silent screenshots are reads. Turn those tools off if a client shouldn't have them.

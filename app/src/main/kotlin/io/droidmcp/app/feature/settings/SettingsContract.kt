@@ -18,6 +18,7 @@ data class SettingsState(
     val startOnBoot: Boolean = false,
     val checkForUpdates: Boolean = true,
     val checkingForUpdates: Boolean = false,
+    val usbOnly: Boolean = false,
     val trustedWifiOnly: Boolean = false,
     val trustedNetworks: List<String> = emptyList(),
     /** Name of the Wi-Fi the phone is on, or null when unknown (needs Wi-Fi details access and Location on). */
@@ -29,6 +30,9 @@ data class SettingsState(
     val computerCount: Int = 0,
 ) {
     val currentNetworkTrusted: Boolean get() = currentSsid != null && currentSsid in trustedNetworks
+
+    /** The trusted list matters: it's the only place served, or, without HTTPS, where it serves without asking. */
+    val showNetworks: Boolean get() = trustedWifiOnly || (!tls && !usbOnly)
 
     val portChanged: Boolean get() = portInput != port.toString()
 }
@@ -51,6 +55,7 @@ sealed interface SettingsIntent {
     data class SetStartOnBoot(val value: Boolean) : SettingsIntent
     data class SetCheckForUpdates(val value: Boolean) : SettingsIntent
     data object CheckForUpdatesNow : SettingsIntent
+    data class SetUsbOnly(val value: Boolean) : SettingsIntent
     data class SetTrustedWifiOnly(val value: Boolean) : SettingsIntent
     data object TrustCurrentNetwork : SettingsIntent
     data class ForgetNetwork(val ssid: String) : SettingsIntent

@@ -31,6 +31,8 @@ data class HomeState(
     val route: Route = Route.Wifi,
     /** USB was picked for the user because there was no Wi-Fi address; undone when one appears. */
     val autoUsb: Boolean = false,
+    /** The server listens on localhost only, so USB is the only route. */
+    val usbOnly: Boolean = false,
     val tokenVisible: Boolean = false,
     val restartNeeded: Boolean = false,
     /** Trusted Wi-Fi paused while the app was closed; offer "All the time" location. */
@@ -106,6 +108,7 @@ data class HomeState(
 
 /** Pure: fold a network reading into the state, auto-picking USB without Wi-Fi and undoing it after. */
 fun HomeState.withNetwork(n: LocalNetwork): HomeState = when {
+    usbOnly -> copy(network = n)
     n.address == null && route == Route.Wifi -> copy(network = n, route = Route.Usb, autoUsb = true)
     n.address != null && autoUsb -> copy(network = n, route = Route.Wifi, autoUsb = false)
     else -> copy(network = n)
@@ -130,6 +133,7 @@ sealed interface HomeIntent {
     data object OpenComputers : HomeIntent
     data object AllowBackgroundLocation : HomeIntent
     data object DismissPausedWhileClosed : HomeIntent
+    data object ServeOnThisNetwork : HomeIntent
 }
 
 sealed interface HomeEffect {
