@@ -19,6 +19,7 @@ import io.droidmcp.core.AuditSink
 import io.droidmcp.core.DroidMcp
 import io.droidmcp.core.ToolCallConfirmer
 import io.droidmcp.core.ToolRegistry
+import io.droidmcp.core.transport.HttpTransport
 import io.droidmcp.core.transport.TokenStore
 import io.droidmcp.files.FilesTools
 import io.droidmcp.media.MediaTools
@@ -60,8 +61,11 @@ sealed interface ServerStatus {
         val startedAt: Long,
     ) : ServerStatus
 
-    /** The service is up but not listening, because the phone isn't on a trusted Wi-Fi. */
-    data class Paused(val reason: String) : ServerStatus
+    /**
+     * The service is up but not listening, because of the network the phone is on. With
+     * [canServeHere] the user can serve on it anyway ([ServerControl.serveOnThisNetwork]).
+     */
+    data class Paused(val reason: String, val canServeHere: Boolean = false) : ServerStatus
 
     data class Failed(val reason: String) : ServerStatus
 }
@@ -75,11 +79,12 @@ private data class BakedSettings(
     val allowFileWrites: Boolean,
     val confirmRiskyCalls: Boolean,
     val token: String?,
+    val usbOnly: Boolean,
 ) {
     // With HTTPS the server always binds the HTTPS port, so the HTTP port doesn't matter then.
     constructor(s: AppSettings) : this(
         s.activePort,
-        s.readOnly, s.tlsEnabled, s.strictShellPolicy, s.allowFileWrites, s.confirmRiskyCalls, s.token,
+        s.readOnly, s.tlsEnabled, s.strictShellPolicy, s.allowFileWrites, s.confirmRiskyCalls, s.token, s.usbOnly,
     )
 }
 
@@ -100,6 +105,12 @@ interface ServerControl {
     val pausedWhileClosed: StateFlow<Boolean>
 
     fun dismissPausedWhileClosed()
+
+    /**
+     * Paused on a Wi-Fi without HTTPS that the user hasn't served on: serve on it. A readable
+     * name joins the trusted networks; a hidden one is allowed until the network changes.
+     */
+    fun serveOnThisNetwork()
 
     fun start()
     fun stop()
@@ -133,9 +144,10 @@ interface PairingControl {
  * [onServiceFailed] / [onServiceStopped]. Every callback names its service instance, and only the
  * newest one counts, so a slow build from a service that was already stopped can't publish itself.
  *
- * With "trusted Wi-Fi only" on, the controller pauses the listener (the service stays, so it can
- * resume without a background service start, which Android forbids) whenever the phone leaves
- * the trusted networks, and resumes when it's back.
+ * The controller pauses the listener whenever [trustVerdict] says the network isn't fine to
+ * serve on ("trusted Wi-Fi only", or a new Wi-Fi without HTTPS) and resumes when it is. The
+ * service stays up meanwhile, so it can resume without a background service start, which
+ * Android forbids.
  */
 class ServerController(
     private val context: Context,
@@ -170,7 +182,9 @@ class ServerController(
 
     override val restartNeeded: StateFlow<Boolean> =
         combine(currentSettings, built, _status) { current, used, status ->
-            status is ServerStatus.Running && used != null && BakedSettings(used) != BakedSettings(current)
+            // Paused counts too: turning on HTTPS or USB only is how to serve on a network that paused it.
+            (status is ServerStatus.Running || status is ServerStatus.Paused) &&
+                used != null && BakedSettings(used) != BakedSettings(current)
         }.stateIn(scope, SharingStarted.Eagerly, false)
 
     @Volatile
@@ -227,9 +241,12 @@ class ServerController(
 
     /** The trust verdict the network flow last produced, for a server that starts later. */
     @Volatile
-    private var latestVerdict: String? = null
+    private var latestVerdict: TrustVerdict? = null
     @Volatile
     private var verdictKnown = false
+
+    /** Address the user chose to serve on while the Wi-Fi name was hidden; cleared when it changes. */
+    private val servedHere = MutableStateFlow<String?>(null)
 
     init {
         // Grants and revocations while running: add or drop the affected tools in place. The SDK
@@ -240,9 +257,17 @@ class ServerController(
                 syncTools()
             }
         }
-        // Trusted Wi-Fi only: pause and resume as the network changes.
+        // Keep trusted networks recognisable while Android hides their names (see learnTrust).
         scope.launch {
-            combine(network, currentSettings) { net, s -> trustVerdict(net, s) }
+            combine(network, currentSettings) { net, s -> net.takeIf { learnTrust(it, s, servedHere.value) != null } }
+                .collect { net -> if (net != null) settings.update { s -> learnTrust(net, s, servedHere.value) ?: s } }
+        }
+        // Pause and resume as the network changes: trusted Wi-Fi only, or unencrypted on a new Wi-Fi.
+        scope.launch {
+            combine(network, currentSettings, built, servedHere) { net, s, used, here ->
+                if (here != null && net.address != here) servedHere.value = null
+                verdict(net, s, used, here)
+            }
                 .onEach { latestVerdict = it; verdictKnown = true }
                 .distinctUntilChanged()
                 .collect { reason -> applyTrust(reason) }
@@ -371,6 +396,8 @@ class ServerController(
                     token = token,
                     readOnly = snapshot.readOnly,
                     context = context,
+                    // USB only: adb forward reaches loopback; Wi-Fi can't reach it at all.
+                    host = if (snapshot.usbOnly) HttpTransport.LOOPBACK else HttpTransport.ALL_INTERFACES,
                 )
                 .withAuditSink(auditSink())
                 .addBuiltInPrompts()
@@ -427,8 +454,8 @@ class ServerController(
         // Started (by hand, at boot or by Android) on a network that isn't trusted: pause at once.
         // Use the verdict the network flow last produced, not a fresh read: a pause it didn't see
         // could never be undone by it, as a repeat of that verdict is filtered out.
-        val reason = if (verdictKnown) latestVerdict else trustVerdict(currentNetwork(), currentSettings.value)
-        reason?.let { scope.launch { pause(it) } }
+        val verdict = if (verdictKnown) latestVerdict else verdict(currentNetwork(), currentSettings.value, s, servedHere.value)
+        verdict?.let { scope.launch { pause(it) } }
     }
 
     fun onServiceFailed(owner: Any, error: Exception) {
@@ -483,12 +510,18 @@ class ServerController(
         _tlsFingerprint.value = null
     }
 
-    /** Null when the network is fine to serve on, else why not. */
-    private fun trustVerdict(net: LocalNetwork, s: AppSettings): String? {
-        if (!s.trustedWifiOnly) return null
-        if (!net.onWifi) return "Paused: not on Wi-Fi"
-        val ssid = net.ssid ?: return hiddenSsidReason()
-        return if (ssid in s.trustedNetworks) null else "Paused: \"$ssid\" isn't a trusted network"
+    /** Null when the network is fine to serve on, else why not. HTTPS and USB only as built, if running. */
+    private fun verdict(net: LocalNetwork, s: AppSettings, used: AppSettings?, here: String?): TrustVerdict? =
+        trustVerdict(net, saved = s, bound = used ?: s, servedHere = here, hiddenName = ::hiddenSsidReason)
+
+    override fun serveOnThisNetwork() {
+        val net = currentNetwork()
+        // Nothing to remember it by (no name, no router): allow it until the address changes.
+        if (trustNetwork(net, currentSettings.value) == null) {
+            servedHere.value = net.address
+            return
+        }
+        scope.launch { settings.update { s -> trustNetwork(net, s) ?: s } }
     }
 
     /** Why the Wi-Fi name can't be read, in words the user can act on. */
@@ -502,31 +535,31 @@ class ServerController(
         else -> HIDDEN_IN_BACKGROUND
     }
 
-    private fun paused(reason: String): ServerStatus.Paused {
-        if (reason == HIDDEN_IN_BACKGROUND && !Capabilities.BACKGROUND_LOCATION.isGranted(context)) {
+    private fun paused(verdict: TrustVerdict): ServerStatus.Paused {
+        if (verdict.reason == HIDDEN_IN_BACKGROUND && !Capabilities.BACKGROUND_LOCATION.isGranted(context)) {
             _pausedWhileClosed.value = true
         }
-        return ServerStatus.Paused(reason)
+        return ServerStatus.Paused(verdict.reason, verdict.canServeHere)
     }
 
     override fun dismissPausedWhileClosed() {
         _pausedWhileClosed.value = false
     }
 
-    private suspend fun applyTrust(reason: String?) {
+    private suspend fun applyTrust(verdict: TrustVerdict?) {
         val current = _status.value
         when {
-            reason != null && current is ServerStatus.Running -> pause(reason)
-            reason != null && current is ServerStatus.Paused -> _status.value = paused(reason)
-            reason == null && current is ServerStatus.Paused -> resume()
+            verdict != null && current is ServerStatus.Running -> pause(verdict)
+            verdict != null && current is ServerStatus.Paused -> _status.value = paused(verdict)
+            verdict == null && current is ServerStatus.Paused -> resume()
         }
     }
 
-    private suspend fun pause(reason: String) = withContext(Dispatchers.IO) {
+    private suspend fun pause(verdict: TrustVerdict) = withContext(Dispatchers.IO) {
         buildLock.withLock {
             val running = server ?: return@withLock
             runCatching { running.stopServer() }
-            _status.value = paused(reason)
+            _status.value = paused(verdict)
         }
     }
 

@@ -23,6 +23,10 @@ interface ApprovalMemory {
  * Remembers approvals beyond a single call, so a client doing ten timers in a row doesn't need
  * ten taps. "Always" is saved with the settings; "for 1 hour" lives in memory only, so a restart
  * asks again (the safe direction).
+ *
+ * Screen-control tools ([ConfirmationCenter.UI_DRIVERS]) can't be allowed "always": tapping and
+ * typing in any app reaches everything other approvals protect, such as pressing Send in a
+ * messaging app. An older version could save them, so such entries are ignored and removed.
  */
 class ApprovalPolicy(
     private val settings: SettingsStore,
@@ -44,8 +48,12 @@ class ApprovalPolicy(
     init {
         scope.launch {
             settings.settings.collect { s ->
+                val stale = s.alwaysAllowedTools.filterNot(::canAlwaysAllow)
+                if (stale.isNotEmpty()) {
+                    scope.launch { settings.update { it.copy(alwaysAllowedTools = it.alwaysAllowedTools - stale.toSet()) } }
+                }
                 synchronized(lock) {
-                    saved = s.alwaysAllowedTools
+                    saved = s.alwaysAllowedTools.filterTo(mutableSetOf(), ::canAlwaysAllow)
                     // A local change counts until the saved copy catches up, so an older emission
                     // arriving late can't undo a "Forget" or an "Always allow" just made.
                     added.retainAll { it !in saved }
@@ -69,7 +77,8 @@ class ApprovalPolicy(
         when (scope) {
             ApprovalScope.Once -> Unit
             ApprovalScope.OneHour -> _temporary.update { it + (tool to now() + ONE_HOUR_MS) }
-            ApprovalScope.Always -> {
+            // Refused, not shortened to an hour: the user didn't see the hour's warning.
+            ApprovalScope.Always -> if (canAlwaysAllow(tool)) {
                 synchronized(lock) {
                     added += tool
                     removed -= tool
@@ -93,5 +102,8 @@ class ApprovalPolicy(
 
     companion object {
         const val ONE_HOUR_MS = 60 * 60 * 1000L
+
+        /** False for tools that tap, type or press buttons anywhere: at most an hour for those. */
+        fun canAlwaysAllow(tool: String): Boolean = tool !in ConfirmationCenter.UI_DRIVERS
     }
 }

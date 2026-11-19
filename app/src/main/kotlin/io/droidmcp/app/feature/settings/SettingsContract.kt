@@ -18,8 +18,11 @@ data class SettingsState(
     val startOnBoot: Boolean = false,
     val checkForUpdates: Boolean = true,
     val checkingForUpdates: Boolean = false,
+    val usbOnly: Boolean = false,
     val trustedWifiOnly: Boolean = false,
     val trustedNetworks: List<String> = emptyList(),
+    /** Fingerprints of networks trusted without a name (hidden at the time, or wired). */
+    val unnamedNetworks: List<String> = emptyList(),
     /** Name of the Wi-Fi the phone is on, or null when unknown (needs Wi-Fi details access and Location on). */
     val currentSsid: String? = null,
     val onWifi: Boolean = false,
@@ -29,6 +32,10 @@ data class SettingsState(
     val computerCount: Int = 0,
 ) {
     val currentNetworkTrusted: Boolean get() = currentSsid != null && currentSsid in trustedNetworks
+
+    /** The trusted list matters: it's the only place served, or, without HTTPS, where it serves without asking. */
+    val showNetworks: Boolean
+        get() = trustedWifiOnly || (!tls && !usbOnly) || trustedNetworks.isNotEmpty() || unnamedNetworks.isNotEmpty()
 
     val portChanged: Boolean get() = portInput != port.toString()
 }
@@ -51,9 +58,11 @@ sealed interface SettingsIntent {
     data class SetStartOnBoot(val value: Boolean) : SettingsIntent
     data class SetCheckForUpdates(val value: Boolean) : SettingsIntent
     data object CheckForUpdatesNow : SettingsIntent
+    data class SetUsbOnly(val value: Boolean) : SettingsIntent
     data class SetTrustedWifiOnly(val value: Boolean) : SettingsIntent
     data object TrustCurrentNetwork : SettingsIntent
     data class ForgetNetwork(val ssid: String) : SettingsIntent
+    data class ForgetUnnamedNetwork(val fingerprint: String) : SettingsIntent
     data class ForgetAlwaysAllowed(val tool: String) : SettingsIntent
     data object ForgetTemporaryApprovals : SettingsIntent
     data object OpenComputers : SettingsIntent
@@ -76,4 +85,11 @@ fun validatePort(text: String): String? {
         port == 8443 -> "8443 is used for HTTPS"
         else -> null
     }
+}
+
+/** Pure: `gw=192.168.1.1;net=192.168.1.0/24;dns=lan` -> `192.168.1.0/24 via 192.168.1.1`. */
+fun describeFingerprint(fingerprint: String): String {
+    val parts = fingerprint.split(';').associate { it.substringBefore('=') to it.substringAfter('=', "") }
+    val net = parts["net"] ?: return fingerprint
+    return listOfNotNull(net, parts["gw"]?.let { "via $it" }, parts["dns"]).joinToString(" ")
 }

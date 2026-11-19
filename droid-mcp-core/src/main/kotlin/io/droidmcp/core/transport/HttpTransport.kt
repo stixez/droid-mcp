@@ -77,6 +77,8 @@ import java.util.concurrent.ConcurrentHashMap
  * @param allowedOrigins Exact `Origin` values (scheme://host[:port]) permitted to call the server.
  * @param resources Resource providers served by the `resources/...` methods.
  * @param prompts Prompts served by the `prompts/...` methods.
+ * @param host Interface to listen on. The default, `0.0.0.0`, is every interface; `127.0.0.1`
+ *   accepts only connections from the phone itself, such as `adb forward` over USB, and skips mDNS.
  */
 class HttpTransport(
     private val registry: ToolRegistry,
@@ -91,12 +93,33 @@ class HttpTransport(
     private val allowedOrigins: Set<String> = emptySet(),
     private val resources: ResourceRegistry = ResourceRegistry(),
     private val prompts: PromptRegistry = PromptRegistry(),
+    private val host: String = ALL_INTERFACES,
 ) {
     init {
         require(bearerToken == null || bearerToken.length >= MIN_TOKEN_LENGTH) {
             "bearerToken must be at least $MIN_TOKEN_LENGTH characters"
         }
     }
+
+    /** The constructor before [host] was added, kept for binary compatibility. */
+    @Deprecated("Kept for binary compatibility", level = DeprecationLevel.HIDDEN)
+    constructor(
+        registry: ToolRegistry,
+        port: Int = 8080,
+        bearerToken: String? = null,
+        requireAuth: Boolean = true,
+        readOnly: Boolean = false,
+        context: Context? = null,
+        serverVersion: String = DROID_MCP_VERSION,
+        auditSink: AuditSink? = null,
+        tls: TlsConfig? = null,
+        allowedOrigins: Set<String> = emptySet(),
+        resources: ResourceRegistry = ResourceRegistry(),
+        prompts: PromptRegistry = PromptRegistry(),
+    ) : this(
+        registry, port, bearerToken, requireAuth, readOnly, context, serverVersion, auditSink, tls,
+        allowedOrigins, resources, prompts, ALL_INTERFACES,
+    )
 
     /**
      * Bearer-token authority. `null` when [requireAuth] is false (open server).
@@ -183,7 +206,10 @@ class HttpTransport(
             factory = Netty,
             configure = {
                 if (tlsConfig == null) {
-                    connector { port = this@HttpTransport.port }
+                    connector {
+                        host = this@HttpTransport.host
+                        port = this@HttpTransport.port
+                    }
                 } else {
                     sslConnector(
                         keyStore = tlsConfig.keyStore,
@@ -191,6 +217,7 @@ class HttpTransport(
                         keyStorePassword = { tlsConfig.keyStorePassword },
                         privateKeyPassword = { tlsConfig.privateKeyPassword },
                     ) {
+                        host = this@HttpTransport.host
                         port = tlsConfig.httpsPort
                     }
                 }
@@ -532,13 +559,25 @@ class HttpTransport(
         const val KEEPALIVE_MS: Long = 25_000
         /** Largest accepted `POST /mcp` body, in bytes. */
         const val MAX_BODY_BYTES: Int = 4 * 1024 * 1024
+        /** Listen on every interface (the default `host`). */
+        const val ALL_INTERFACES: String = "0.0.0.0"
+        /** Listen only for connections from the phone itself, e.g. `adb forward`. */
+        const val LOOPBACK: String = "127.0.0.1"
         /** Minimum length for a caller-supplied bearer token. */
         const val MIN_TOKEN_LENGTH: Int = 16
         /** Label attributed to requests on an open (no-auth) server. */
         const val ANONYMOUS_LABEL: String = "anonymous"
     }
 
+    /** `localhost`, 127/8 and `::1`, from the text alone, so it never waits on DNS. */
+    private fun isLoopback(host: String): Boolean {
+        val h = host.trim().removeSurrounding("[", "]").lowercase()
+        return h == "localhost" || h.startsWith("127.") || h == "::1" || h == "0:0:0:0:0:0:0:1"
+    }
+
     private fun registerNsd() {
+        // Nobody on the network can connect, so there's nothing to announce.
+        if (isLoopback(host)) return
         val ctx = context ?: return
         val nsd = ctx.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return
         val info = NsdServiceInfo().apply {

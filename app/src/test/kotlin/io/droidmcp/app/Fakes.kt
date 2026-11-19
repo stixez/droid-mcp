@@ -61,6 +61,10 @@ class FakeServer : ServerControl {
     override fun dismissPausedWhileClosed() {
         pausedWhileClosed.value = false
     }
+
+    override fun serveOnThisNetwork() {
+        calls += "serveOnThisNetwork"
+    }
 }
 
 class FakePermissions(initial: Set<String> = emptySet()) : PermissionSource {

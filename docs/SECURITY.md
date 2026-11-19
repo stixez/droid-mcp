@@ -11,20 +11,26 @@ On both, calls run off the main thread with a timeout (default 5 min), and `conf
 
 ## An attacker on the same network
 
-The server listens on every interface, so anyone on the same Wi-Fi can reach it.
+By default the server listens on every interface, so anyone on the same Wi-Fi can reach it. `enableHttpServer(host = HttpTransport.LOOPBACK)` listens on `127.0.0.1` only: `adb forward` over USB still works, and nothing on the network can connect (mDNS is skipped too).
 
 | Attack | Defense |
 |---|---|
 | Call tools without credentials | Bearer token, on by default: random 32 bytes, or 16+ characters if you supply one. Compared in constant time. |
 | A web page on the phone calls `127.0.0.1:8080` (drive-by, DNS rebinding) | Foreign `Origin` gets 403; only `application/json` bodies are accepted, which rules out CORS "simple" requests. |
 | Use another client's session | Sessions are tied to the token that created them. |
-| Sniff traffic | Optional TLS with a pinned self-signed certificate. Without it, treat the network as trusted. |
+| Sniff traffic | Optional TLS with a pinned self-signed certificate. Without it the token travels in plain text, so treat the network as trusted, or listen on loopback only. |
 | Reuse a leaked token | `rotateToken()`, or revoke one client's token (`revokeClient`). |
 | Reach files outside shared storage | Paths are resolved, symlinks included, and refused outside external storage. Write tools are opt-in. See [Files](TOOLS.md#files). |
 | Change things on an observe-only setup | `readOnly = true` lists and runs only read-only tools. |
 | Call a tool you didn't mean to expose | `setDisabledTools` hides it from listing and calling; its resources and prompts disappear too. |
 | Find the server | mDNS advertises version, auth, read-only and TLS flags, never the token. `/health` needs auth. |
 | Exhaust resources | 4 MB body cap, capped sessions, call timeouts, shell output caps. |
+
+In the droid-mcp app:
+
+- **USB only** (Settings) binds `127.0.0.1`.
+- **Without HTTPS**, joining a Wi-Fi or wired network the server hasn't served on pauses it until the user taps "Serve on this network" on Home. The network's name joins the trusted list, together with its fingerprint (router address, subnet, DNS domain). Android hides Wi-Fi names from background apps, for example after a reboot, so while the name is hidden a matching fingerprint counts as trusted. That's weaker than the name, since another network can use the same router address and subnet. Wired networks have no name and go by fingerprint only. Mobile data and the phone's own hotspot aren't paused.
+- **Trusted Wi-Fi only** serves on the trusted list and nowhere else, HTTPS or not.
 
 > [!NOTE]
 > Read-only means "changes nothing", not "harmless". Reading messages and taking silent screenshots are reads. Turn those tools off if a client shouldn't have them.
@@ -34,6 +40,7 @@ The server listens on every interface, so anyone on the same Wi-Fi can reach it.
 Web pages, messages, notifications, the clipboard and screen text can contain instructions for the model. droid-mcp returns them as data but can't stop a model from obeying. Two defenses:
 
 - **Confirm on the phone:** `confirmToolCalls { request -> askUser(request) }` runs before every tool that changes something (`destructiveHint`) or reaches the internet (`openWorldHint`), since a fetched URL can carry data the model just read. The host app also refuses tools that tap, type, press notification buttons or draw overlays while an approval is waiting, so a model can't answer its own approval, and `invoke_notification_action` never acts on the host's own notifications. Decline, error or timeout returns `tool_call_declined` and the tool never runs.
+- **Screen control is never pre-approved for good.** In the droid-mcp app, approvals can be remembered for an hour or always, but tools that tap, type or press notification buttons get at most an hour, with a warning in the dialog. Driving the screen reaches every app, so an agent allowed it could open a messaging app and press Send, getting around the approval on `send_message`. Entries saved by older versions are removed.
 - **Confirm on the client:** `ToolCallConfirmer.viaClientElicitation(fallback)` asks the desktop user through MCP elicitation, for clients that support it. It catches a misled model, not a compromised client; for that, confirm on the phone.
 
 ## What the host app owns

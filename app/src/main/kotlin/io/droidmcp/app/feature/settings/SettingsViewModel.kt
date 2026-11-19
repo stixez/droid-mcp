@@ -3,6 +3,7 @@ package io.droidmcp.app.feature.settings
 import androidx.lifecycle.viewModelScope
 import io.droidmcp.app.core.mvi.MviViewModel
 import io.droidmcp.app.confirm.ApprovalMemory
+import io.droidmcp.app.confirm.ApprovalPolicy
 import io.droidmcp.app.data.permissions.Capabilities
 import io.droidmcp.app.data.server.LocalNetwork
 import io.droidmcp.app.data.server.ServerControl
@@ -38,9 +39,11 @@ class SettingsViewModel(
                         themeMode = s.themeMode,
                         startOnBoot = s.startOnBoot,
                         checkForUpdates = s.checkForUpdates,
+                        usbOnly = s.usbOnly,
                         trustedWifiOnly = s.trustedWifiOnly,
                         trustedNetworks = s.trustedNetworks.sorted(),
-                        alwaysAllowed = s.alwaysAllowedTools.sorted(),
+                        unnamedNetworks = s.trustedFingerprints.filterValues { it.isEmpty() }.keys.sorted(),
+                        alwaysAllowed = s.alwaysAllowedTools.filter(ApprovalPolicy::canAlwaysAllow).sorted(),
                         computerCount = s.pairedComputers.size,
                     )
                 }
@@ -118,6 +121,7 @@ class SettingsViewModel(
                     emit(SettingsEffect.Message(newer?.let { "Version $it is available. See Home." } ?: "You have the latest version"))
                 }
             }
+            is SettingsIntent.SetUsbOnly -> update { it.copy(usbOnly = intent.value) }
             is SettingsIntent.SetTrustedWifiOnly -> {
                 val ssid = currentState.currentSsid
                 update { s ->
@@ -137,7 +141,14 @@ class SettingsViewModel(
                 val ssid = currentState.currentSsid ?: return
                 update { it.copy(trustedNetworks = it.trustedNetworks + ssid) }
             }
-            is SettingsIntent.ForgetNetwork -> update { it.copy(trustedNetworks = it.trustedNetworks - intent.ssid) }
+            is SettingsIntent.ForgetNetwork -> update {
+                it.copy(
+                    trustedNetworks = it.trustedNetworks - intent.ssid,
+                    trustedFingerprints = it.trustedFingerprints.filterValues { name -> name != intent.ssid },
+                )
+            }
+            is SettingsIntent.ForgetUnnamedNetwork ->
+                update { it.copy(trustedFingerprints = it.trustedFingerprints - intent.fingerprint) }
             is SettingsIntent.ForgetAlwaysAllowed -> approvals?.forgetAlways(intent.tool)
             SettingsIntent.ForgetTemporaryApprovals -> approvals?.forgetTemporary()
             SettingsIntent.OpenComputers -> emit(SettingsEffect.NavigateComputers)

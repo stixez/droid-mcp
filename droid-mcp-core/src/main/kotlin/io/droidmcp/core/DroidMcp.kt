@@ -152,6 +152,7 @@ class DroidMcp private constructor(
         private var auditSink: AuditSink? = null
         private var tls: TlsConfig? = null
         private var allowedOrigins: Set<String> = emptySet()
+        private var httpHost: String = HttpTransport.ALL_INTERFACES
         private var toolTimeoutMs: Long = ToolRegistry.DEFAULT_TOOL_TIMEOUT_MS
         private var confirmer: ToolCallConfirmer? = null
         private var requiresConfirmation: (McpTool) -> Boolean = ToolRegistry.CONFIRM_BY_DEFAULT
@@ -229,6 +230,9 @@ class DroidMcp private constructor(
          *   allowed to call the server. Requests carrying any other `Origin` header are rejected
          *   with 403 to block DNS-rebinding and drive-by browser requests; native clients send no
          *   `Origin` and are unaffected.
+         * @param host Interface to listen on: [HttpTransport.ALL_INTERFACES] (default) or
+         *   [HttpTransport.LOOPBACK] to accept only connections from the phone itself, such as
+         *   `adb forward` over USB. Loopback can't be reached from the network at all.
          * @throws IllegalArgumentException if [token] is shorter than
          *   [HttpTransport.MIN_TOKEN_LENGTH] characters.
          */
@@ -239,17 +243,30 @@ class DroidMcp private constructor(
             readOnly: Boolean = false,
             context: Context? = null,
             allowedOrigins: Set<String> = emptySet(),
+            host: String = HttpTransport.ALL_INTERFACES,
         ) = apply {
             require(token == null || token.length >= HttpTransport.MIN_TOKEN_LENGTH) {
                 "token must be at least ${HttpTransport.MIN_TOKEN_LENGTH} characters"
             }
             this.httpPort = port
             this.allowedOrigins = allowedOrigins
+            this.httpHost = host
             this.authToken = token
             this.requireAuth = requireAuth
             this.readOnly = readOnly
             this.androidContext = context ?: this.androidContext
         }
+
+        /** [enableHttpServer] before `host` was added, kept for binary compatibility. */
+        @Deprecated("Kept for binary compatibility", level = DeprecationLevel.HIDDEN)
+        fun enableHttpServer(
+            port: Int = 8080,
+            token: String? = null,
+            requireAuth: Boolean = true,
+            readOnly: Boolean = false,
+            context: Context? = null,
+            allowedOrigins: Set<String> = emptySet(),
+        ) = enableHttpServer(port, token, requireAuth, readOnly, context, allowedOrigins, HttpTransport.ALL_INTERFACES)
 
         /** Assemble the [DroidMcp] instance: build the registry, wire transports, return it (does not start the server). */
         fun build(): DroidMcp {
@@ -271,6 +288,7 @@ class DroidMcp private constructor(
                     allowedOrigins = allowedOrigins,
                     resources = resources,
                     prompts = prompts,
+                    host = httpHost,
                 )
             }
             return DroidMcp(registry, resources, prompts, http, inProcess)

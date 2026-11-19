@@ -64,8 +64,8 @@ dependencyResolutionManagement {
 
 // build.gradle.kts: pick modules, or droid-mcp-all for everything except the opt-in ones
 dependencies {
-    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.14.0")
-    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.14.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-core:0.15.0")
+    implementation("com.github.stixez.droid-mcp:droid-mcp-calendar:0.15.0")
 }
 ```
 
@@ -139,7 +139,7 @@ Your app requests permissions; the library never does. Each module has `required
 
 ## Security
 
-The server needs a bearer token and checks Origin, sessions and body size. File tools stay in shared storage, and web tools refuse private addresses. It listens on every network the phone joins, so use trusted networks or TLS. See the [security model](docs/SECURITY.md). droid-mcp sends no analytics; ML Kit (`mlkit`, `qr`) reports usage to Google.
+The server needs a bearer token and checks Origin, sessions and body size. File tools stay in shared storage, and web tools refuse private addresses. It listens on every network the phone joins unless you bind it to localhost for USB (`host = HttpTransport.LOOPBACK`), so use trusted networks, TLS or USB. The app asks before serving unencrypted on a new Wi-Fi. See the [security model](docs/SECURITY.md). droid-mcp sends no analytics; ML Kit (`mlkit`, `qr`) reports usage to Google.
 
 ## Requirements
 

@@ -96,6 +96,14 @@ class ViewModelTest {
         assertThat(server.calls).containsExactly("start", "stop").inOrder()
     }
 
+    @Test fun `home serves on this network when asked`() = runTest(dispatcher) {
+        val server = FakeServer()
+        server.status.value = ServerStatus.Paused("Paused: \"Cafe\" is new", canServeHere = true)
+        val vm = home(server = server)
+        vm.onIntent(HomeIntent.ServeOnThisNetwork)
+        assertThat(server.calls).containsExactly("serveOnThisNetwork")
+    }
+
     @Test fun `home falls back to usb without a wifi address`() = runTest(dispatcher) {
         val vm = home(network = LocalNetwork(null, onWifi = false))
         assertThat(vm.state.value.route).isEqualTo(Route.Usb)
@@ -279,6 +287,30 @@ class ViewModelTest {
         policy.forgetAlways("send_message")
         advanceUntilIdle()
         assertThat(policy.isPreApproved("send_message")).isFalse()
+        coroutineContext.cancelChildren()
+    }
+
+    @Test fun `screen control can't be allowed always`() = runTest(dispatcher) {
+        val settings = FakeSettingsStore()
+        val policy = ApprovalPolicy(settings, this)
+        advanceUntilIdle()
+        policy.remember("tap", ApprovalScope.Always)
+        advanceUntilIdle()
+        assertThat(settings.state.value.alwaysAllowedTools).doesNotContain("tap")
+        assertThat(policy.isPreApproved("tap")).isFalse()
+        // An hour is still possible, with the warning in the dialog.
+        policy.remember("tap", ApprovalScope.OneHour)
+        assertThat(policy.isPreApproved("tap")).isTrue()
+        coroutineContext.cancelChildren()
+    }
+
+    @Test fun `screen control saved by an older version is ignored and removed`() = runTest(dispatcher) {
+        val settings = FakeSettingsStore(AppSettings(alwaysAllowedTools = setOf("type_text", "vibrate")))
+        val policy = ApprovalPolicy(settings, this)
+        advanceUntilIdle()
+        assertThat(policy.isPreApproved("type_text")).isFalse()
+        assertThat(policy.isPreApproved("vibrate")).isTrue()
+        assertThat(settings.state.value.alwaysAllowedTools).containsExactly("vibrate")
         coroutineContext.cancelChildren()
     }
 

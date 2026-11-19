@@ -105,6 +105,7 @@ class HomeViewModel(
                 emit(HomeEffect.LaunchGrant(Capabilities.BACKGROUND_LOCATION))
             }
             HomeIntent.DismissPausedWhileClosed -> server.dismissPausedWhileClosed()
+            HomeIntent.ServeOnThisNetwork -> server.serveOnThisNetwork()
             HomeIntent.DismissEssentialsHint -> {
                 setState { copy(essentialsHintDismissed = true) }
                 viewModelScope.launch { settings.update { it.copy(essentialsHintDismissed = true) } }
@@ -120,4 +121,13 @@ internal fun HomeState.withSettings(s: AppSettings): HomeState = copy(
     token = s.token ?: token,
     port = s.activePort,
     tls = s.tlsEnabled,
-)
+    usbOnly = s.usbOnly,
+).let { next ->
+    when {
+        // USB only can't be reached over Wi-Fi.
+        s.usbOnly -> next.copy(route = Route.Usb, autoUsb = false)
+        // Leaving it: back to Wi-Fi, or USB for now (picked for the user) until Wi-Fi has an address.
+        usbOnly -> next.copy(route = Route.Usb, autoUsb = true).let { st -> st.network?.let(st::withNetwork) ?: st }
+        else -> next
+    }
+}

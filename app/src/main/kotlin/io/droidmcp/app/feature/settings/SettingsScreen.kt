@@ -292,12 +292,28 @@ fun SettingsContent(state: SettingsState, onIntent: (SettingsIntent) -> Unit, co
         item(key = "network") {
             SettingsGroup {
                 SwitchRow(
+                    title = "USB only",
+                    subtitle = "Listens only for a computer connected by USB with adb forward. Nothing on Wi-Fi can reach the server.",
+                    checked = state.usbOnly,
+                    onChange = { onIntent(SettingsIntent.SetUsbOnly(it)) },
+                )
+                RowDivider()
+                SwitchRow(
                     title = "Trusted Wi-Fi only",
                     subtitle = "Pauses the server on any other network, like a café or hotel Wi-Fi, and resumes at home.",
                     checked = state.trustedWifiOnly,
                     onChange = { onIntent(SettingsIntent.SetTrustedWifiOnly(it)) },
                 )
-                if (state.trustedWifiOnly) {
+                if (state.showNetworks) {
+                    if (!state.trustedWifiOnly) {
+                        RowDivider()
+                        Text(
+                            "With HTTPS off, traffic isn't encrypted, so the server asks before it serves on a Wi-Fi not listed here.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
                     state.trustedNetworks.forEach { ssid ->
                         RowDivider()
                         RemovableRow(
@@ -305,6 +321,15 @@ fun SettingsContent(state: SettingsState, onIntent: (SettingsIntent) -> Unit, co
                             subtitle = if (ssid == state.currentSsid) "Trusted · connected now" else "Trusted",
                             removeLabel = "Stop trusting $ssid",
                             onRemove = { onIntent(SettingsIntent.ForgetNetwork(ssid)) },
+                        )
+                    }
+                    state.unnamedNetworks.forEach { fingerprint ->
+                        RowDivider()
+                        RemovableRow(
+                            title = describeFingerprint(fingerprint),
+                            subtitle = "Trusted · no name (wired, or hidden at the time)",
+                            removeLabel = "Stop trusting this network",
+                            onRemove = { onIntent(SettingsIntent.ForgetUnnamedNetwork(fingerprint)) },
                         )
                     }
                     val ssid = state.currentSsid

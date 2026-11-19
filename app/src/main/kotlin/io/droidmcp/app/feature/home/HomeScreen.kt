@@ -127,7 +127,13 @@ fun HomeContent(state: HomeState, onIntent: (HomeIntent) -> Unit, contentPadding
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "hero") { StatusHero(state, onToggle = { onIntent(HomeIntent.ToggleServer) }) }
+        item(key = "hero") {
+            StatusHero(
+                state,
+                onToggle = { onIntent(HomeIntent.ToggleServer) },
+                onServeHere = { onIntent(HomeIntent.ServeOnThisNetwork) },
+            )
+        }
         if (state.pausedWhileClosed) {
             item(key = "paused-while-closed") {
                 Banner(
@@ -198,7 +204,7 @@ fun HomeContent(state: HomeState, onIntent: (HomeIntent) -> Unit, contentPadding
 }
 
 @Composable
-private fun StatusHero(state: HomeState, onToggle: () -> Unit) {
+private fun StatusHero(state: HomeState, onToggle: () -> Unit, onServeHere: () -> Unit) {
     val status = state.status
     val container by animateColorAsState(
         when (status) {
@@ -234,7 +240,7 @@ private fun StatusHero(state: HomeState, onToggle: () -> Unit) {
                 when (status) {
                     is ServerStatus.Running -> "Ready for your AI"
                     ServerStatus.Starting -> "Starting the server"
-                    is ServerStatus.Paused -> "Waiting for a trusted Wi-Fi"
+                    is ServerStatus.Paused -> if (status.canServeHere) "Serve on this Wi-Fi?" else "Waiting for a trusted Wi-Fi"
                     is ServerStatus.Failed -> "The server couldn't start"
                     ServerStatus.Stopped -> "Server is off"
                 },
@@ -258,7 +264,12 @@ private fun StatusHero(state: HomeState, onToggle: () -> Unit) {
                 is ServerStatus.Paused -> Text(
                     // Some reasons already end with a full stop ("... turn on Location.").
                     status.reason.removePrefix("Paused: ").trimEnd('.').replaceFirstChar { it.uppercase() } +
-                        ". It starts again by itself on a trusted network.",
+                        if (status.canServeHere) {
+                            ". Without HTTPS, anyone on this Wi-Fi could read your token. Serve here only if you " +
+                                "trust everyone on it, or turn on HTTPS or USB only in Settings."
+                        } else {
+                            ". It starts again by itself on a trusted network."
+                        },
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 is ServerStatus.Failed -> Text(status.reason, style = MaterialTheme.typography.bodyMedium)
@@ -273,6 +284,15 @@ private fun StatusHero(state: HomeState, onToggle: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(20.dp))
+            if (status is ServerStatus.Paused && status.canServeHere) {
+                Button(
+                    onClick = onServeHere,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) { Text("Serve on this network") }
+                Spacer(Modifier.height(8.dp))
+            }
             when (status) {
                 is ServerStatus.Running, is ServerStatus.Paused -> OutlinedButton(
                     onClick = onToggle,
@@ -320,7 +340,8 @@ private fun ConnectCard(state: HomeState, onIntent: (HomeIntent) -> Unit) {
             }
 
             Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Route.entries.forEach { route ->
+                // USB only: the server can't be reached over Wi-Fi, so don't offer it.
+                Route.entries.filter { !state.usbOnly || it == Route.Usb }.forEach { route ->
                     FilterChip(
                         selected = state.route == route,
                         onClick = { onIntent(HomeIntent.SelectRoute(route)) },
@@ -332,7 +353,9 @@ private fun ConnectCard(state: HomeState, onIntent: (HomeIntent) -> Unit) {
             if (!state.isRunning) {
                 Spacer(Modifier.height(12.dp))
                 Banner(
-                    text = if (state.status is ServerStatus.Paused) {
+                    text = if ((state.status as? ServerStatus.Paused)?.canServeHere == true) {
+                        "The server is paused until you choose to serve on this Wi-Fi."
+                    } else if (state.status is ServerStatus.Paused) {
                         "The server is paused until the phone is on a trusted Wi-Fi."
                     } else {
                         "Start the server first. The command works once it's on."

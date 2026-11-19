@@ -7,6 +7,13 @@ import io.droidmcp.app.data.permissions.CapabilitySection
 import io.droidmcp.app.data.permissions.GrantMethod
 import io.droidmcp.app.data.server.ConnectionInfo
 import io.droidmcp.app.data.server.LocalNetwork
+import io.droidmcp.app.data.server.TrustVerdict
+import io.droidmcp.app.data.server.WIRED_REASON
+import io.droidmcp.app.data.server.learnTrust
+import io.droidmcp.app.data.server.networkFingerprint
+import io.droidmcp.app.data.server.trustNetwork
+import io.droidmcp.app.data.server.trustVerdict
+import io.droidmcp.app.feature.settings.describeFingerprint
 import io.droidmcp.app.data.settings.AppSettings
 import io.droidmcp.app.data.settings.PairedComputer
 import io.droidmcp.app.data.settings.SettingsRepository
@@ -137,6 +144,21 @@ class ConfirmationTextTest {
         val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", args, ToolAnnotations(), null))
         assertThat(item.detail.lines()).hasSize(7)
         assertThat(item.detail).contains("(+100 more characters)")
+        assertThat(item.clipped).isTrue()
+    }
+
+    @Test fun `full detail keeps long values whole and escaped`() {
+        val body = "a".repeat(999) + "\n"
+        val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", mapOf("message" to body, "to" to "+1"), ToolAnnotations(), null))
+        assertThat(item.fullDetail).isEqualTo("Message: ${"a".repeat(999)}\\n\nTo: +1")
+        assertThat(item.fullDetail.lines()).hasSize(2)
+        assertThat(item.detail).contains("(+701 more characters)")
+    }
+
+    @Test fun `short values aren't marked clipped`() {
+        val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", mapOf("message" to "hi"), ToolAnnotations(), null))
+        assertThat(item.clipped).isFalse()
+        assertThat(item.fullDetail).isEqualTo(item.detail)
     }
 
     @Test fun `newlines in values can't fake extra lines`() {
@@ -155,6 +177,13 @@ class ConfirmationTextTest {
         assertThat(item.detail).contains("Phone number: +1 \\u202e0010 555\\u202c\\u200b9")
         // The joiner only glues emoji together, so it stays.
         assertThat(item.detail).contains("family 👨‍👩")
+    }
+
+    @Test fun `screen-control requests are marked`() {
+        val tap = ConfirmationCenter.describe(1, ToolCallRequest("tap", mapOf("x" to 1), ToolAnnotations(), null))
+        val sms = ConfirmationCenter.describe(2, ToolCallRequest("send_message", emptyMap(), ToolAnnotations(), null))
+        assertThat(tap.screenControl).isTrue()
+        assertThat(sms.screenControl).isFalse()
     }
 
     @Test fun `describe without arguments says so`() {
@@ -289,5 +318,117 @@ class NewFeatureLogicTest {
             .map { it.substringBefore(' ') }
             .toSet()
         assertThat(contract).containsAtLeastElementsIn(ConfirmationCenter.UI_DRIVERS)
+    }
+}
+
+class NetworkTrustTest {
+    private val home = LocalNetwork("192.168.1.5", onWifi = true, ssid = "Home")
+    private val cafe = LocalNetwork("10.0.0.7", onWifi = true, ssid = "Cafe")
+    private val hidden = LocalNetwork("10.0.0.7", onWifi = true, ssid = null)
+    private val mobile = LocalNetwork("100.64.0.9", onWifi = false)
+    private val plain = AppSettings(trustedNetworks = setOf("Home"))
+
+    private fun verdict(net: LocalNetwork, saved: AppSettings, bound: AppSettings = saved, here: String? = null) =
+        trustVerdict(net, saved, bound, here) { "Paused: hidden" }
+
+    @Test fun `plain http serves on a trusted wifi and asks on a new one`() {
+        assertThat(verdict(home, plain)).isNull()
+        val v = verdict(cafe, plain)
+        assertThat(v?.canServeHere).isTrue()
+        assertThat(v?.reason).contains("Cafe")
+    }
+
+    @Test fun `a hidden name asks, and the answer holds for that address only`() {
+        assertThat(verdict(hidden, plain)).isEqualTo(TrustVerdict("Paused: hidden", canServeHere = true))
+        assertThat(verdict(hidden, plain, here = "10.0.0.7")).isNull()
+        assertThat(verdict(hidden.copy(address = "10.0.0.8"), plain, here = "10.0.0.7")).isNotNull()
+    }
+
+    @Test fun `https, usb only and mobile data serve anywhere`() {
+        assertThat(verdict(cafe, plain, bound = plain.copy(tlsEnabled = true))).isNull()
+        assertThat(verdict(cafe, plain, bound = plain.copy(usbOnly = true))).isNull()
+        assertThat(verdict(mobile, plain)).isNull()
+    }
+
+    @Test fun `https and usb only count as built, not as saved`() {
+        // Turned on but not restarted yet: the live server is still plain HTTP on every interface.
+        assertThat(verdict(cafe, plain.copy(tlsEnabled = true), bound = plain)).isNotNull()
+        assertThat(verdict(cafe, plain.copy(usbOnly = true), bound = plain)).isNotNull()
+    }
+
+    @Test fun `trusted wifi only never offers serving elsewhere`() {
+        val strict = plain.copy(trustedWifiOnly = true, tlsEnabled = true)
+        assertThat(verdict(home, strict)).isNull()
+        assertThat(verdict(cafe, strict)?.canServeHere).isFalse()
+        assertThat(verdict(mobile, strict)?.reason).isEqualTo("Paused: not on Wi-Fi")
+        assertThat(verdict(cafe, strict, bound = strict.copy(usbOnly = true))).isNull()
+    }
+
+    private val fp = "gw=192.168.1.1;net=192.168.1.0/24"
+    private val homeFp = home.copy(fingerprint = fp)
+    private val trustedFp = plain.copy(trustedFingerprints = mapOf(fp to "Home"))
+
+    @Test fun `a trusted network is recognised by fingerprint while its name is hidden`() {
+        assertThat(verdict(homeFp.copy(ssid = null), trustedFp)).isNull()
+        // Another network with the same fingerprint but a readable, untrusted name isn't trusted.
+        assertThat(verdict(homeFp.copy(ssid = "Cafe"), trustedFp)?.canServeHere).isTrue()
+        // Trusted Wi-Fi only still goes by name.
+        assertThat(verdict(homeFp.copy(ssid = null), trustedFp.copy(trustedWifiOnly = true))).isNotNull()
+    }
+
+    @Test fun `wired networks ask once and are remembered by fingerprint`() {
+        val wired = LocalNetwork("192.168.1.9", onWifi = true, wired = true, fingerprint = fp)
+        assertThat(verdict(wired, plain)?.reason).isEqualTo(WIRED_REASON)
+        val trusted = trustNetwork(wired, plain)!!
+        assertThat(trusted.trustedFingerprints).containsExactly(fp, "")
+        assertThat(verdict(wired, trusted)).isNull()
+    }
+
+    @Test fun `trusting records the name and the fingerprint`() {
+        val cafe = cafe.copy(fingerprint = "gw=10.0.0.1;net=10.0.0.0/24")
+        val s = trustNetwork(cafe, plain)!!
+        assertThat(s.trustedNetworks).containsExactly("Home", "Cafe")
+        assertThat(s.trustedFingerprints).containsExactly("gw=10.0.0.1;net=10.0.0.0/24", "Cafe")
+        // No name and no router: nothing to save, the controller falls back to the address.
+        assertThat(trustNetwork(LocalNetwork("10.0.0.7", onWifi = true), plain)).isNull()
+    }
+
+    @Test fun `learning records a trusted name's fingerprint`() {
+        val learned = learnTrust(homeFp, plain, servedHere = null)
+        assertThat(learned?.trustedFingerprints).containsExactly(fp, "Home")
+        assertThat(learnTrust(homeFp, learned!!, servedHere = null)).isNull()
+        assertThat(learnTrust(cafe.copy(fingerprint = "x"), plain, servedHere = null)).isNull()
+    }
+
+    @Test fun `approved while hidden stays approved when the name shows`() {
+        val approved = plain.copy(trustedFingerprints = mapOf("gw=10.0.0.1;net=10.0.0.0/24" to ""))
+        val named = cafe.copy(fingerprint = "gw=10.0.0.1;net=10.0.0.0/24")
+        assertThat(verdict(named, approved)).isNull()
+        val learned = learnTrust(named, approved, servedHere = null)!!
+        assertThat(learned.trustedNetworks).contains("Cafe")
+        assertThat(learned.trustedFingerprints).containsExactly("gw=10.0.0.1;net=10.0.0.0/24", "Cafe")
+        // Same for an address-only approval.
+        assertThat(verdict(cafe, plain, here = "10.0.0.7")).isNull()
+        assertThat(learnTrust(cafe, plain, servedHere = "10.0.0.7")?.trustedNetworks).contains("Cafe")
+    }
+
+    @Test fun `fingerprint has the subnet, router and domain`() {
+        val bytes = byteArrayOf(192.toByte(), 168.toByte(), 1, 77)
+        assertThat(networkFingerprint("192.168.1.1", bytes, 24, "lan")).isEqualTo("gw=192.168.1.1;net=192.168.1.0/24;dns=lan")
+        assertThat(networkFingerprint("10.1.0.1", byteArrayOf(10, 1, 200.toByte(), 3), 16, null)).isEqualTo("gw=10.1.0.1;net=10.1.0.0/16")
+        assertThat(describeFingerprint("gw=192.168.1.1;net=192.168.1.0/24;dns=lan")).isEqualTo("192.168.1.0/24 via 192.168.1.1 lan")
+    }
+
+    @Test fun `fingerprints survive encoding`() {
+        val map = mapOf(fp to "Home", "gw=10.0.0.1;net=10.0.0.0/8" to "")
+        assertThat(SettingsRepository.decodeFingerprints(SettingsRepository.encodeFingerprints(map))).isEqualTo(map)
+    }
+
+    @Test fun `usb only pins the route to usb and leaving it restores wifi`() {
+        val wifi = HomeState().withNetwork(home)
+        val usb = wifi.withSettings(AppSettings(usbOnly = true))
+        assertThat(usb.route).isEqualTo(Route.Usb)
+        assertThat(usb.withNetwork(home).route).isEqualTo(Route.Usb)
+        assertThat(usb.withSettings(AppSettings()).route).isEqualTo(Route.Wifi)
     }
 }
