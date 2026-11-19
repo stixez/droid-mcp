@@ -159,7 +159,18 @@ private fun ConfirmationDialogHost(center: ConfirmationCenter) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(request.detail, style = AppTheme.code.medium, modifier = Modifier.padding(top = 12.dp))
+                    // Long values start cut, the cut stated; "Show all" shows exactly what will run.
+                    var expanded by remember(request.id) { mutableStateOf(false) }
+                    Text(
+                        if (expanded) request.fullDetail else request.detail,
+                        style = AppTheme.code.medium,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    if (request.clipped) {
+                        TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                            Text(if (expanded) "Show less" else "Show all")
+                        }
+                    }
                     LinearProgressIndicator(
                         progress = { remainingMs / center.timeout.toFloat() },
                         modifier = Modifier

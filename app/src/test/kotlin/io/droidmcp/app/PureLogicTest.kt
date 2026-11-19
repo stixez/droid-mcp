@@ -137,6 +137,21 @@ class ConfirmationTextTest {
         val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", args, ToolAnnotations(), null))
         assertThat(item.detail.lines()).hasSize(7)
         assertThat(item.detail).contains("(+100 more characters)")
+        assertThat(item.clipped).isTrue()
+    }
+
+    @Test fun `full detail keeps long values whole and escaped`() {
+        val body = "a".repeat(999) + "\n"
+        val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", mapOf("message" to body, "to" to "+1"), ToolAnnotations(), null))
+        assertThat(item.fullDetail).isEqualTo("Message: ${"a".repeat(999)}\\n\nTo: +1")
+        assertThat(item.fullDetail.lines()).hasSize(2)
+        assertThat(item.detail).contains("(+701 more characters)")
+    }
+
+    @Test fun `short values aren't marked clipped`() {
+        val item = ConfirmationCenter.describe(1, ToolCallRequest("send_message", mapOf("message" to "hi"), ToolAnnotations(), null))
+        assertThat(item.clipped).isFalse()
+        assertThat(item.fullDetail).isEqualTo(item.detail)
     }
 
     @Test fun `newlines in values can't fake extra lines`() {

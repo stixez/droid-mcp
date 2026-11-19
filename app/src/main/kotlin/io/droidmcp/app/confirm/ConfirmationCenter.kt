@@ -32,7 +32,10 @@ data class PendingConfirmation(
     val title: String,
     /** Who is asking: "A connected client" or the pairing label. */
     val requester: String,
+    /** Every argument, long values cut with the cut stated: fits a notification. */
     val detail: String,
+    /** Every argument in full, escaped the same way. What the dialog shows on "Show all". */
+    val fullDetail: String = detail,
     val toolName: String,
     val clientLabel: String?,
     /** Wall-clock time this request is declined automatically. */
@@ -43,6 +46,9 @@ data class PendingConfirmation(
      */
     val screenControl: Boolean = false,
 ) {
+    /** Some value is cut in [detail], so approving needs the dialog, where it can be read whole. */
+    val clipped: Boolean get() = detail != fullDetail
+
     companion object {
         const val SCREEN_CONTROL_WARNING =
             "Allowing for 1 hour lets it tap and type in any app, including sending messages, for the next hour."
@@ -175,7 +181,8 @@ class ConfirmationCenter(
         // Approval is for the phone's owner, not whoever picks it up. Android 12+ can require an
         // unlock for a notification button; older versions can't, so there the button opens the
         // app (which needs an unlock) and the user answers in the dialog.
-        val secure = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        // A cut value can't be judged from the shade: Allow opens the dialog, which shows it all.
+        val secure = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !item.clipped
         val allowAction = if (secure) {
             NotificationCompat.Action.Builder(0, "Allow", ConfirmationReceiver.pendingIntent(context, item.id, allow = true, session))
                 .setAuthenticationRequired(true)
@@ -200,7 +207,10 @@ class ConfirmationCenter(
             .setContentTitle(item.title)
             .setSubText(item.requester)
             .setContentText(item.detail)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(item.detail))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(if (item.clipped) "${item.detail}\nOpen to read it all before allowing." else item.detail),
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setContentIntent(open)
@@ -272,15 +282,16 @@ class ConfirmationCenter(
             val action = request.annotations.title ?: humanize(request.toolName)
             // Every argument, one line each and sorted by name, so a client can neither push the
             // one that matters out of view nor fake extra lines with newlines inside a value.
-            val detail = request.arguments.entries
+            fun lines(value: (String) -> String) = request.arguments.entries
                 .sortedBy { it.key }
-                .joinToString("\n") { (k, v) -> "${humanize(oneLine(k))}: ${clip(oneLine(v.toString()))}" }
+                .joinToString("\n") { (k, v) -> "${humanize(oneLine(k))}: ${value(oneLine(v.toString()))}" }
                 .ifEmpty { "No details" }
             return PendingConfirmation(
                 id = id,
                 title = "Allow ${action.replaceFirstChar { it.lowercase() }}?",
                 requester = who,
-                detail = detail,
+                detail = lines(::clip),
+                fullDetail = lines { it },
                 toolName = request.toolName,
                 clientLabel = request.clientLabel,
                 screenControl = request.toolName in UI_DRIVERS,
